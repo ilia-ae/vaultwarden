@@ -1,0 +1,213 @@
+{
+  "@@locale": "ar",
+  "appTitle": "Vault Approver",
+  "setupSubtitle": "إعداد مرة واحدة فقط بكلمة المرور الرئيسية",
+  "serverUrlLabel": "عنوان الخادم",
+  "serverUrlHint": "https://vault.example.com",
+  "serverUrlRequired": "أدخل عنوان الخادم",
+  "serverUrlInvalid": "عنوان غير صالح",
+  "emailLabel": "البريد الإلكتروني",
+  "emailRequired": "أدخل بريدك الإلكتروني",
+  "emailInvalid": "بريد إلكتروني غير صالح",
+  "masterPasswordLabel": "كلمة المرور الرئيسية",
+  "masterPasswordRequired": "أدخل كلمة المرور الرئيسية",
+  "settingUp": "جارٍ الإعداد…",
+  "setUp": "إعداد",
+  "twoFactorTitle": "المصادقة الثنائية",
+  "twoFactorPrompt": "أدخل الرمز المكوّن من 6 أرقام من تطبيق المصادقة.",
+  "twoFactorHint": "000000",
+  "twoFactorCodeError": "أدخل 6 أرقام",
+  "cancel": "إلغاء",
+  "verify": "تحقّق",
+  "themeTooltip": "السمة: {mode}",
+  "errorInvalidCredentials": "البريد الإلكتروني أو كلمة المرور غير صحيحة",
+  "errorInvalidTwoFactorCode": "رمز المصادقة الثنائية غير صحيح",
+  "errorInvalidRequest": "طلب غير صالح — تحقّق من بياناتك",
+  "errorAccessDenied": "الخادم رفض الوصول",
+  "errorEndpointNotFound": "تعذّر العثور على الخادم — تحقّق من العنوان",
+  "errorTooManyAttempts": "محاولات كثيرة — حاول لاحقًا",
+  "errorServerRetry": "خطأ في الخادم ({status}) — حاول لاحقًا",
+  "errorServerWithData": "خطأ في الخادم ({status}): {data}",
+  "errorServer": "خطأ في الخادم ({status})",
+  "errorConnectionTimeout": "انتهت مهلة الاتصال — تحقّق من عنوان الخادم",
+  "errorCannotConnect": "تعذّر الاتصال بالخادم",
+  "errorCannotResolve": "تعذّر حلّ عنوان الخادم — تحقّق من العنوان",
+  "errorSslCertificate": "خطأ في شهادة SSL — تحقّق من عنوان الخادم",
+  "errorRequestCancelled": "تم إلغاء الطلب",
+  "errorInvalidMasterPassword": "كلمة المرور الرئيسية غير صحيحة",
+  "errorInvalidServerResponse": "استجابة غير صالحة من الخادم — تحقّق من العنوان",
+  "errorUnexpectedFormat": "تنسيق استجابة غير متوقع من الخادم",
+  "errorSessionExpired": "انتهت الجلسة — سجّل الدخول مجدّدًا",
+  "errorBiometricFailed": "فشلت المصادقة الحيوية",
+  "errorNoConnection": "لا اتصال بالخادم",
+  "errorNoConnectionSubtitle": "تحقّق من اتصال الشبكة وتوفّر الخادم",
+  "biometricReason": "أكّد هويتك للدخول إلى Vault Approver",
+  "unlockFailedMessage": "فشل فتح القفل: {error}",
+  "requestApproved": "تمّت الموافقة على الطلب",
+  "approveFailedMessage": "فشلت الموافقة: {error}",
+  "denyFailedMessage": "فشل الرفض: {error}",
+  "logoutTitle": "تسجيل الخروج",
+  "logoutConfirmation": "سيؤدّي هذا إلى حذف جميع المفاتيح المخزّنة. ستحتاج إلى إعادة الإعداد بكلمة المرور الرئيسية.",
+  "logout": "تسجيل الخروج",
+  "locked": "مقفل",
+  "unlock": "فتح القفل",
+  "authRequestsTitle": "طلبات المصادقة",
+  "pendingTab": "معلّقة",
+  "historyTab": "السجل",
+  "errorGeneric": "خطأ: {error}",
+  "retry": "إعادة المحاولة",
+  "noPendingRequests": "لا طلبات معلّقة",
+  "pullDownToRefresh": "اسحب للأسفل للتحديث",
+  "clearHistoryTitle": "مسح السجل",
+  "clearHistoryConfirmation": "ستُحذف جميع إدخالات السجل نهائيًا.",
+  "clear": "مسح",
+  "noHistoryYet": "لا سجل بعد",
+  "historyEmptySubtitle": "ستظهر هنا الطلبات المقبولة والمرفوضة",
+  "clearAll": "مسح الكل",
+  "approved": "مقبول",
+  "denied": "مرفوض",
+  "respondedIn": "الاستجابة خلال {responseStr}",
+  "justNow": "الآن",
+  "secondsAgo": "قبل {seconds} ث",
+  "minutesAgo": "قبل {minutes} د",
+  "hoursAgo": "قبل {hours} س",
+  "daysAgo": "قبل {days} ي",
+  "ipAddress": "IP: {ip}",
+  "minutesLeft": "متبقّي {minutes} د",
+  "fingerprintLabel": "عبارة البصمة:",
+  "deny": "رفض",
+  "approve": "موافقة",
+  "settings": "الإعدادات",
+  "languageSection": "اللغة",
+  "languageSystem": "النظام",
+  "themeSection": "السمة",
+  "themeAuto": "تلقائي",
+  "themeLight": "فاتح",
+  "themeDark": "داكن",
+  "lockTimeoutSection": "مهلة القفل التلقائي",
+  "autoRefreshSection": "فترة التحديث التلقائي",
+  "timeoutImmediately": "فورًا",
+  "timeoutFifteenSeconds": "15 ثانية",
+  "timeoutOneMinute": "دقيقة واحدة",
+  "timeoutFiveMinutes": "5 دقائق",
+  "timeoutFifteenMinutes": "15 دقيقة",
+  "timeoutNever": "أبدًا",
+  "pollFiveSeconds": "5 ثوانٍ",
+  "pollFifteenSeconds": "15 ثانية",
+  "pollThirtySeconds": "30 ثانية",
+  "pollOneMinute": "دقيقة واحدة",
+  "ipTrusted": "IP موثوق",
+  "ipDenied": "IP مرفوض",
+  "biometricRequiredTitle": "المصادقة الحيوية مطلوبة",
+  "biometricRequiredMessage": "يحتاج التطبيق إلى Face ID أو Touch ID أو البصمة لحفظ مفاتيح التشفير بأمان. فعّل المصادقة الحيوية من إعدادات الجهاز.",
+  "biometricUnavailable": "المصادقة الحيوية غير متاحة. فعّل Face ID أو البصمة من إعدادات الجهاز.",
+  "biometricRetry": "إعادة المحاولة",
+  "@themeTooltip": {
+    "placeholders": {
+      "mode": {
+        "type": "String"
+      }
+    }
+  },
+  "@errorServerRetry": {
+    "placeholders": {
+      "status": {
+        "type": "int"
+      }
+    }
+  },
+  "@errorServerWithData": {
+    "placeholders": {
+      "status": {
+        "type": "int"
+      },
+      "data": {
+        "type": "String"
+      }
+    }
+  },
+  "@errorServer": {
+    "placeholders": {
+      "status": {
+        "type": "int"
+      }
+    }
+  },
+  "@unlockFailedMessage": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@approveFailedMessage": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@denyFailedMessage": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@errorGeneric": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@respondedIn": {
+    "placeholders": {
+      "responseStr": {
+        "type": "String"
+      }
+    }
+  },
+  "@secondsAgo": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "@minutesAgo": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "@hoursAgo": {
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      }
+    }
+  },
+  "@daysAgo": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "@ipAddress": {
+    "placeholders": {
+      "ip": {
+        "type": "String"
+      }
+    }
+  },
+  "@minutesLeft": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  }
+}

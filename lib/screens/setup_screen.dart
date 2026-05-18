@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../app.dart';
+import '../demo_fixtures.dart';
 import '../l10n/app_localizations.dart';
 import '../providers/service_providers.dart';
 import '../providers/session_provider.dart';
@@ -25,6 +26,20 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
   bool _isLoading = false;
   String _statusMessage = '';
   bool _obscurePassword = true;
+  bool _demoTotpShown = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (demoMode == 'totp') {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && !_demoTotpShown) {
+          _demoTotpShown = true;
+          _showTotpDialog([0]);
+        }
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -130,7 +145,9 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
             children: [
               Text(AppLocalizations.of(context)!.twoFactorPrompt),
               const SizedBox(height: 16),
-              TextField(
+              Semantics(
+                identifier: 'input_totp',
+                child: TextField(
                 controller: totpController,
                 autofocus: true,
                 keyboardType: TextInputType.number,
@@ -162,6 +179,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                   }
                 },
               ),
+              ),
             ],
           ),
           actions: [
@@ -169,16 +187,19 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
               onPressed: () => Navigator.of(dialogContext).pop(null),
               child: Text(AppLocalizations.of(context)!.cancel),
             ),
-            FilledButton(
-              onPressed: () {
-                final v = totpController.text.trim();
-                if (v.length == 6) {
-                  Navigator.of(dialogContext).pop(v);
-                } else {
-                  setDialogState(() => errorText = AppLocalizations.of(context)!.twoFactorCodeError);
-                }
-              },
-              child: Text(AppLocalizations.of(context)!.verify),
+            Semantics(
+              identifier: 'btn_totp_verify',
+              child: FilledButton(
+                onPressed: () {
+                  final v = totpController.text.trim();
+                  if (v.length == 6) {
+                    Navigator.of(dialogContext).pop(v);
+                  } else {
+                    setDialogState(() => errorText = AppLocalizations.of(context)!.twoFactorCodeError);
+                  }
+                },
+                child: Text(AppLocalizations.of(context)!.verify),
+              ),
             ),
           ],
         ),
@@ -336,7 +357,9 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                   const SizedBox(height: 24),
 
                   // Submit button
-                  SizedBox(
+                  Semantics(
+                    identifier: 'btn_submit_setup',
+                    child: SizedBox(
                     width: double.infinity,
                     height: 48,
                     child: FilledButton(
@@ -359,6 +382,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                             )
                           : Text(AppLocalizations.of(context)!.setUp),
                     ),
+                  ),
                   ),
                 ],
               ),

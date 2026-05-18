@@ -155,20 +155,26 @@ class AuthRequestCard extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                OutlinedButton(
-                  onPressed: isLoading ? null : onDeny,
-                  child: Text(AppLocalizations.of(context)!.deny),
+                Semantics(
+                  identifier: 'btn_deny',
+                  child: OutlinedButton(
+                    onPressed: isLoading ? null : onDeny,
+                    child: Text(AppLocalizations.of(context)!.deny),
+                  ),
                 ),
                 const SizedBox(width: 12),
-                FilledButton(
-                  onPressed: isLoading ? null : onApprove,
-                  child: isLoading
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : Text(AppLocalizations.of(context)!.approve),
+                Semantics(
+                  identifier: 'btn_approve',
+                  child: FilledButton(
+                    onPressed: isLoading ? null : onApprove,
+                    child: isLoading
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : Text(AppLocalizations.of(context)!.approve),
+                  ),
                 ),
               ],
             ),

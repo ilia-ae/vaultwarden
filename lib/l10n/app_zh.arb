@@ -1,0 +1,213 @@
+{
+  "@@locale": "zh",
+  "appTitle": "Vault Approver",
+  "setupSubtitle": "用主密码完成一次性设置",
+  "serverUrlLabel": "服务器地址",
+  "serverUrlHint": "https://vault.example.com",
+  "serverUrlRequired": "请输入服务器地址",
+  "serverUrlInvalid": "无效的地址",
+  "emailLabel": "邮箱",
+  "emailRequired": "请输入邮箱",
+  "emailInvalid": "无效的邮箱",
+  "masterPasswordLabel": "主密码",
+  "masterPasswordRequired": "请输入主密码",
+  "settingUp": "正在设置…",
+  "setUp": "设置",
+  "twoFactorTitle": "双重验证",
+  "twoFactorPrompt": "请输入身份验证器中的 6 位验证码。",
+  "twoFactorHint": "000000",
+  "twoFactorCodeError": "请输入 6 位数字",
+  "cancel": "取消",
+  "verify": "验证",
+  "themeTooltip": "主题:{mode}",
+  "errorInvalidCredentials": "邮箱或密码错误",
+  "errorInvalidTwoFactorCode": "双重验证码错误",
+  "errorInvalidRequest": "请求无效 — 请检查凭据",
+  "errorAccessDenied": "服务器拒绝访问",
+  "errorEndpointNotFound": "未找到服务器 — 请检查地址",
+  "errorTooManyAttempts": "尝试次数过多 — 请稍后再试",
+  "errorServerRetry": "服务器错误（{status}）— 请稍后再试",
+  "errorServerWithData": "服务器错误（{status}）：{data}",
+  "errorServer": "服务器错误（{status}）",
+  "errorConnectionTimeout": "连接超时 — 请检查服务器地址",
+  "errorCannotConnect": "无法连接到服务器",
+  "errorCannotResolve": "无法解析服务器地址 — 请检查 URL",
+  "errorSslCertificate": "SSL 证书错误 — 请检查服务器地址",
+  "errorRequestCancelled": "请求已取消",
+  "errorInvalidMasterPassword": "主密码错误",
+  "errorInvalidServerResponse": "服务器响应无效 — 请检查地址",
+  "errorUnexpectedFormat": "服务器响应格式异常",
+  "errorSessionExpired": "会话已过期 — 请重新登录",
+  "errorBiometricFailed": "生物识别失败",
+  "errorNoConnection": "未连接到服务器",
+  "errorNoConnectionSubtitle": "请检查网络连接和服务器是否可用",
+  "biometricReason": "验证身份以访问 Vault Approver",
+  "unlockFailedMessage": "解锁失败：{error}",
+  "requestApproved": "请求已批准",
+  "approveFailedMessage": "批准失败：{error}",
+  "denyFailedMessage": "拒绝失败：{error}",
+  "logoutTitle": "退出登录",
+  "logoutConfirmation": "这将删除所有已保存的密钥。您需要使用主密码重新设置。",
+  "logout": "退出登录",
+  "locked": "已锁定",
+  "unlock": "解锁",
+  "authRequestsTitle": "认证请求",
+  "pendingTab": "待处理",
+  "historyTab": "历史",
+  "errorGeneric": "错误：{error}",
+  "retry": "重试",
+  "noPendingRequests": "暂无待处理请求",
+  "pullDownToRefresh": "下拉刷新",
+  "clearHistoryTitle": "清除历史",
+  "clearHistoryConfirmation": "所有历史记录将被永久删除。",
+  "clear": "清除",
+  "noHistoryYet": "暂无历史记录",
+  "historyEmptySubtitle": "已批准和已拒绝的请求将显示在此",
+  "clearAll": "全部清除",
+  "approved": "已批准",
+  "denied": "已拒绝",
+  "respondedIn": "响应耗时 {responseStr}",
+  "justNow": "刚刚",
+  "secondsAgo": "{seconds} 秒前",
+  "minutesAgo": "{minutes} 分钟前",
+  "hoursAgo": "{hours} 小时前",
+  "daysAgo": "{days} 天前",
+  "ipAddress": "IP:{ip}",
+  "minutesLeft": "剩余 {minutes} 分钟",
+  "fingerprintLabel": "指纹短语:",
+  "deny": "拒绝",
+  "approve": "批准",
+  "settings": "设置",
+  "languageSection": "语言",
+  "languageSystem": "系统",
+  "themeSection": "主题",
+  "themeAuto": "自动",
+  "themeLight": "浅色",
+  "themeDark": "深色",
+  "lockTimeoutSection": "自动锁定",
+  "autoRefreshSection": "自动刷新间隔",
+  "timeoutImmediately": "立即",
+  "timeoutFifteenSeconds": "15 秒",
+  "timeoutOneMinute": "1 分钟",
+  "timeoutFiveMinutes": "5 分钟",
+  "timeoutFifteenMinutes": "15 分钟",
+  "timeoutNever": "从不",
+  "pollFiveSeconds": "5 秒",
+  "pollFifteenSeconds": "15 秒",
+  "pollThirtySeconds": "30 秒",
+  "pollOneMinute": "1 分钟",
+  "ipTrusted": "可信 IP",
+  "ipDenied": "已拒绝 IP",
+  "biometricRequiredTitle": "需要生物识别",
+  "biometricRequiredMessage": "本应用需要 Face ID、Touch ID 或指纹识别来安全存储您的加密密钥。请在设备设置中启用生物识别。",
+  "biometricUnavailable": "生物识别不可用。请在设备设置中启用 Face ID 或指纹识别。",
+  "biometricRetry": "重试",
+  "@themeTooltip": {
+    "placeholders": {
+      "mode": {
+        "type": "String"
+      }
+    }
+  },
+  "@errorServerRetry": {
+    "placeholders": {
+      "status": {
+        "type": "int"
+      }
+    }
+  },
+  "@errorServerWithData": {
+    "placeholders": {
+      "status": {
+        "type": "int"
+      },
+      "data": {
+        "type": "String"
+      }
+    }
+  },
+  "@errorServer": {
+    "placeholders": {
+      "status": {
+        "type": "int"
+      }
+    }
+  },
+  "@unlockFailedMessage": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@approveFailedMessage": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@denyFailedMessage": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@errorGeneric": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@respondedIn": {
+    "placeholders": {
+      "responseStr": {
+        "type": "String"
+      }
+    }
+  },
+  "@secondsAgo": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "@minutesAgo": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "@hoursAgo": {
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      }
+    }
+  },
+  "@daysAgo": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "@ipAddress": {
+    "placeholders": {
+      "ip": {
+        "type": "String"
+      }
+    }
+  },
+  "@minutesLeft": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  }
+}

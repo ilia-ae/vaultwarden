@@ -145,15 +145,24 @@ class _RequestsScreenState extends ConsumerState<RequestsScreen>
               onPressed: () =>
                   ref.read(authRequestsProvider.notifier).refresh(),
             ),
-            IconButton(
-              icon: const Icon(Icons.settings),
-              onPressed: () => _showSettings(),
+            Semantics(
+              identifier: 'btn_open_settings',
+              child: IconButton(
+                icon: const Icon(Icons.settings),
+                onPressed: () => _showSettings(),
+              ),
             ),
           ],
           bottom: TabBar(
             tabs: [
-              Tab(text: AppLocalizations.of(context)!.pendingTab),
-              Tab(text: AppLocalizations.of(context)!.historyTab),
+              Semantics(
+                identifier: 'tab_pending',
+                child: Tab(text: AppLocalizations.of(context)!.pendingTab),
+              ),
+              Semantics(
+                identifier: 'tab_history',
+                child: Tab(text: AppLocalizations.of(context)!.historyTab),
+              ),
             ],
           ),
         ),
@@ -622,29 +631,27 @@ class _SettingsSheet extends ConsumerWidget {
 
             // Language
             _sectionHeader(theme, l.languageSection),
-            const SizedBox(height: 8),
+            const SizedBox(height: 4),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: SegmentedButton<Locale?>(
-                segments: [
-                  ButtonSegment<Locale?>(
-                    value: null,
-                    icon: const Icon(Icons.language, size: 18),
-                    label: Text(l.languageSystem),
-                  ),
-                  const ButtonSegment<Locale?>(
-                    value: Locale('en'),
-                    label: Text('English'),
-                  ),
-                  const ButtonSegment<Locale?>(
-                    value: Locale('ru'),
-                    label: Text('Русский'),
-                  ),
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final (value, label) in <(Locale?, String)>[
+                    (null, l.languageSystem),
+                    (const Locale('en'), 'English'),
+                    (const Locale('ru'), 'Русский'),
+                    (const Locale('ar'), 'العربية'),
+                    (const Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hans'), '简体中文'),
+                  ])
+                    ChoiceChip(
+                      label: Text(label),
+                      selected: currentLocale == value,
+                      onSelected: (_) =>
+                          ref.read(localeProvider.notifier).state = value,
+                    ),
                 ],
-                selected: {currentLocale},
-                onSelectionChanged: (v) {
-                  ref.read(localeProvider.notifier).state = v.first;
-                },
               ),
             ),
             const SizedBox(height: 20),

@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../app.dart';
+import '../demo_fixtures.dart';
 import '../l10n/app_localizations.dart';
 import '../providers/service_providers.dart';
 import '../providers/session_provider.dart';
@@ -25,6 +26,7 @@ class _LockScreenState extends ConsumerState<LockScreen>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    if (isDemoMode) return; // skip Face ID prompt — screenshots capture the lock UI itself
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       // Only prompt biometrics when iOS confirms the app is fully active;
@@ -137,13 +139,16 @@ class _LockScreenState extends ConsumerState<LockScreen>
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 16),
-              FilledButton.icon(
-                onPressed: _tryUnlock,
-                icon: Icon(_biometricUnavailable
-                    ? Icons.refresh
-                    : Icons.fingerprint),
-                label: Text(
-                    _biometricUnavailable ? l.biometricRetry : l.unlock),
+              Semantics(
+                identifier: 'btn_unlock',
+                child: FilledButton.icon(
+                  onPressed: _tryUnlock,
+                  icon: Icon(_biometricUnavailable
+                      ? Icons.refresh
+                      : Icons.fingerprint),
+                  label: Text(
+                      _biometricUnavailable ? l.biometricRetry : l.unlock),
+                ),
               ),
             ],
           ),
