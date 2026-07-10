@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 
 import '../app.dart';
 import '../l10n/app_localizations.dart';
@@ -123,14 +124,18 @@ class _RequestsScreenState extends ConsumerState<RequestsScreen>
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
+      backgroundColor: Colors.transparent, // let the glass show through
       builder: (context) => DraggableScrollableSheet(
         initialChildSize: 0.65,
         minChildSize: 0.4,
         maxChildSize: 0.9,
         expand: false,
-        builder: (context, scrollController) => _SettingsSheet(
-          onLogout: _logout,
-          scrollController: scrollController,
+        builder: (context, scrollController) => GlassContainer(
+          clipBehavior: Clip.antiAlias,
+          child: _SettingsSheet(
+            onLogout: _logout,
+            scrollController: scrollController,
+          ),
         ),
       ),
     );

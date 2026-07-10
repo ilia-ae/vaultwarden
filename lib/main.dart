@@ -2,6 +2,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 
 import 'app.dart';
 import 'demo_fixtures.dart';
@@ -25,13 +26,22 @@ Future<void> main() async {
   }
 
   final settings = await SettingsService.create();
+
+  // Pre-warm Liquid Glass shaders (prevents a white flash on first glass paint).
+  await LiquidGlassWidgets.initialize(enablePerformanceMonitor: false);
+
   runApp(
-    ProviderScope(
-      overrides: [
-        settingsServiceProvider.overrideWithValue(settings),
-        ...demoModeOverrides(),
-      ],
-      child: const App(),
+    LiquidGlassWidgets.wrap(
+      // adaptiveQuality benchmarks the device and steps glass quality up/down,
+      // so lower-end Android stays smooth while capable devices get premium.
+      adaptiveQuality: true,
+      child: ProviderScope(
+        overrides: [
+          settingsServiceProvider.overrideWithValue(settings),
+          ...demoModeOverrides(),
+        ],
+        child: const App(),
+      ),
     ),
   );
 }

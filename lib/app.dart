@@ -14,6 +14,19 @@ import 'services/settings_sync.dart';
 /// sync — when false, FirebaseAuth/Firestore are never touched.
 bool firebaseReady = false;
 
+/// Floating, rounded, dark translucent SnackBar — same in light and dark so the
+/// default Material 3 light bar never jars against the dark theme.
+const _appSnackBarTheme = SnackBarThemeData(
+  behavior: SnackBarBehavior.floating,
+  shape: RoundedRectangleBorder(
+    borderRadius: BorderRadius.all(Radius.circular(14)),
+  ),
+  backgroundColor: Color(0xE61C1C22),
+  contentTextStyle: TextStyle(color: Colors.white, fontSize: 14),
+  elevation: 6,
+  insetPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+);
+
 /// Local settings store. Overridden in main() with a loaded instance; the
 /// settings providers below read their initial values from it, and the App
 /// widget writes changes back through it.
@@ -172,11 +185,13 @@ class _AppState extends ConsumerState<App> with WidgetsBindingObserver {
         useMaterial3: true,
         colorSchemeSeed: Colors.blue,
         brightness: Brightness.light,
+        snackBarTheme: _appSnackBarTheme,
       ),
       darkTheme: ThemeData(
         useMaterial3: true,
         colorSchemeSeed: Colors.blue,
         brightness: Brightness.dark,
+        snackBarTheme: _appSnackBarTheme,
       ),
       home: sessionAsync.when(
         data: (session) {
