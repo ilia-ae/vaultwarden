@@ -36,6 +36,18 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        // Read by MainActivity.kt to conditionally disable FLAG_SECURE.
+        // Defaults to false → production builds keep screenshot protection.
+        // Set to true ONLY when the screenshot-capture harness builds via
+        //   flutter build apk --release -Pallow-screenshots=true
+        // (see mobile-stores-cicd/android/commands/screenshots_capture.py).
+        val allowScreenshots: String =
+            (project.findProperty("allow-screenshots") as String?) ?: "false"
+        buildConfigField("Boolean", "ALLOW_SCREENSHOTS", allowScreenshots)
+    }
+
+    buildFeatures {
+        buildConfig = true     // enable BuildConfig generation
     }
 
     signingConfigs {

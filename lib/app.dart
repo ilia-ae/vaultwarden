@@ -11,8 +11,39 @@ import 'screens/setup_screen.dart';
 /// Theme mode: system (default), light, or dark.
 final themeModeProvider = StateProvider<ThemeMode>((_) => ThemeMode.system);
 
-/// App locale: null = system default.
-final localeProvider = StateProvider<Locale?>((_) => null);
+/// Compile-time DEMO_LOCALE override for screenshot capture builds.
+///
+/// On iOS the simulator's `-AppleLanguages` launch argument changes the
+/// app's locale before MaterialApp resolves system default, so the
+/// existing pipeline works without recompiling. On Android the
+/// equivalent (`adb shell setprop persist.sys.locale` + reboot) doesn't
+/// always propagate to Flutter's Window.locale reliably — Flutter caches
+/// the value at engine init and post-reboot launches sometimes still
+/// see the previous locale. To make per-locale screenshot batches
+/// deterministic the capture pipeline rebuilds the APK with
+/// `--dart-define=DEMO_LOCALE=<asc-code>` and we honor it here. Empty
+/// string falls through to system default (production behavior).
+const String _demoLocale =
+    String.fromEnvironment('DEMO_LOCALE', defaultValue: '');
+
+/// Parse an ASC-style locale code (en-US, ru, ar-SA, zh-Hans) into a
+/// Flutter Locale. Distinguishes 4-letter script subtags (Hans/Hant)
+/// from 2-letter region codes.
+Locale? _parseAscLocale(String code) {
+  if (code.isEmpty) return null;
+  final parts = code.split('-');
+  if (parts.length == 1) return Locale(parts[0]);
+  final second = parts[1];
+  if (second.length == 4) {
+    return Locale.fromSubtags(languageCode: parts[0], scriptCode: second);
+  }
+  return Locale(parts[0], second);
+}
+
+/// App locale: null = system default; non-null overrides MaterialApp.locale.
+/// Initialised from DEMO_LOCALE for capture builds, otherwise null.
+final localeProvider =
+    StateProvider<Locale?>((_) => _parseAscLocale(_demoLocale));
 
 /// Lock timeout in seconds. 0 = immediate, -1 = never.
 final lockTimeoutProvider = StateProvider<int>((_) => 0);
