@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1048656681718",
+    "project_id": "vaultapprover-ae",
+    "storage_bucket": "vaultapprover-ae.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1048656681718:android:1f9c3ed6531044c3f9aad7",
+        "android_client_info": {
+          "package_name": "com.vaultapprover.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCYgG3Z5kRHoYFaZHfQTi_lv4oW1sPBrEk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

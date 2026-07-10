@@ -32,6 +32,11 @@ dependencies:
   uuid: ^4.3.0
   flutter_native_splash: ^2.4.0
 
+  # Firebase (optional settings cloud sync)
+  firebase_core: ^4.11.0
+  cloud_firestore: ^6.6.0
+  firebase_auth: ^6.5.4
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
