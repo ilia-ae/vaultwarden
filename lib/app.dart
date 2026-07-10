@@ -8,6 +8,11 @@ import 'screens/lock_screen.dart';
 import 'screens/requests_screen.dart';
 import 'screens/setup_screen.dart';
 import 'services/settings_service.dart';
+import 'services/settings_sync.dart';
+
+/// True once Firebase.initializeApp succeeded (set in main). Gates all cloud
+/// sync — when false, FirebaseAuth/Firestore are never touched.
+bool firebaseReady = false;
 
 /// Local settings store. Overridden in main() with a loaded instance; the
 /// settings providers below read their initial values from it, and the App
@@ -145,6 +150,11 @@ class _AppState extends ConsumerState<App> with WidgetsBindingObserver {
         lockTimeoutProvider, (_, next) => settings.setLockTimeout(next));
     ref.listen<int>(
         pollIntervalProvider, (_, next) => settings.setPollInterval(next));
+
+    // Activate two-way cloud sync (no-op until a user signs in).
+    if (firebaseReady) {
+      ref.watch(settingsSyncCoordinatorProvider);
+    }
 
     final sessionAsync = ref.watch(sessionProvider);
     final themeMode = ref.watch(themeModeProvider);

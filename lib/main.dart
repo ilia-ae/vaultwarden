@@ -19,6 +19,7 @@ Future<void> main() async {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
+    firebaseReady = true;
   } catch (e, st) {
     debugPrint('Firebase init failed (cloud sync disabled): $e\n$st');
   }

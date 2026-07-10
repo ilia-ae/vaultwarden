@@ -1,3 +1,5 @@
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -5,6 +7,8 @@ import '../app.dart';
 import '../l10n/app_localizations.dart';
 import '../providers/auth_requests_provider.dart';
 import '../providers/session_provider.dart';
+import '../services/auth_service.dart';
+import '../services/settings_sync.dart';
 import '../utils/error_formatter.dart';
 import '../widgets/auth_request_card.dart';
 
@@ -679,6 +683,8 @@ class _SettingsSheet extends ConsumerWidget {
                   ref.read(pollIntervalProvider.notifier).state = v,
             ),
 
+            if (firebaseReady) _accountSection(context, ref, theme),
+
             const Divider(height: 32),
 
             // Logout
@@ -703,6 +709,134 @@ class _SettingsSheet extends ConsumerWidget {
             const SizedBox(height: 16),
           ],
     );
+  }
+
+  // ── Cloud sync (Firebase) account section ──
+  // TODO(l10n): strings here are inline English pending translation once the
+  // feature is verified end-to-end (needs the Google provider enabled).
+
+  Widget _accountSection(BuildContext context, WidgetRef ref, ThemeData theme) {
+    final authState = ref.watch(authStateProvider);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Divider(height: 32),
+        _sectionHeader(theme, 'Cloud sync'),
+        const SizedBox(height: 8),
+        authState.when(
+          loading: () => const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16),
+            child: SizedBox(
+              height: 20,
+              width: 20,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+          ),
+          error: (_, __) => const SizedBox.shrink(),
+          data: (user) => user == null
+              ? _signedOut(context, ref, theme)
+              : _signedIn(context, ref, theme, user),
+        ),
+      ],
+    );
+  }
+
+  Widget _signedOut(BuildContext context, WidgetRef ref, ThemeData theme) {
+    final showApple = defaultTargetPlatform == TargetPlatform.iOS ||
+        defaultTargetPlatform == TargetPlatform.macOS;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Sign in to sync your settings (theme, language, timers) across '
+            'your devices. Your vault keys never leave this device.',
+            style: theme.textTheme.bodySmall
+                ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () => _handleSignIn(
+                  context, () => ref.read(authServiceProvider).signInWithGoogle()),
+              icon: const Icon(Icons.login, size: 18),
+              label: const Text('Continue with Google'),
+            ),
+          ),
+          if (showApple) ...[
+            const SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () => _handleSignIn(context,
+                    () => ref.read(authServiceProvider).signInWithApple()),
+                icon: const Icon(Icons.apple, size: 18),
+                label: const Text('Continue with Apple'),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _signedIn(
+      BuildContext context, WidgetRef ref, ThemeData theme, User user) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.cloud_done, size: 18, color: theme.colorScheme.primary),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  user.email ?? user.displayName ?? 'Signed in',
+                  style: theme.textTheme.bodyMedium,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Settings sync across your devices.',
+            style: theme.textTheme.bodySmall
+                ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () => ref.read(authServiceProvider).signOut(),
+              icon: const Icon(Icons.logout, size: 18),
+              label: const Text('Sign out of sync'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _handleSignIn(
+      BuildContext context, Future<Object?> Function() action) async {
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      await action();
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Signed in — settings will sync')),
+      );
+    } on AuthException catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text(e.message)));
+    } catch (_) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Sign-in failed')),
+      );
+    }
   }
 
   Widget _sectionHeader(ThemeData theme, String title) {
