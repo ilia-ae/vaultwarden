@@ -17,7 +17,8 @@ import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 /// build time via --dart-define=GOOGLE_SERVER_CLIENT_ID=... as well.
 const String googleServerClientId = String.fromEnvironment(
   'GOOGLE_SERVER_CLIENT_ID',
-  defaultValue: '',
+  defaultValue:
+      '1048656681718-5178cabf62pgcu7d86v4u8516npdvbsj.apps.googleusercontent.com',
 );
 
 /// User-facing auth failure with a message safe to show.

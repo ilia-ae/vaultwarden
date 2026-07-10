@@ -12,7 +12,20 @@
           "package_name": "com.vaultapprover.app"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "1048656681718-ogte63a86bh4l0hm6lrd9ld1hev1nsqv.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.vaultapprover.app",
+            "certificate_hash": "e9b762ffc7c48479dc33db47fb437d0cbb8bc204"
+          }
+        },
+        {
+          "client_id": "1048656681718-5178cabf62pgcu7d86v4u8516npdvbsj.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyCYgG3Z5kRHoYFaZHfQTi_lv4oW1sPBrEk"
@@ -20,7 +33,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1048656681718-5178cabf62pgcu7d86v4u8516npdvbsj.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "1048656681718-e7ghn5ope01s26bqbn1j2go3ao1p10os.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.vaultapprover.app"
+              }
+            }
+          ]
         }
       }
     }

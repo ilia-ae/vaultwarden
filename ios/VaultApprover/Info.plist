@@ -72,5 +72,17 @@
 		<false/>
 		<key>UIStatusBarHidden</key>
 		<false/>
+		<key>CFBundleURLTypes</key>
+		<array>
+			<dict>
+				<key>CFBundleTypeRole</key>
+				<string>Editor</string>
+				<key>CFBundleURLSchemes</key>
+				<array>
+					<!-- Google Sign-In: REVERSED_CLIENT_ID from GoogleService-Info.plist -->
+					<string>com.googleusercontent.apps.1048656681718-e7ghn5ope01s26bqbn1j2go3ao1p10os</string>
+				</array>
+			</dict>
+		</array>
 	</dict>
 </plist>
