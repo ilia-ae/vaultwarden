@@ -9,6 +9,14 @@ git clone https://github.com/flutter/flutter.git -b stable --depth 1 "$HOME/flut
 export PATH="$HOME/flutter/bin:$PATH"
 
 flutter --version
+
+# Force CocoaPods for iOS plugins. Recent stable Flutter enables Swift Package
+# Manager by default, which tries to pull firebase-ios-sdk via SPM and fails to
+# resolve on Xcode Cloud (no committed Package.resolved, offline resolver) —
+# only 2 pods install and `flutter build ios` aborts. CocoaPods matches the
+# verified local build (all Firebase pods install normally).
+flutter config --no-enable-swift-package-manager
+
 flutter precache --ios
 
 # Generate plugin registrant and get dependencies
