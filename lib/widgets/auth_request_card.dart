@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 
+import '../glass.dart';
 import '../l10n/app_localizations.dart';
 import '../models/auth_request.dart';
 import 'fingerprint_phrase.dart';
@@ -44,11 +46,11 @@ class AuthRequestCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Card(
+    return GlassCard(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
+      padding: const EdgeInsets.all(16),
+      settings: appGlass,
+      child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Device info row
@@ -180,7 +182,6 @@ class AuthRequestCard extends StatelessWidget {
             ),
           ],
         ),
-      ),
     );
   }
 }

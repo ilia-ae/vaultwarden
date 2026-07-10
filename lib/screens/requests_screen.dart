@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 
 import '../app.dart';
+import '../glass.dart';
 import '../l10n/app_localizations.dart';
 import '../providers/auth_requests_provider.dart';
 import '../providers/session_provider.dart';
@@ -132,6 +133,7 @@ class _RequestsScreenState extends ConsumerState<RequestsScreen>
         expand: false,
         builder: (context, scrollController) => GlassContainer(
           clipBehavior: Clip.antiAlias,
+          settings: appGlass,
           child: _SettingsSheet(
             onLogout: _logout,
             scrollController: scrollController,
