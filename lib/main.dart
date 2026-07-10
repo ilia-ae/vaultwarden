@@ -4,13 +4,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'app.dart';
 import 'demo_fixtures.dart';
+import 'services/settings_service.dart';
 
-void main() {
+Future<void> main() async {
   final binding = WidgetsFlutterBinding.ensureInitialized();
   FlutterNativeSplash.preserve(widgetsBinding: binding);
+  final settings = await SettingsService.create();
   runApp(
     ProviderScope(
-      overrides: demoModeOverrides(),
+      overrides: [
+        settingsServiceProvider.overrideWithValue(settings),
+        ...demoModeOverrides(),
+      ],
       child: const App(),
     ),
   );

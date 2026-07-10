@@ -7,9 +7,19 @@ import 'providers/session_provider.dart';
 import 'screens/lock_screen.dart';
 import 'screens/requests_screen.dart';
 import 'screens/setup_screen.dart';
+import 'services/settings_service.dart';
 
-/// Theme mode: system (default), light, or dark.
-final themeModeProvider = StateProvider<ThemeMode>((_) => ThemeMode.system);
+/// Local settings store. Overridden in main() with a loaded instance; the
+/// settings providers below read their initial values from it, and the App
+/// widget writes changes back through it.
+final settingsServiceProvider = Provider<SettingsService>(
+  (_) => throw UnimplementedError('settingsServiceProvider must be overridden'),
+);
+
+/// Theme mode: system (default), light, or dark. Persisted locally.
+final themeModeProvider = StateProvider<ThemeMode>(
+  (ref) => ref.watch(settingsServiceProvider).themeMode,
+);
 
 /// Compile-time DEMO_LOCALE override for screenshot capture builds.
 ///
@@ -41,15 +51,21 @@ Locale? _parseAscLocale(String code) {
 }
 
 /// App locale: null = system default; non-null overrides MaterialApp.locale.
-/// Initialised from DEMO_LOCALE for capture builds, otherwise null.
-final localeProvider =
-    StateProvider<Locale?>((_) => _parseAscLocale(_demoLocale));
+/// DEMO_LOCALE (screenshot builds) wins; otherwise the persisted choice.
+final localeProvider = StateProvider<Locale?>((ref) {
+  if (_demoLocale.isNotEmpty) return _parseAscLocale(_demoLocale);
+  return ref.watch(settingsServiceProvider).locale;
+});
 
-/// Lock timeout in seconds. 0 = immediate, -1 = never.
-final lockTimeoutProvider = StateProvider<int>((_) => 0);
+/// Lock timeout in seconds. 0 = immediate, -1 = never. Persisted locally.
+final lockTimeoutProvider = StateProvider<int>(
+  (ref) => ref.watch(settingsServiceProvider).lockTimeout ?? 0,
+);
 
-/// Poll interval in seconds for auth request refresh.
-final pollIntervalProvider = StateProvider<int>((_) => 15);
+/// Poll interval in seconds for auth request refresh. Persisted locally.
+final pollIntervalProvider = StateProvider<int>(
+  (ref) => ref.watch(settingsServiceProvider).pollInterval ?? 15,
+);
 
 /// Whether the app is locked (biometric required before showing content).
 /// Starts as true — the very first frame never shows sensitive data.
@@ -117,6 +133,19 @@ class _AppState extends ConsumerState<App> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
+    // Persist settings changes locally. ref.listen fires only on change
+    // (not for the loaded initial value), so this never clobbers on startup.
+    final settings = ref.read(settingsServiceProvider);
+    ref.listen<ThemeMode>(
+        themeModeProvider, (_, next) => settings.setThemeMode(next));
+    ref.listen<Locale?>(localeProvider, (_, next) {
+      if (_demoLocale.isEmpty) settings.setLocale(next);
+    });
+    ref.listen<int>(
+        lockTimeoutProvider, (_, next) => settings.setLockTimeout(next));
+    ref.listen<int>(
+        pollIntervalProvider, (_, next) => settings.setPollInterval(next));
+
     final sessionAsync = ref.watch(sessionProvider);
     final themeMode = ref.watch(themeModeProvider);
     final locale = ref.watch(localeProvider);
