@@ -749,10 +749,10 @@ class _SettingsSheet extends ConsumerWidget {
   }
 
   Widget _signedOut(BuildContext context, WidgetRef ref, ThemeData theme) {
-    // One native provider per platform: Apple on iOS/macOS, Google elsewhere.
-    // The sign-in provider IS the sync identity, so cross-ecosystem sync
-    // (Android <-> iOS) is intentionally not offered — each platform syncs
-    // within its own ecosystem.
+    // Google works on both platforms and is the reliable path. Apple is shown
+    // additionally on iOS/macOS (required by App Store rule 4.8 when a
+    // third-party login is offered). Sync identity is per-provider, so use the
+    // same provider on all your devices for them to stay in sync.
     final isApplePlatform = defaultTargetPlatform == TargetPlatform.iOS ||
         defaultTargetPlatform == TargetPlatform.macOS;
     return Padding(
@@ -769,20 +769,25 @@ class _SettingsSheet extends ConsumerWidget {
           const SizedBox(height: 12),
           SizedBox(
             width: double.infinity,
-            child: isApplePlatform
-                ? OutlinedButton.icon(
-                    onPressed: () => _handleSignIn(context,
-                        () => ref.read(authServiceProvider).signInWithApple()),
-                    icon: const Icon(Icons.apple, size: 18),
-                    label: const Text('Continue with Apple'),
-                  )
-                : OutlinedButton.icon(
-                    onPressed: () => _handleSignIn(context,
-                        () => ref.read(authServiceProvider).signInWithGoogle()),
-                    icon: const Icon(Icons.login, size: 18),
-                    label: const Text('Continue with Google'),
-                  ),
+            child: OutlinedButton.icon(
+              onPressed: () => _handleSignIn(
+                  context, () => ref.read(authServiceProvider).signInWithGoogle()),
+              icon: const Icon(Icons.login, size: 18),
+              label: const Text('Continue with Google'),
+            ),
           ),
+          if (isApplePlatform) ...[
+            const SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () => _handleSignIn(context,
+                    () => ref.read(authServiceProvider).signInWithApple()),
+                icon: const Icon(Icons.apple, size: 18),
+                label: const Text('Continue with Apple'),
+              ),
+            ),
+          ],
         ],
       ),
     );
