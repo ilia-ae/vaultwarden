@@ -3,6 +3,7 @@ import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:pointycastle/digests/sha256.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
@@ -97,14 +98,21 @@ class AuthService {
         ],
         nonce: hashedNonce,
       );
-    } on SignInWithAppleAuthorizationException catch (e) {
+    } on SignInWithAppleAuthorizationException catch (e, st) {
+      debugPrint('[AppleSignIn] AuthorizationException code=${e.code} '
+          'message=${e.message}\n$st');
       if (e.code == AuthorizationErrorCode.canceled) {
         throw AuthException('Sign-in cancelled.');
       }
       throw AuthException('Apple sign-in failed: ${e.message}');
+    } catch (e, st) {
+      debugPrint('[AppleSignIn] getAppleIDCredential unexpected: $e\n$st');
+      rethrow;
     }
 
     final idToken = appleCredential.identityToken;
+    debugPrint('[AppleSignIn] credential OK; idToken=${idToken != null}, '
+        'authCode=${appleCredential.authorizationCode.isNotEmpty}');
     if (idToken == null) {
       throw AuthException('Apple did not return an identity token.');
     }
@@ -112,8 +120,15 @@ class AuthService {
       idToken: idToken,
       rawNonce: rawNonce,
     );
-    final result = await _auth.signInWithCredential(oauth);
-    return result.user!;
+    try {
+      final result = await _auth.signInWithCredential(oauth);
+      debugPrint('[AppleSignIn] Firebase OK uid=${result.user?.uid}');
+      return result.user!;
+    } on FirebaseAuthException catch (e, st) {
+      debugPrint('[AppleSignIn] FirebaseAuthException code=${e.code} '
+          'message=${e.message}\n$st');
+      throw AuthException('Apple sign-in failed (Firebase: ${e.code})');
+    }
   }
 
   /// Sign out of Firebase (and Google, if used). Does not affect the Vault
