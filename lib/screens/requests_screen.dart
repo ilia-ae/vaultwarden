@@ -9,7 +9,6 @@ import '../glass.dart';
 import '../l10n/app_localizations.dart';
 import '../providers/auth_requests_provider.dart';
 import '../providers/session_provider.dart';
-import '../services/auth_service.dart';
 import '../services/settings_sync.dart';
 import '../utils/error_formatter.dart';
 import '../widgets/auth_request_card.dart';
@@ -835,19 +834,35 @@ class _SettingsSheet extends ConsumerWidget {
 
   Future<void> _handleSignIn(
       BuildContext context, Future<Object?> Function() action) async {
-    final messenger = ScaffoldMessenger.of(context);
+    // Diagnostic: show the real outcome in a persistent dialog (SnackBars
+    // vanish and debugPrint is a no-op in profile/release builds). A 30s
+    // timeout surfaces a hung Firebase credential exchange as an error.
     try {
-      await action();
-      messenger.showSnackBar(
-        const SnackBar(content: Text('Signed in — settings will sync')),
-      );
-    } on AuthException catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text(e.message)));
-    } catch (_) {
-      messenger.showSnackBar(
-        const SnackBar(content: Text('Sign-in failed')),
-      );
+      await action().timeout(const Duration(seconds: 30));
+      if (context.mounted) {
+        _showResultDialog(context, 'Signed in ✓', 'Settings will sync now.');
+      }
+    } catch (e) {
+      if (context.mounted) {
+        _showResultDialog(context, 'Sign-in result', e.toString());
+      }
     }
+  }
+
+  void _showResultDialog(BuildContext context, String title, String body) {
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(title),
+        content: SelectableText(body),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _sectionHeader(ThemeData theme, String title) {
