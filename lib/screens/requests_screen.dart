@@ -191,6 +191,35 @@ class _RequestsScreenState extends ConsumerState<RequestsScreen>
   }
 }
 
+/// Empty/error placeholder with IDENTICAL geometry on every tab: fills the
+/// viewport (scrollable, so pull-to-refresh keeps working) and centers its
+/// child in the area below the glass bar — so "no pending requests" and
+/// "no history yet" always sit at the same height when swiping tabs.
+class _CenteredPlaceholder extends StatelessWidget {
+  const _CenteredPlaceholder({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final topPad = MediaQuery.of(context).padding.top;
+    return LayoutBuilder(
+      builder: (context, constraints) => ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        children: [
+          SizedBox(
+            height: constraints.maxHeight,
+            child: Padding(
+              padding: EdgeInsets.only(top: topPad),
+              child: Center(child: child),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _PendingTab extends ConsumerWidget {
   final String? loadingRequestId;
   final Future<void> Function(String) onApprove;
@@ -223,14 +252,11 @@ class _PendingTab extends ConsumerWidget {
         final isAuth = isAuthError(error);
 
         return RefreshIndicator(
+          edgeOffset: MediaQuery.of(context).padding.top,
           onRefresh: () =>
               ref.read(authRequestsProvider.notifier).refresh(),
-          child: ListView(
-            children: [
-              SizedBox(
-                height: MediaQuery.of(context).size.height * 0.6,
-                child: Center(
-                  child: Padding(
+          child: _CenteredPlaceholder(
+            child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 32),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
@@ -277,47 +303,37 @@ class _PendingTab extends ConsumerWidget {
                       ],
                     ),
                   ),
-                ),
-              ),
-            ],
           ),
         );
       },
       data: (requests) {
         if (requests.isEmpty) {
           return RefreshIndicator(
+            edgeOffset: MediaQuery.of(context).padding.top,
             onRefresh: () =>
                 ref.read(authRequestsProvider.notifier).refresh(),
-            child: ListView(
-              children: [
-                SizedBox(
-                  height: MediaQuery.of(context).size.height * 0.5,
-                  child: Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.check_circle_outline,
-                          size: 64,
-                          color: Theme.of(context)
-                              .colorScheme
-                              .onSurfaceVariant,
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          AppLocalizations.of(context)!.noPendingRequests,
-                          style: Theme.of(context).textTheme.titleMedium,
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          AppLocalizations.of(context)!.pullDownToRefresh,
-                          style: Theme.of(context).textTheme.bodySmall,
-                        ),
-                      ],
-                    ),
+            child: _CenteredPlaceholder(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.check_circle_outline,
+                    size: 64,
+                    color:
+                        Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
-                ),
-              ],
+                  const SizedBox(height: 16),
+                  Text(
+                    AppLocalizations.of(context)!.noPendingRequests,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    AppLocalizations.of(context)!.pullDownToRefresh,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
+              ),
             ),
           );
         }
@@ -389,7 +405,7 @@ class _HistoryTab extends ConsumerWidget {
     final theme = Theme.of(context);
 
     if (history.isEmpty) {
-      return Center(
+      return _CenteredPlaceholder(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [

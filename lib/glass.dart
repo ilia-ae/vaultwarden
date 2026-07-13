@@ -86,14 +86,16 @@ class ContentCard extends StatelessWidget {
       padding: padding,
       decoration: ShapeDecoration(
         // ~98% opaque: a hint of the scene glow tints the surface without
-        // needing a backdrop shader.
-        color: dark ? const Color(0xFA16161D) : const Color(0xFAFFFFFF),
+        // needing a backdrop shader. Dark surface sits ~6% above the scene
+        // base so the superellipse corners actually read (on #0A0A0F a
+        // #16161D card was edge-invisible — only the top hairline showed).
+        color: dark ? const Color(0xFA1C1D26) : const Color(0xFAFFFFFF),
         shape: RoundedSuperellipseBorder(
           borderRadius: BorderRadius.circular(radius),
           side: BorderSide(
             width: 0.5,
             color: dark
-                ? Colors.white.withValues(alpha: 0.08)
+                ? Colors.white.withValues(alpha: 0.10)
                 : Colors.black.withValues(alpha: 0.05),
           ),
         ),
