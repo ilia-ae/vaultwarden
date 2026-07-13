@@ -49,7 +49,7 @@ class AuthRequestCard extends StatelessWidget {
     return GlassCard(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       padding: const EdgeInsets.all(16),
-      settings: appGlass,
+      settings: appGlassFor(theme.brightness),
       child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

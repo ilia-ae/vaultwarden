@@ -126,13 +126,14 @@ class _RequestsScreenState extends ConsumerState<RequestsScreen>
       useSafeArea: true,
       backgroundColor: Colors.transparent, // let the glass show through
       builder: (context) => DraggableScrollableSheet(
-        initialChildSize: 0.65,
+        // Open tall enough that all settings are visible without dragging.
+        initialChildSize: 0.92,
         minChildSize: 0.4,
-        maxChildSize: 0.9,
+        maxChildSize: 0.95,
         expand: false,
         builder: (context, scrollController) => GlassContainer(
           clipBehavior: Clip.antiAlias,
-          settings: appGlass,
+          settings: appGlassFor(Theme.of(context).brightness),
           child: _SettingsSheet(
             onLogout: _logout,
             scrollController: scrollController,
