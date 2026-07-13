@@ -12,6 +12,7 @@ import '../providers/session_provider.dart';
 import '../services/settings_sync.dart';
 import '../utils/error_formatter.dart';
 import '../widgets/auth_request_card.dart';
+import '../widgets/glass_top_bar.dart';
 
 class RequestsScreen extends ConsumerStatefulWidget {
   const RequestsScreen({super.key});
@@ -21,8 +22,10 @@ class RequestsScreen extends ConsumerStatefulWidget {
 }
 
 class _RequestsScreenState extends ConsumerState<RequestsScreen>
-    with WidgetsBindingObserver {
+    with WidgetsBindingObserver, TickerProviderStateMixin {
   String? _loadingRequestId;
+  late final TabController _tabController =
+      TabController(length: 2, vsync: this);
 
   @override
   void initState() {
@@ -35,6 +38,7 @@ class _RequestsScreenState extends ConsumerState<RequestsScreen>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _tabController.dispose();
     super.dispose();
   }
 
@@ -145,48 +149,40 @@ class _RequestsScreenState extends ConsumerState<RequestsScreen>
 
   @override
   Widget build(BuildContext context) {
-    return DefaultTabController(
-      length: 2,
-      child: Scaffold(
-        appBar: AppBar(
-          title: Text(AppLocalizations.of(context)!.authRequestsTitle),
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.refresh),
-              onPressed: () =>
-                  ref.read(authRequestsProvider.notifier).refresh(),
-            ),
-            Semantics(
-              identifier: 'btn_open_settings',
-              child: IconButton(
-                icon: const Icon(Icons.settings),
-                onPressed: () => _showSettings(),
-              ),
-            ),
-          ],
-          bottom: TabBar(
-            tabs: [
-              Semantics(
-                identifier: 'tab_pending',
-                child: Tab(text: AppLocalizations.of(context)!.pendingTab),
-              ),
-              Semantics(
-                identifier: 'tab_history',
-                child: Tab(text: AppLocalizations.of(context)!.historyTab),
-              ),
-            ],
+    final l = AppLocalizations.of(context)!;
+    return Scaffold(
+      // Content scrolls UNDER the glass bar — the bar refracts it.
+      extendBodyBehindAppBar: true,
+      appBar: GlassTopBar(
+        title: l.authRequestsTitle,
+        controller: _tabController,
+        tabs: [l.pendingTab, l.historyTab],
+        tabIdentifiers: const ['tab_pending', 'tab_history'],
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: () =>
+                ref.read(authRequestsProvider.notifier).refresh(),
           ),
-        ),
-        body: TabBarView(
-          children: [
-            _PendingTab(
-              loadingRequestId: _loadingRequestId,
-              onApprove: _approve,
-              onDeny: _deny,
+          Semantics(
+            identifier: 'btn_open_settings',
+            child: IconButton(
+              icon: const Icon(Icons.settings),
+              onPressed: () => _showSettings(),
             ),
-            const _HistoryTab(),
-          ],
-        ),
+          ),
+        ],
+      ),
+      body: TabBarView(
+        controller: _tabController,
+        children: [
+          _PendingTab(
+            loadingRequestId: _loadingRequestId,
+            onApprove: _approve,
+            onDeny: _deny,
+          ),
+          const _HistoryTab(),
+        ],
       ),
     );
   }
@@ -324,10 +320,13 @@ class _PendingTab extends ConsumerWidget {
         }
 
         return RefreshIndicator(
+          // Body extends behind the glass bar; start the spinner below it.
+          edgeOffset: MediaQuery.of(context).padding.top,
           onRefresh: () =>
               ref.read(authRequestsProvider.notifier).refresh(),
           child: ListView.builder(
-            padding: const EdgeInsets.only(top: 8, bottom: 16),
+            padding: EdgeInsets.only(
+                top: MediaQuery.of(context).padding.top + 8, bottom: 16),
             itemCount: requests.length,
             itemBuilder: (context, index) {
               final request = requests[index];
@@ -413,7 +412,8 @@ class _HistoryTab extends ConsumerWidget {
 
     // history.length items + 1 "Clear All" footer
     return ListView.builder(
-      padding: const EdgeInsets.only(top: 8, bottom: 32),
+      padding: EdgeInsets.only(
+          top: MediaQuery.of(context).padding.top + 8, bottom: 32),
       itemCount: history.length + 1,
       itemBuilder: (context, index) {
         // Last item = "Clear All" button
