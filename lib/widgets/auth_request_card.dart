@@ -46,7 +46,7 @@ class AuthRequestCard extends StatelessWidget {
     final theme = Theme.of(context);
 
     return ContentCard(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
       child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -156,15 +156,26 @@ class AuthRequestCard extends StatelessWidget {
               children: [
                 Semantics(
                   identifier: 'btn_deny',
-                  child: OutlinedButton(
-                    onPressed: isLoading ? null : onDeny,
-                    child: Text(AppLocalizations.of(context)!.deny),
+                  child: Pressable(
+                    child: OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size(0, 48),
+                        padding: const EdgeInsets.symmetric(horizontal: 24),
+                      ),
+                      onPressed: isLoading ? null : onDeny,
+                      child: Text(AppLocalizations.of(context)!.deny),
+                    ),
                   ),
                 ),
                 const SizedBox(width: 12),
                 Semantics(
                   identifier: 'btn_approve',
-                  child: FilledButton(
+                  child: Pressable(
+                    child: FilledButton(
+                    style: FilledButton.styleFrom(
+                      minimumSize: const Size(0, 48),
+                      padding: const EdgeInsets.symmetric(horizontal: 28),
+                    ),
                     onPressed: isLoading ? null : onApprove,
                     child: isLoading
                         ? const SizedBox(
@@ -173,6 +184,7 @@ class AuthRequestCard extends StatelessWidget {
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
                         : Text(AppLocalizations.of(context)!.approve),
+                    ),
                   ),
                 ),
               ],

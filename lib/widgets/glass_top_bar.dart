@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show HapticFeedback;
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 
 import '../glass.dart';
@@ -67,7 +68,9 @@ class GlassTopBar extends StatelessWidget implements PreferredSizeWidget {
                             title,
                             maxLines: 1,
                             style: theme.textTheme.titleLarge?.copyWith(
+                              fontSize: 28,
                               fontWeight: FontWeight.w700,
+                              letterSpacing: -0.5,
                             ),
                           ),
                         ),
@@ -154,11 +157,16 @@ class _GlassTabs extends StatelessWidget {
                     button: true,
                     child: GestureDetector(
                       behavior: HitTestBehavior.opaque,
-                      onTap: () => controller.animateTo(
-                        i,
-                        duration: const Duration(milliseconds: 450),
-                        curve: Curves.easeOutBack, // spring-like overshoot
-                      ),
+                      onTap: () {
+                        HapticFeedback.selectionClick();
+                        controller.animateTo(
+                          i,
+                          duration: MediaQuery.disableAnimationsOf(context)
+                              ? Duration.zero
+                              : const Duration(milliseconds: 450),
+                          curve: appSpring,
+                        );
+                      },
                       child: Center(
                         child: AnimatedBuilder(
                           animation: animation,

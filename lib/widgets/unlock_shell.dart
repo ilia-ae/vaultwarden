@@ -54,8 +54,13 @@ class _UnlockShellState extends State<UnlockShell>
       _veil.stop();
       _veil.value = 1;
     } else {
-      // Unlock: real content just mounted under full blur — evaporate.
-      _veil.animateWith(SpringSimulation(_spring, _veil.value, 0, 0));
+      HapticFeedback.lightImpact(); // unlock success
+      if (MediaQuery.disableAnimationsOf(context)) {
+        _veil.value = 0; // Reduce Motion: instant reveal
+      } else {
+        // Unlock: real content just mounted under full blur — evaporate.
+        _veil.animateWith(SpringSimulation(_spring, _veil.value, 0, 0));
+      }
     }
   }
 

@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show HapticFeedback;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 
@@ -52,6 +53,7 @@ class _RequestsScreenState extends ConsumerState<RequestsScreen>
   }
 
   Future<void> _approve(String requestId) async {
+    HapticFeedback.lightImpact();
     setState(() => _loadingRequestId = requestId);
     try {
       final requests = ref.read(authRequestsProvider).value ?? [];
@@ -78,6 +80,7 @@ class _RequestsScreenState extends ConsumerState<RequestsScreen>
   }
 
   Future<void> _deny(String requestId) async {
+    HapticFeedback.lightImpact();
     setState(() => _loadingRequestId = requestId);
     try {
       final requests = ref.read(authRequestsProvider).value ?? [];
@@ -444,7 +447,7 @@ class _HistoryTab extends ConsumerWidget {
           background: Container(
             alignment: Alignment.centerRight,
             padding: const EdgeInsets.only(right: 20),
-            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
             decoration: ShapeDecoration(
               color: theme.colorScheme.error,
               shape: RoundedSuperellipseBorder(
@@ -457,7 +460,7 @@ class _HistoryTab extends ConsumerWidget {
             ref.read(historyProvider.notifier).removeAt(index);
           },
           child: ContentCard(
-            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
             padding: const EdgeInsets.all(12),
             child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
