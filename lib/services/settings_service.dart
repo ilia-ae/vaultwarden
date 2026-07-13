@@ -27,10 +27,12 @@ class SettingsService {
     switch (_prefs.getString(_kThemeMode)) {
       case 'light':
         return ThemeMode.light;
-      case 'dark':
-        return ThemeMode.dark;
-      default:
+      case 'system':
         return ThemeMode.system;
+      // Dark is the app's default look — the glass design language is
+      // built dark-first. A saved choice (incl. cloud-synced) still wins.
+      default:
+        return ThemeMode.dark;
     }
   }
 

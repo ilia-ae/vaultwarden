@@ -9,6 +9,7 @@ import 'screens/requests_screen.dart';
 import 'screens/setup_screen.dart';
 import 'services/settings_service.dart';
 import 'services/settings_sync.dart';
+import 'widgets/app_background.dart';
 
 /// True once Firebase.initializeApp succeeded (set in main). Gates all cloud
 /// sync — when false, FirebaseAuth/Firestore are never touched.
@@ -192,27 +193,32 @@ class _AppState extends ConsumerState<App> with WidgetsBindingObserver {
       supportedLocales: AppLocalizations.supportedLocales,
       locale: locale,
       builder: (context, child) {
+        // Scene background under every screen (scaffolds are transparent).
+        Widget content = AppBackground(child: child!);
         if (_demoMode != 'off' && _demoBannerFlag != 'off') {
-          return Banner(
+          content = Banner(
             message: 'DEMO',
             location: BannerLocation.topEnd,
             color: Colors.deepOrange,
-            child: child!,
+            child: content,
           );
         }
-        return child!;
+        return content;
       },
       themeMode: themeMode,
       theme: ThemeData(
         useMaterial3: true,
         colorSchemeSeed: Colors.blue,
         brightness: Brightness.light,
+        // The AppBackground scene shows through every screen.
+        scaffoldBackgroundColor: Colors.transparent,
         snackBarTheme: _appSnackBarTheme,
       ),
       darkTheme: ThemeData(
         useMaterial3: true,
         colorSchemeSeed: Colors.blue,
         brightness: Brightness.dark,
+        scaffoldBackgroundColor: Colors.transparent,
         snackBarTheme: _appSnackBarTheme,
       ),
       home: sessionAsync.when(
