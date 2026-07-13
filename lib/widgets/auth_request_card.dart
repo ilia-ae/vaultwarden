@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 
 import '../glass.dart';
 import '../l10n/app_localizations.dart';
@@ -46,10 +45,8 @@ class AuthRequestCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return GlassCard(
+    return ContentCard(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      padding: const EdgeInsets.all(16),
-      settings: appGlassFor(theme.brightness),
       child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

@@ -444,17 +444,22 @@ class _HistoryTab extends ConsumerWidget {
           background: Container(
             alignment: Alignment.centerRight,
             padding: const EdgeInsets.only(right: 20),
-            color: theme.colorScheme.error,
+            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            decoration: ShapeDecoration(
+              color: theme.colorScheme.error,
+              shape: RoundedSuperellipseBorder(
+                borderRadius: BorderRadius.circular(ContentCard.radius),
+              ),
+            ),
             child: const Icon(Icons.delete, color: Colors.white),
           ),
           onDismissed: (_) {
             ref.read(historyProvider.notifier).removeAt(index);
           },
-          child: Card(
+          child: ContentCard(
             margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
+            padding: const EdgeInsets.all(12),
+            child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
@@ -536,7 +541,6 @@ class _HistoryTab extends ConsumerWidget {
                 ],
               ),
             ),
-          ),
         );
       },
     );
