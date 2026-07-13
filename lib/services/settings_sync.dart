@@ -21,8 +21,11 @@ final authServiceProvider =
     Provider<AuthService>((ref) => AuthService(ref.watch(firebaseAuthProvider)));
 
 /// Current signed-in user (null = signed out). Drives the account UI.
+/// userChanges (not authStateChanges) so provider-linking is reflected live —
+/// the coordinator below only reacts to uid changes, so extra emissions are
+/// harmless there.
 final authStateProvider = StreamProvider<User?>(
-    (ref) => ref.watch(firebaseAuthProvider).authStateChanges());
+    (ref) => ref.watch(firebaseAuthProvider).userChanges());
 
 // ── Firestore read/write of the settings document ──
 

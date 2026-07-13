@@ -819,6 +819,23 @@ class _SettingsSheet extends ConsumerWidget {
                 ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
           ),
           const SizedBox(height: 12),
+          // Offer linking the platform-native provider to THIS account, so the
+          // user can sign in either way later while keeping one uid (and one
+          // synced settings document).
+          if ((defaultTargetPlatform == TargetPlatform.iOS ||
+                  defaultTargetPlatform == TargetPlatform.macOS) &&
+              !user.providerData.any((p) => p.providerId == 'apple.com')) ...[
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () => _handleSignIn(context,
+                    () => ref.read(authServiceProvider).signInWithApple()),
+                icon: const Icon(Icons.apple, size: 18),
+                label: const Text('Connect Apple'),
+              ),
+            ),
+            const SizedBox(height: 8),
+          ],
           SizedBox(
             width: double.infinity,
             child: OutlinedButton.icon(

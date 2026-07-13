@@ -1,12 +1,6 @@
-import 'dart:convert';
-import 'dart:math';
-import 'dart:typed_data';
-
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:pointycastle/digests/sha256.dart';
-import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
 /// OAuth **Web client** ID that Firebase auto-creates when the Google
 /// sign-in provider is enabled in the console. google_sign_in (v7) needs it
@@ -79,54 +73,91 @@ class AuthService {
       throw AuthException('Google did not return an ID token.');
     }
     final credential = GoogleAuthProvider.credential(idToken: idToken);
-    final result = await _auth.signInWithCredential(credential);
-    return result.user!;
+    return _authorize(credential, provider: 'Google');
   }
 
-  /// Sign in with Apple → Firebase. Uses a hashed nonce to prevent replay.
-  /// Requires the Apple provider configured (Apple Developer + Firebase).
-  Future<User> signInWithApple() async {
-    final rawNonce = _randomNonce();
-    final hashedNonce = _sha256Hex(rawNonce);
-
-    final AuthorizationCredentialAppleID appleCredential;
-    try {
-      appleCredential = await SignInWithApple.getAppleIDCredential(
-        scopes: const [
-          AppleIDAuthorizationScopes.email,
-          AppleIDAuthorizationScopes.fullName,
-        ],
-        nonce: hashedNonce,
-      );
-    } on SignInWithAppleAuthorizationException catch (e, st) {
-      debugPrint('[AppleSignIn] AuthorizationException code=${e.code} '
-          'message=${e.message}\n$st');
-      if (e.code == AuthorizationErrorCode.canceled) {
-        throw AuthException('Sign-in cancelled.');
+  /// Sign in with (or link) [credential].
+  ///
+  /// If a user is already signed in, the new provider is LINKED to that same
+  /// account so the uid — and therefore the synced settings document — stays
+  /// the one and only. This also sidesteps `account-exists-with-different-
+  /// credential`: with Firebase's default one-account-per-email policy, a
+  /// second provider on the same email cannot create a separate account.
+  Future<User> _authorize(AuthCredential credential,
+      {required String provider}) async {
+    final current = _auth.currentUser;
+    if (current != null) {
+      try {
+        final result = await current.linkWithCredential(credential);
+        debugPrint('[$provider] linked to uid=${result.user?.uid}');
+        return result.user!;
+      } on FirebaseAuthException catch (e) {
+        debugPrint('[$provider] link failed code=${e.code} — trying sign-in');
+        if (e.code != 'provider-already-linked' &&
+            e.code != 'credential-already-in-use') {
+          throw AuthException('$provider sign-in failed (Firebase: ${e.code})');
+        }
+        // Fall through: the provider identity already belongs to an account —
+        // sign in with it instead of linking.
       }
-      throw AuthException('Apple sign-in failed: ${e.message}');
-    } catch (e, st) {
-      debugPrint('[AppleSignIn] getAppleIDCredential unexpected: $e\n$st');
-      rethrow;
     }
-
-    final idToken = appleCredential.identityToken;
-    debugPrint('[AppleSignIn] credential OK; idToken=${idToken != null}, '
-        'authCode=${appleCredential.authorizationCode.isNotEmpty}');
-    if (idToken == null) {
-      throw AuthException('Apple did not return an identity token.');
-    }
-    final oauth = OAuthProvider('apple.com').credential(
-      idToken: idToken,
-      rawNonce: rawNonce,
-    );
     try {
-      final result = await _auth.signInWithCredential(oauth);
-      debugPrint('[AppleSignIn] Firebase OK uid=${result.user?.uid}');
+      final result = await _auth.signInWithCredential(credential);
+      debugPrint('[$provider] Firebase OK uid=${result.user?.uid}');
       return result.user!;
     } on FirebaseAuthException catch (e, st) {
-      debugPrint('[AppleSignIn] FirebaseAuthException code=${e.code} '
+      debugPrint('[$provider] FirebaseAuthException code=${e.code} '
           'message=${e.message}\n$st');
+      if (e.code == 'account-exists-with-different-credential') {
+        throw AuthException(
+          'This email is already used with a different sign-in method. '
+          'Sign in with that method first, then connect $provider.',
+        );
+      }
+      throw AuthException('$provider sign-in failed (Firebase: ${e.code})');
+    }
+  }
+
+  /// Sign in with (or link) Apple via FlutterFire's built-in provider flow.
+  ///
+  /// `signInWithProvider`/`linkWithProvider` let the Firebase SDK run the
+  /// native ASAuthorization sheet AND manage the nonce internally. The manual
+  /// sign_in_with_apple + hashed-nonce dance intermittently fails Firebase
+  /// validation with `invalid-credential` (firebase-ios-sdk #15571), which is
+  /// exactly what we hit on-device.
+  Future<User> signInWithApple() async {
+    final provider = AppleAuthProvider()
+      ..addScope('email')
+      ..addScope('name');
+    final current = _auth.currentUser;
+    try {
+      // Signed in already → LINK Apple to the same uid (same settings doc).
+      final result = current != null
+          ? await current.linkWithProvider(provider)
+          : await _auth.signInWithProvider(provider);
+      debugPrint('[Apple] OK uid=${result.user?.uid} '
+          '(${current != null ? 'linked' : 'signed in'})');
+      return result.user!;
+    } on FirebaseAuthException catch (e, st) {
+      debugPrint('[Apple] FirebaseAuthException code=${e.code} '
+          'message=${e.message}\n$st');
+      if (e.code == 'provider-already-linked' ||
+          e.code == 'credential-already-in-use') {
+        // Apple identity already belongs to an account — sign in with it.
+        final result = await _auth.signInWithProvider(provider);
+        return result.user!;
+      }
+      if (e.code == 'canceled' ||
+          e.code == 'user-cancelled' ||
+          e.code == 'web-context-canceled') {
+        throw AuthException('Sign-in cancelled.');
+      }
+      if (e.code == 'account-exists-with-different-credential') {
+        throw AuthException(
+          'This email is already used with a different sign-in method. '
+          'Sign in with that method first, then connect Apple.',
+        );
+      }
       throw AuthException('Apple sign-in failed (Firebase: ${e.code})');
     }
   }
@@ -140,19 +171,5 @@ class AuthService {
       } catch (_) {/* best effort */}
     }
     await _auth.signOut();
-  }
-
-  static String _randomNonce([int length = 32]) {
-    const chars =
-        'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._';
-    final rng = Random.secure();
-    return List.generate(length, (_) => chars[rng.nextInt(chars.length)])
-        .join();
-  }
-
-  static String _sha256Hex(String input) {
-    final digest =
-        SHA256Digest().process(Uint8List.fromList(utf8.encode(input)));
-    return digest.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
   }
 }

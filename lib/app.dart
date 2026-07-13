@@ -39,6 +39,17 @@ final themeModeProvider = StateProvider<ThemeMode>(
   (ref) => ref.watch(settingsServiceProvider).themeMode,
 );
 
+/// Demo-fixtures mode (mirrors demo_fixtures.dart, read here to avoid an
+/// import cycle). When active, everything on screen is fake sample data —
+/// so we overlay a DEMO ribbon to make that unmistakable.
+const String _demoMode =
+    String.fromEnvironment('DEMO_MODE', defaultValue: 'off');
+
+/// The screenshot pipeline passes --dart-define=DEMO_BANNER=off so store
+/// screenshots stay clean; every other demo build shows the ribbon.
+const String _demoBannerFlag =
+    String.fromEnvironment('DEMO_BANNER', defaultValue: 'on');
+
 /// Compile-time DEMO_LOCALE override for screenshot capture builds.
 ///
 /// On iOS the simulator's `-AppleLanguages` launch argument changes the
@@ -180,6 +191,17 @@ class _AppState extends ConsumerState<App> with WidgetsBindingObserver {
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       locale: locale,
+      builder: (context, child) {
+        if (_demoMode != 'off' && _demoBannerFlag != 'off') {
+          return Banner(
+            message: 'DEMO',
+            location: BannerLocation.topEnd,
+            color: Colors.deepOrange,
+            child: child!,
+          );
+        }
+        return child!;
+      },
       themeMode: themeMode,
       theme: ThemeData(
         useMaterial3: true,
