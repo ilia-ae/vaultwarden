@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'l10n/app_localizations.dart';
 import 'providers/session_provider.dart';
-import 'screens/lock_screen.dart';
+import 'widgets/unlock_shell.dart';
 import 'screens/requests_screen.dart';
 import 'screens/setup_screen.dart';
 import 'services/settings_service.dart';
@@ -225,8 +225,14 @@ class _AppState extends ConsumerState<App> with WidgetsBindingObserver {
         data: (session) {
           FlutterNativeSplash.remove();
           if (session == null) return const SetupScreen();
-          if (isLocked) return const LockScreen();
-          return const RequestsScreen();
+          // Locked: a data-free skeleton sits under the frosted veil; the
+          // real screen mounts under FULL blur on unlock, then the veil
+          // evaporates (Face ID de-blur reveal).
+          return UnlockShell(
+            locked: isLocked,
+            child:
+                isLocked ? const LockSkeleton() : const RequestsScreen(),
+          );
         },
         loading: () {
           FlutterNativeSplash.remove();
