@@ -78,8 +78,9 @@ class GlassTopBar extends StatelessWidget implements PreferredSizeWidget {
                     ),
                   ),
                   if (actions != null)
-                    Positioned(
-                      right: 4,
+                    // Directional: trailing edge — flips to the left in RTL.
+                    PositionedDirectional(
+                      end: 4,
                       top: 0,
                       bottom: 0,
                       child: Row(mainAxisSize: MainAxisSize.min,
@@ -131,7 +132,9 @@ class _GlassTabs extends StatelessWidget {
             builder: (context, _) {
               final t = n == 1 ? 0.0 : animation.value / (n - 1);
               return Align(
-                alignment: Alignment(t * 2 - 1, 0),
+                // Directional: in RTL tab 0 sits on the RIGHT, so the
+                // droplet must resolve against text direction too.
+                alignment: AlignmentDirectional(t * 2 - 1, 0),
                 child: FractionallySizedBox(
                   widthFactor: 1 / n,
                   heightFactor: 1,
