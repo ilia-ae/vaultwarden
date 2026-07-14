@@ -899,23 +899,66 @@ class _SettingsSheet extends ConsumerWidget {
     );
   }
 
+  /// Selection pills shared by every settings group. iOS-26 grammar to match
+  /// the app's Approve/Deny/tab language: selected = a soft accent stadium
+  /// (no Material checkmark), unselected = a hairline-outlined stadium. Press
+  /// gives the app-wide spring squish + a selection haptic.
   Widget _buildOptionChips<T>({
     required BuildContext context,
     required List<({T value, String label})> options,
     required T selected,
     required ValueChanged<T> onSelected,
   }) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Wrap(
         spacing: 8,
-        runSpacing: 4,
+        runSpacing: 8,
         children: options.map((opt) {
           final isSelected = opt.value == selected;
-          return ChoiceChip(
-            label: Text(opt.label),
-            selected: isSelected,
-            onSelected: (_) => onSelected(opt.value),
+          return Pressable(
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () {
+                HapticFeedback.selectionClick();
+                onSelected(opt.value);
+              },
+              child: Semantics(
+                button: true,
+                selected: isSelected,
+                child: Container(
+                  // No `alignment` here: a Container with alignment expands to
+                  // the parent's max width, which in a Wrap stretches every
+                  // pill full-width. Padding alone keeps them content-sized.
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                  decoration: ShapeDecoration(
+                    color: isSelected
+                        ? cs.primaryContainer
+                        : Colors.transparent,
+                    shape: StadiumBorder(
+                      side: isSelected
+                          ? BorderSide.none
+                          : BorderSide(
+                              color: cs.outlineVariant.withValues(alpha: 0.6),
+                            ),
+                    ),
+                  ),
+                  child: Text(
+                    opt.label,
+                    style: theme.textTheme.labelLarge?.copyWith(
+                      color: isSelected
+                          ? cs.onPrimaryContainer
+                          : cs.onSurfaceVariant,
+                      fontWeight:
+                          isSelected ? FontWeight.w600 : FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ),
+            ),
           );
         }).toList(),
       ),

@@ -70,11 +70,18 @@ class ContentCard extends StatelessWidget {
     required this.child,
     this.margin,
     this.padding = const EdgeInsets.all(16),
+    this.borderColor,
+    this.borderWidth,
   });
 
   final Widget child;
   final EdgeInsetsGeometry? margin;
   final EdgeInsetsGeometry padding;
+
+  /// When set, replaces the default hairline with a coloured frame (e.g. the
+  /// pending-request trust border: green/red/grey). Null = default hairline.
+  final Color? borderColor;
+  final double? borderWidth;
 
   static const radius = 26.0;
 
@@ -93,10 +100,11 @@ class ContentCard extends StatelessWidget {
         shape: RoundedSuperellipseBorder(
           borderRadius: BorderRadius.circular(radius),
           side: BorderSide(
-            width: 0.5,
-            color: dark
-                ? Colors.white.withValues(alpha: 0.10)
-                : Colors.black.withValues(alpha: 0.05),
+            width: borderWidth ?? 0.5,
+            color: borderColor ??
+                (dark
+                    ? Colors.white.withValues(alpha: 0.10)
+                    : Colors.black.withValues(alpha: 0.05)),
           ),
         ),
         shadows: [
