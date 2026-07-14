@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'demo_runtime.dart';
 import 'l10n/app_localizations.dart';
 import 'providers/session_provider.dart';
 import 'widgets/unlock_shell.dart';
@@ -39,12 +40,6 @@ final settingsServiceProvider = Provider<SettingsService>(
 final themeModeProvider = StateProvider<ThemeMode>(
   (ref) => ref.watch(settingsServiceProvider).themeMode,
 );
-
-/// Demo-fixtures mode (mirrors demo_fixtures.dart, read here to avoid an
-/// import cycle). When active, everything on screen is fake sample data —
-/// so we overlay a DEMO ribbon to make that unmistakable.
-const String _demoMode =
-    String.fromEnvironment('DEMO_MODE', defaultValue: 'off');
 
 /// The screenshot pipeline passes --dart-define=DEMO_BANNER=off so store
 /// screenshots stay clean; every other demo build shows the ribbon.
@@ -125,6 +120,8 @@ class _AppState extends ConsumerState<App> with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Demo never locks: testers have no real key to unlock with.
+    if (demoActive) return;
     final isLocked = ref.read(isLockedProvider);
 
     if (state == AppLifecycleState.hidden ||
@@ -194,16 +191,22 @@ class _AppState extends ConsumerState<App> with WidgetsBindingObserver {
       locale: locale,
       builder: (context, child) {
         // Scene background under every screen (scaffolds are transparent).
-        Widget content = AppBackground(child: child!);
-        if (_demoMode != 'off' && _demoBannerFlag != 'off') {
-          content = Banner(
-            message: 'DEMO',
-            location: BannerLocation.topEnd,
-            color: Colors.deepOrange,
-            child: content,
-          );
-        }
-        return content;
+        final content = AppBackground(child: child!);
+        // Ribbon rebuilds live when a tester flips the runtime demo toggle.
+        return ValueListenableBuilder<bool>(
+          valueListenable: demoRuntime,
+          builder: (context, runtimeDemo, _) {
+            final showBanner =
+                runtimeDemo || (isDemoMode && _demoBannerFlag != 'off');
+            if (!showBanner) return content;
+            return Banner(
+              message: 'DEMO',
+              location: BannerLocation.topEnd,
+              color: Colors.deepOrange,
+              child: content,
+            );
+          },
+        );
       },
       themeMode: themeMode,
       theme: ThemeData(

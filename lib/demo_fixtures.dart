@@ -15,15 +15,15 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'app.dart';
+import 'demo_runtime.dart';
 import 'models/auth_request.dart';
 import 'models/user_session.dart';
 import 'providers/auth_requests_provider.dart';
 import 'providers/session_provider.dart';
 
-const String demoMode =
-    String.fromEnvironment('DEMO_MODE', defaultValue: 'off');
-
-bool get isDemoMode => demoMode != 'off';
+// Re-export the demo flags so the many `import 'demo_fixtures.dart'` sites keep
+// seeing demoMode/isDemoMode/demoActive/demoRuntime unchanged.
+export 'demo_runtime.dart';
 
 /// Provider overrides for the current demo mode.
 /// Returns empty list when DEMO_MODE=off, so production builds are unaffected.
@@ -41,7 +41,7 @@ List<Override> demoModeOverrides() {
   }
 }
 
-UserSession _demoSession() => UserSession(
+UserSession demoSession() => UserSession(
       email: 'demo@vaultapprover.app',
       serverUrl: 'https://vault.example.com',
       accessToken: 'demo-access-token',
@@ -49,7 +49,7 @@ UserSession _demoSession() => UserSession(
       accessTokenExpiry: DateTime.now().add(const Duration(hours: 1)),
     );
 
-List<AuthRequest> _demoPending() {
+List<AuthRequest> demoPendingRequests() {
   final now = DateTime.now();
   return [
     AuthRequest(
@@ -63,7 +63,7 @@ List<AuthRequest> _demoPending() {
   ];
 }
 
-List<HistoryEntry> _demoHistory() {
+List<HistoryEntry> demoHistoryEntries() {
   final now = DateTime.now();
   return [
     HistoryEntry(
@@ -121,17 +121,17 @@ List<HistoryEntry> _demoHistory() {
 
 List<Override> _mainOverrides() => [
       sessionProvider
-          .overrideWith(() => _DemoSessionNotifier(_demoSession())),
+          .overrideWith(() => _DemoSessionNotifier(demoSession())),
       authRequestsProvider
-          .overrideWith(() => _DemoAuthRequestsNotifier(_demoPending())),
+          .overrideWith(() => _DemoAuthRequestsNotifier(demoPendingRequests())),
       historyProvider
-          .overrideWith((ref) => _DemoHistoryNotifier(_demoHistory())),
+          .overrideWith((ref) => _DemoHistoryNotifier(demoHistoryEntries())),
       isLockedProvider.overrideWith((ref) => false),
     ];
 
 List<Override> _lockOverrides() => [
       sessionProvider
-          .overrideWith(() => _DemoSessionNotifier(_demoSession())),
+          .overrideWith(() => _DemoSessionNotifier(demoSession())),
       isLockedProvider.overrideWith((ref) => true),
     ];
 

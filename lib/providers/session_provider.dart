@@ -5,6 +5,7 @@ import 'dart:typed_data';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../app.dart';
+import '../demo_fixtures.dart';
 import '../models/cipher_string.dart';
 import '../models/user_session.dart';
 import 'service_providers.dart';
@@ -20,6 +21,9 @@ final sessionProvider =
 class SessionNotifier extends AsyncNotifier<UserSession?> {
   @override
   Future<UserSession?> build() async {
+    // Runtime/compile-time demo: hand back a fake session so the app routes
+    // straight into the (fixture-backed) RequestsScreen — no storage, no API.
+    if (demoActive) return demoSession();
     final storage = ref.read(secureStorageProvider);
     return storage.loadSession();
   }
@@ -151,6 +155,8 @@ class SessionNotifier extends AsyncNotifier<UserSession?> {
 
   /// Logout: clear everything.
   Future<void> logout() async {
+    // Leaving a runtime demo → back to a real (logged-out) setup screen.
+    demoRuntime.value = false;
     lock();
     final storage = ref.read(secureStorageProvider);
     await storage.clearAll();

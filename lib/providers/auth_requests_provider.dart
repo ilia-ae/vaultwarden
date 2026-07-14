@@ -7,6 +7,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../models/auth_request.dart';
 import '../app.dart';
+import '../demo_fixtures.dart';
 import '../utils/constants.dart';
 import '../utils/wordlist.dart';
 import 'service_providers.dart';
@@ -29,6 +30,9 @@ class AuthRequestsNotifier extends AsyncNotifier<List<AuthRequest>> {
 
   @override
   Future<List<AuthRequest>> build() async {
+    // Demo: serve the fixture list, no polling, no WebSocket, no API.
+    if (demoActive) return demoPendingRequests();
+
     ref.onDispose(() {
       _pollTimer?.cancel();
       _notificationSub?.cancel();
@@ -84,6 +88,7 @@ class AuthRequestsNotifier extends AsyncNotifier<List<AuthRequest>> {
 
   /// Call when app goes to background — stop polling + WebSocket.
   void pause() {
+    if (demoActive) return;
     _pollTimer?.cancel();
     _pollTimer = null;
     ref.read(notificationServiceProvider).pause();
@@ -93,6 +98,7 @@ class AuthRequestsNotifier extends AsyncNotifier<List<AuthRequest>> {
   /// Retries up to 10 times with short delays if the first attempt fails,
   /// so the user doesn't have to wait for the next poll tick.
   void resume() {
+    if (demoActive) return;
     ref.read(notificationServiceProvider).resume();
     _aggressiveRefresh();
     _startPollTimer();
@@ -159,10 +165,16 @@ class AuthRequestsNotifier extends AsyncNotifier<List<AuthRequest>> {
 
   /// Manual refresh — shows error if it fails.
   Future<void> refresh() async {
+    if (demoActive) return; // fixtures are static
     state = await AsyncValue.guard(_fetchRequests);
   }
 
   Future<void> approve(AuthRequest request) async {
+    // Demo: no crypto/API — record it in history and drop it from pending.
+    if (demoActive) {
+      _demoResolve(request, approved: true);
+      return;
+    }
     final api = ref.read(apiServiceProvider);
     final crypto = ref.read(cryptoServiceProvider);
     final storage = ref.read(secureStorageProvider);
@@ -195,6 +207,11 @@ class AuthRequestsNotifier extends AsyncNotifier<List<AuthRequest>> {
   }
 
   Future<void> deny(AuthRequest request) async {
+    // Demo: no API — record it in history and drop it from pending.
+    if (demoActive) {
+      _demoResolve(request, approved: false);
+      return;
+    }
     final api = ref.read(apiServiceProvider);
     final storage = ref.read(secureStorageProvider);
     final deviceId = await storage.getOrCreateDeviceId();
@@ -216,6 +233,22 @@ class AuthRequestsNotifier extends AsyncNotifier<List<AuthRequest>> {
         ));
 
     await refresh();
+  }
+
+  /// Demo-only resolution: append a history entry and remove the request from
+  /// the in-memory pending list. No crypto, no API, no persistence.
+  void _demoResolve(AuthRequest request, {required bool approved}) {
+    ref.read(historyProvider.notifier).add(HistoryEntry(
+          requestId: request.id,
+          deviceType: request.requestDeviceType,
+          ipAddress: request.requestIpAddress,
+          fingerprint: request.fingerprint,
+          approved: approved,
+          respondedAt: DateTime.now(),
+          requestCreatedAt: request.creationDate,
+        ));
+    final remaining = [...?state.value]..removeWhere((r) => r.id == request.id);
+    state = AsyncData(remaining);
   }
 }
 
@@ -275,7 +308,11 @@ class HistoryNotifier extends StateNotifier<List<HistoryEntry>> {
       const FlutterSecureStorage();
 
   HistoryNotifier() : super([]) {
-    _load();
+    if (demoActive) {
+      state = demoHistoryEntries();
+    } else {
+      _load();
+    }
   }
 
   Future<void> _load() async {
@@ -300,6 +337,7 @@ class HistoryNotifier extends StateNotifier<List<HistoryEntry>> {
   }
 
   Future<void> _save() async {
+    if (demoActive) return; // demo history is in-memory only
     await _storage.write(
       key: _key,
       value: jsonEncode(state.map((e) => e.toJson()).toList()),
@@ -313,6 +351,7 @@ class HistoryNotifier extends StateNotifier<List<HistoryEntry>> {
 
   Future<void> clear() async {
     state = [];
+    if (demoActive) return;
     await _storage.delete(key: _key);
   }
 }

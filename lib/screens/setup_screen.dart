@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 import '../app.dart';
 import '../demo_fixtures.dart';
@@ -28,9 +29,15 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
   bool _obscurePassword = true;
   bool _demoTotpShown = false;
 
+  // Build-version footer + hidden 5-tap demo gesture (for testers).
+  String _appVersion = '';
+  int _demoTapCount = 0;
+  DateTime? _lastDemoTap;
+
   @override
   void initState() {
     super.initState();
+    _loadVersion();
     if (demoMode == 'totp') {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted && !_demoTotpShown) {
@@ -38,6 +45,52 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
           _showTotpDialog([0]);
         }
       });
+    }
+  }
+
+  Future<void> _loadVersion() async {
+    try {
+      final info = await PackageInfo.fromPlatform();
+      if (mounted) {
+        setState(() => _appVersion = 'v${info.version} (${info.buildNumber})');
+      }
+    } catch (_) {
+      // Version is a nicety — never block the setup screen on it.
+    }
+  }
+
+  /// Tap the version 5× (within 2s between taps) to drop into demo mode.
+  void _onVersionTap() {
+    final now = DateTime.now();
+    if (_lastDemoTap == null ||
+        now.difference(_lastDemoTap!) > const Duration(seconds: 2)) {
+      _demoTapCount = 0;
+    }
+    _lastDemoTap = now;
+    _demoTapCount++;
+    if (_demoTapCount >= 3 && _demoTapCount < 5) {
+      HapticFeedback.selectionClick(); // subtle "keep going" feedback
+    }
+    if (_demoTapCount >= 5) {
+      _demoTapCount = 0;
+      _activateDemo();
+    }
+  }
+
+  void _activateDemo() {
+    HapticFeedback.mediumImpact();
+    demoRuntime.value = true;
+    // Bypass the lock gate (no real key) and rebuild the session so the app
+    // routes straight into the fixture-backed RequestsScreen.
+    ref.read(isLockedProvider.notifier).state = false;
+    ref.invalidate(sessionProvider);
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Demo mode — sample data, not a real account'),
+          duration: Duration(seconds: 3),
+        ),
+      );
     }
   }
 
@@ -260,12 +313,15 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
         elevation: 0,
       ),
       body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: Form(
-              key: _formKey,
-              child: Column(
+        child: Column(
+          children: [
+            Expanded(
+              child: Center(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(24),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(
@@ -385,8 +441,29 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                   ),
                   ),
                 ],
+                    ),
+                  ),
+                ),
               ),
             ),
+            _buildVersionFooter(theme),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildVersionFooter(ThemeData theme) {
+    if (_appVersion.isEmpty) return const SizedBox(height: 24);
+    return Padding(
+      padding: const EdgeInsets.only(top: 4, bottom: 12),
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: _onVersionTap,
+        child: Text(
+          _appVersion,
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
           ),
         ),
       ),

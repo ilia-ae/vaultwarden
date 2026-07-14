@@ -194,7 +194,7 @@ class _LockOverlayState extends ConsumerState<_LockOverlay>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    if (isDemoMode) return; // screenshots capture the lock UI itself
+    if (demoActive) return; // screenshots / demo capture the lock UI itself
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       // Only prompt biometrics when iOS confirms the app is fully active;
