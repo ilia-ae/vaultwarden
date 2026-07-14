@@ -206,6 +206,12 @@ class _CenteredPlaceholder extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) => ListView(
         physics: const AlwaysScrollableScrollPhysics(),
+        // A null padding makes ListView auto-inset MediaQuery.padding.top —
+        // which, under extendBodyBehindAppBar, is the app bar + status bar
+        // (~150pt). That shoved the centred child well below the screen
+        // middle. Zero padding keeps the box exactly the viewport height so
+        // Center lands on the true screen centre.
+        padding: EdgeInsets.zero,
         children: [
           SizedBox(
             height: constraints.maxHeight,
@@ -631,59 +637,37 @@ class _SettingsSheet extends ConsumerWidget {
 
             // Theme
             _sectionHeader(theme, l.themeSection),
-            const SizedBox(height: 8),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: SegmentedButton<ThemeMode>(
-                segments: [
-                  ButtonSegment(
-                    value: ThemeMode.system,
-                    icon: const Icon(Icons.brightness_auto, size: 18),
-                    label: Text(l.themeAuto),
-                  ),
-                  ButtonSegment(
-                    value: ThemeMode.light,
-                    icon: const Icon(Icons.light_mode, size: 18),
-                    label: Text(l.themeLight),
-                  ),
-                  ButtonSegment(
-                    value: ThemeMode.dark,
-                    icon: const Icon(Icons.dark_mode, size: 18),
-                    label: Text(l.themeDark),
-                  ),
-                ],
-                selected: {currentTheme},
-                onSelectionChanged: (v) {
-                  ref.read(themeModeProvider.notifier).state = v.first;
-                },
-              ),
+            const SizedBox(height: 4),
+            _buildOptionChips<ThemeMode>(
+              context: context,
+              options: [
+                (value: ThemeMode.system, label: l.themeAuto),
+                (value: ThemeMode.light, label: l.themeLight),
+                (value: ThemeMode.dark, label: l.themeDark),
+              ],
+              selected: currentTheme,
+              onSelected: (v) => ref.read(themeModeProvider.notifier).state = v,
             ),
             const SizedBox(height: 20),
 
             // Language
             _sectionHeader(theme, l.languageSection),
             const SizedBox(height: 4),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  for (final (value, label) in <(Locale?, String)>[
-                    (null, l.languageSystem),
-                    (const Locale('en'), 'English'),
-                    (const Locale('ru'), 'Русский'),
-                    (const Locale('ar'), 'العربية'),
-                    (const Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hans'), '简体中文'),
-                  ])
-                    ChoiceChip(
-                      label: Text(label),
-                      selected: currentLocale == value,
-                      onSelected: (_) =>
-                          ref.read(localeProvider.notifier).state = value,
-                    ),
-                ],
-              ),
+            _buildOptionChips<Locale?>(
+              context: context,
+              options: [
+                (value: null, label: l.languageSystem),
+                (value: const Locale('en'), label: 'English'),
+                (value: const Locale('ru'), label: 'Русский'),
+                (value: const Locale('ar'), label: 'العربية'),
+                (
+                  value: const Locale.fromSubtags(
+                      languageCode: 'zh', scriptCode: 'Hans'),
+                  label: '简体中文'
+                ),
+              ],
+              selected: currentLocale,
+              onSelected: (v) => ref.read(localeProvider.notifier).state = v,
             ),
             const SizedBox(height: 20),
 
