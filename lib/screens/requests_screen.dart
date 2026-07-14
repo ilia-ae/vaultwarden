@@ -191,10 +191,11 @@ class _RequestsScreenState extends ConsumerState<RequestsScreen>
   }
 }
 
-/// Empty/error placeholder with IDENTICAL geometry on every tab: fills the
-/// viewport (scrollable, so pull-to-refresh keeps working) and centers its
-/// child in the area below the glass bar — so "no pending requests" and
-/// "no history yet" always sit at the same height when swiping tabs.
+/// Empty/error placeholder anchored to the exact SCREEN center on every tab.
+/// The body fills the whole scaffold (extendBodyBehindAppBar), so centering
+/// in the full viewport height puts the child at the screen's vertical
+/// middle — identical on Pending and History, no bar-height offset.
+/// Stays scrollable so pull-to-refresh keeps working.
 class _CenteredPlaceholder extends StatelessWidget {
   const _CenteredPlaceholder({required this.child});
 
@@ -202,17 +203,13 @@ class _CenteredPlaceholder extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final topPad = MediaQuery.of(context).padding.top;
     return LayoutBuilder(
       builder: (context, constraints) => ListView(
         physics: const AlwaysScrollableScrollPhysics(),
         children: [
           SizedBox(
             height: constraints.maxHeight,
-            child: Padding(
-              padding: EdgeInsets.only(top: topPad),
-              child: Center(child: child),
-            ),
+            child: Center(child: child),
           ),
         ],
       ),

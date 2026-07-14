@@ -118,6 +118,29 @@ class ContentCard extends StatelessWidget {
 /// The glassColor tint is what keeps content readable: pure transparent glass
 /// over a dimmed modal barrier reads as a muddy grey veil, so each theme gets
 /// a translucent surface tint close to its own surface color instead.
+/// Glass tuned for the edge-to-edge top bar. `thickness`/`lightIntensity`
+/// create the refraction rim that, on a full-bleed bar, reads as an ugly
+/// frame — so they're near-zero here: a clean frosted blur with a stronger
+/// surface tint instead of a rimmed glass panel.
+LiquidGlassSettings barGlassFor(Brightness brightness) =>
+    brightness == Brightness.dark
+        ? const LiquidGlassSettings(
+            glassColor: Color(0xC612131A), // stronger tint, no visible rim
+            blur: 18,
+            thickness: 0,
+            lightIntensity: 0,
+            chromaticAberration: 0,
+            saturation: 1.2,
+          )
+        : const LiquidGlassSettings(
+            glassColor: Color(0xD6F2F4FA),
+            blur: 18,
+            thickness: 0,
+            lightIntensity: 0,
+            chromaticAberration: 0,
+            saturation: 1.2,
+          );
+
 LiquidGlassSettings appGlassFor(Brightness brightness) =>
     brightness == Brightness.dark
         ? const LiquidGlassSettings(

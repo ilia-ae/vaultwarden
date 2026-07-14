@@ -47,7 +47,8 @@ class GlassTopBar extends StatelessWidget implements PreferredSizeWidget {
       // premium REQUIRES its own LiquidGlassLayer (package asserts otherwise).
       useOwnLayer: true,
       quality: GlassQuality.premium,
-      settings: appGlassFor(theme.brightness),
+      // barGlassFor kills the refraction rim so the bar has no frame.
+      settings: barGlassFor(theme.brightness),
       clipBehavior: Clip.antiAlias,
       child: SafeArea(
         bottom: false,
