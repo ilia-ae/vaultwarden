@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 
 import '../app.dart';
+import '../demo_runtime.dart';
 import '../glass.dart';
 import '../l10n/app_localizations.dart';
 import '../providers/auth_requests_provider.dart';
@@ -176,6 +177,19 @@ class _RequestsScreenState extends ConsumerState<RequestsScreen>
           ),
         ],
       ),
+      // Demo-only: a '+' to inject fresh incoming requests into the list.
+      floatingActionButton: demoActive
+          ? Semantics(
+              identifier: 'btn_add_demo',
+              child: FloatingActionButton(
+                heroTag: 'demo_add',
+                tooltip: 'Add demo request',
+                onPressed: () =>
+                    ref.read(authRequestsProvider.notifier).addDemoRequest(),
+                child: const Icon(Icons.add),
+              ),
+            )
+          : null,
       body: TabBarView(
         controller: _tabController,
         children: [
@@ -348,7 +362,9 @@ class _PendingTab extends ConsumerWidget {
               ref.read(authRequestsProvider.notifier).refresh(),
           child: ListView.builder(
             padding: EdgeInsets.only(
-                top: MediaQuery.of(context).padding.top + 8, bottom: 16),
+                top: MediaQuery.of(context).padding.top + 8,
+                // Clear the demo '+' FAB so it never covers the last card.
+                bottom: demoActive ? 96 : 16),
             itemCount: requests.length,
             itemBuilder: (context, index) {
               final request = requests[index];

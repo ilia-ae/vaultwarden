@@ -235,6 +235,13 @@ class AuthRequestsNotifier extends AsyncNotifier<List<AuthRequest>> {
     await refresh();
   }
 
+  /// Demo-only: the '+' action injects a fresh incoming request on top of the
+  /// pending list so testers can see the arrival + trust-frame behaviour.
+  void addDemoRequest() {
+    if (!demoActive) return;
+    state = AsyncData([demoRandomPending(), ...?state.value]);
+  }
+
   /// Demo-only resolution: append a history entry and remove the request from
   /// the in-memory pending list. No crypto, no API, no persistence.
   void _demoResolve(AuthRequest request, {required bool approved}) {

@@ -454,12 +454,16 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
   }
 
   Widget _buildVersionFooter(ThemeData theme) {
-    if (_appVersion.isEmpty) return const SizedBox(height: 24);
-    return Padding(
-      padding: const EdgeInsets.only(top: 4, bottom: 12),
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: _onVersionTap,
+    if (_appVersion.isEmpty) return const SizedBox(height: 48);
+    // Full-width, tall tap strip — the 5-tap demo gesture was hard to hit on
+    // the bare text alone.
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: _onVersionTap,
+      child: Container(
+        width: double.infinity,
+        alignment: Alignment.center,
+        padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 24),
         child: Text(
           _appVersion,
           style: theme.textTheme.bodySmall?.copyWith(

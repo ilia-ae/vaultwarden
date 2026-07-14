@@ -12,6 +12,8 @@
 //
 // Capture pipeline drives this from screenshots-capture, then runs Maestro
 // flows that take simctl screenshots of each state.
+import 'dart:math';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'app.dart';
@@ -61,6 +63,49 @@ List<AuthRequest> demoPendingRequests() {
       fingerprint: 'ocean-mountain-river-cloud-fox',
     ),
   ];
+}
+
+// ── Runtime demo: the '+' action synthesises fresh incoming requests ──
+
+final _demoRng = Random();
+
+/// Sample devices for the '+' button. Some IPs match [demoHistoryEntries] so
+/// the injected cards show varied trust frames (green/red/grey).
+const _demoSampleDevices = <(String, String)>[
+  ('Chrome on Windows', '198.51.100.18'), // denied before → red frame
+  ('Safari on macOS', '192.168.1.50'), // approved before → green frame
+  ('Firefox on Linux', '203.0.113.42'), // approved before → green frame
+  ('Brave on macOS', '10.0.1.15'), // approved before → green frame
+  ('Safari on iPhone', '10.0.1.22'), // approved before → green frame
+  ('Edge on Windows', '2a03:b0c0:3:d0::79:7001'), // new → grey frame
+  ('Chrome on Android', '172.16.0.4'), // new → grey frame
+  ('Vivaldi on Linux', '45.77.12.9'), // new → grey frame
+];
+
+const _demoWords = [
+  'ocean', 'mountain', 'river', 'cloud', 'fox', 'ember', 'willow', 'harbor',
+  'copper', 'lantern', 'meadow', 'quartz', 'raven', 'saffron', 'tundra',
+  'violet', 'walnut', 'zephyr', 'cedar', 'marble',
+];
+
+String _demoFingerprint() {
+  final words = [..._demoWords]..shuffle(_demoRng);
+  return words.take(5).join('-');
+}
+
+/// A single fresh incoming request for the runtime-demo '+' button.
+AuthRequest demoRandomPending() {
+  final (device, ip) =
+      _demoSampleDevices[_demoRng.nextInt(_demoSampleDevices.length)];
+  final now = DateTime.now();
+  return AuthRequest(
+    id: 'demo-add-${now.microsecondsSinceEpoch}',
+    publicKey: 'demo-public-key',
+    requestDeviceType: device,
+    requestIpAddress: ip,
+    creationDate: now,
+    fingerprint: _demoFingerprint(),
+  );
 }
 
 List<HistoryEntry> demoHistoryEntries() {
