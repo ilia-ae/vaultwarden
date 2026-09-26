@@ -10,14 +10,27 @@
 /// ─► per-charset minimum samples, union fill, Fisher-Yates shuffle
 /// ```
 ///
-/// Pure Dart (no Flutter imports), top-level functions only: run it through
-/// `Isolate.run`, since PBKDF2 (2048 × HMAC-SHA512) dominates the cost.
+/// Pure Dart (no Flutter imports), top-level functions only. Run it through
+/// `Isolate.run`: PBKDF2 (2048 × HMAC-SHA512) dominates the cost, and an
+/// isolate's heap, with whatever this library could not wipe, is released as
+/// a whole when the isolate exits.
 ///
-/// Every buffer this library allocates for secret material (seed, BIP32
-/// keys and chain codes, entropy, DRBG key/counter, password bytes) is
-/// zeroed before it is dropped. Caller-owned inputs such as a raw seed are
-/// never modified. pointycastle's internal state (AES round keys, HMAC pads)
-/// and Dart `String`s cannot be wiped; they become garbage after the call.
+/// Memory hygiene, precisely:
+///
+/// * Zeroed before they are dropped (also on error paths): every byte buffer
+///   this library allocates for secret material. That covers the UTF-8 phrase
+///   and salt, PBKDF2's U/T/block buffers, the seed from a phrase, BIP32 keys
+///   and chain codes, HMAC outputs, the entropy, the DRBG key, counter and
+///   temporaries, `blockCipherDf` buffers and the password bytes.
+/// * Scrubbed in place: HMAC key pads (the `HMac` is re-initialised with an
+///   empty key, which overwrites `key ^ ipad`, `key ^ opad` and the SHA-512
+///   state/W buffer) and AES round-key schedules ([WipeableAesEngine]).
+/// * Not wipeable; stays until garbage collection: Dart `String`s (phrase,
+///   passphrase, nickname and the returned password or PIN), the code-point
+///   lists `unorm_dart` builds during NFKD, and the `Register64` temporaries
+///   inside pointycastle's SHA-2.
+///
+/// Caller-owned inputs such as a raw seed are never modified.
 library;
 
 import 'dart:convert';
@@ -105,6 +118,12 @@ const String _bip39InvalidMessage =
 
 /// Every error the Python module raises, as a stable [code] plus the exact
 /// Python message.
+///
+/// [message] is Python-parity text for tests and diagnostics, not UI copy.
+/// For [passphraseNotUtf8] and [nicknameNotUtf8] it quotes an input
+/// character and its position ([messageQuotesInput]), so it must never be
+/// displayed or logged: the UI maps [code] to a fixed localized string, and
+/// [toString] omits the message for those codes.
 class Pin24Exception implements Exception {
   const Pin24Exception(this.code, this.message);
 
@@ -135,10 +154,19 @@ class Pin24Exception implements Exception {
   static const String bip32Invalid = 'BIP32_INVALID';
 
   final String code;
+
+  /// The exact Python message; see the class docs before showing it.
   final String message;
 
+  /// Whether [message] quotes part of the secret input (a character of the
+  /// passphrase or nickname and its position).
+  bool get messageQuotesInput =>
+      code == passphraseNotUtf8 || code == nicknameNotUtf8;
+
   @override
-  String toString() => 'Pin24Exception($code): $message';
+  String toString() => messageQuotesInput
+      ? 'Pin24Exception($code): [message withheld: it quotes the input]'
+      : 'Pin24Exception($code): $message';
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -148,20 +176,89 @@ class Pin24Exception implements Exception {
 /// Python `" ".join(phrase.lower().split())`: lowercase, collapse runs of
 /// Python whitespace (not Dart's `\s`: U+FEFF and U+200B are not separators,
 /// U+001C–001F and U+0085 are) into single spaces, trim. No NFKD here.
+///
+/// Parity with Python is guaranteed on the projection that matters for
+/// BIP39: which characters are ASCII `a`–`z` and where the word boundaries
+/// are. BIP39 validity and the derived seed are therefore identical. The
+/// full string can differ for other letters (see [pythonLower]): about 437
+/// code points whose case mapping is newer than Dart's tables, and the Greek
+/// final sigma (Python: `ΟΔΟΣ` → `οδος`, Dart: `οδοσ`). Do not present
+/// this output as "Python's normalised phrase".
 String normalizeSeedPhrase(String phrase) =>
     pythonSplit(pythonLower(phrase)).join(' ');
 
+/// Code points that `unorm_dart` 0.3.2 normalises differently from Python
+/// 3.14's `unicodedata` (Unicode 16.0.0), which is the reference for every
+/// derived seed:
+///
+/// * U+1ACF–1ADD, U+1AE0–1AEB, U+10EFA–10EFB, U+1E6E3, U+1E6E6, U+1E6EE,
+///   U+1E6EF, U+1E6F5: combining marks added in Unicode 17. `unorm_dart`
+///   ships Unicode 17 data and reorders them (ccc ≠ 0); in Unicode 16 they
+///   are unassigned starters (ccc 0) that nothing may move across.
+/// * U+A7F1: Unicode 17 `<super> S`; unassigned (unchanged) in Unicode 16.
+/// * U+D7A4: one past the last Hangul syllable. `unorm_dart` has an
+///   off-by-one in `lib/src/uchar.dart` (`_SBase + _SCount < cp` should be
+///   `<=`) and decomposes it to U+1113 U+1161; it is unassigned, so it must
+///   stay as is. Reported upstream:
+///   https://github.com/yshrsmz/unorm-dart/issues/84
+///
+/// All 36 are unassigned in Unicode 16: ccc 0 and no decomposition.
+bool _isUnormDivergentCodePoint(int cp) =>
+    (cp >= 0x1ACF && cp <= 0x1ADD) ||
+    (cp >= 0x1AE0 && cp <= 0x1AEB) ||
+    cp == 0xA7F1 ||
+    cp == 0xD7A4 ||
+    cp == 0x10EFA ||
+    cp == 0x10EFB ||
+    cp == 0x1E6E3 ||
+    cp == 0x1E6E6 ||
+    cp == 0x1E6EE ||
+    cp == 0x1E6EF ||
+    cp == 0x1E6F5;
+
+/// Python 3.14 `unicodedata.normalize("NFKD", s)` (Unicode 16.0.0).
+///
+/// `unorm_dart` 0.3.2 agrees with Python on every code point except 36 (see
+/// [_isUnormDivergentCodePoint]; verified exhaustively over U+0000–10FFFF,
+/// alone and inside canonical-reordering probes, by the test suite). Those
+/// 36 are unassigned starters in Unicode 16: NFKD leaves them unchanged and
+/// no combining mark is reordered across them. So the input is split at
+/// them, `unorm.nfkd` runs on the pieces in between, and the pieces are
+/// joined around the untouched code points; that is exactly Python's result.
+///
+/// Lone surrogates pass through unchanged (as in Python), so strict UTF-8
+/// encoding afterwards reports them at Python's position.
+String pythonNfkd(String s) {
+  StringBuffer? out;
+  var start = 0;
+  final it = s.runes.iterator;
+  while (it.moveNext()) {
+    if (!_isUnormDivergentCodePoint(it.current)) continue;
+    final buffer = out ??= StringBuffer();
+    if (it.rawIndex > start) {
+      buffer.write(unorm.nfkd(s.substring(start, it.rawIndex)));
+    }
+    buffer.writeCharCode(it.current);
+    start = it.rawIndex + it.currentSize;
+  }
+  if (out == null) return unorm.nfkd(s);
+  if (start < s.length) out.write(unorm.nfkd(s.substring(start)));
+  return out.toString();
+}
+
 /// BIP39 mnemonic → 64-byte seed (python-mnemonic 0.21 semantics).
 ///
-/// The phrase is normalised ([normalizeSeedPhrase]), NFKD-folded, split on
-/// single spaces and must pass the English wordlist + checksum test, else
-/// [Pin24Exception.bip39Invalid]. The seed is
-/// PBKDF2-HMAC-SHA512(NFKD(phrase), "mnemonic" + NFKD([passphrase]), 2048).
-/// The passphrase is not trimmed or case-folded.
+/// The phrase is normalised ([normalizeSeedPhrase]), NFKD-folded
+/// ([pythonNfkd]), split on single spaces and must pass the English
+/// wordlist + checksum test, else [Pin24Exception.bip39Invalid]. The seed is
+/// PBKDF2-HMAC-SHA512(NFKD(phrase), "mnemonic" + NFKD([passphrase]), 2048);
+/// a lone surrogate in the passphrase then throws
+/// [Pin24Exception.passphraseNotUtf8]. The passphrase is not trimmed or
+/// case-folded.
 ///
 /// The returned buffer belongs to the caller, who should zero it after use.
 Uint8List bip39ToSeed(String phrase, {String passphrase = ''}) {
-  final nfkdPhrase = unorm.nfkd(normalizeSeedPhrase(phrase));
+  final nfkdPhrase = pythonNfkd(normalizeSeedPhrase(phrase));
   if (!bip39ChecksumValid(nfkdPhrase.split(' '))) {
     throw const Pin24Exception(
       Pin24Exception.bip39Invalid,
@@ -169,20 +266,64 @@ Uint8List bip39ToSeed(String phrase, {String passphrase = ''}) {
     );
   }
   final salt = _utf8Strict(
-    'mnemonic${unorm.nfkd(passphrase)}',
+    'mnemonic${pythonNfkd(passphrase)}',
     Pin24Exception.passphraseNotUtf8,
   );
   // A valid phrase is plain ASCII after NFKD.
   final password = utf8.encode(nfkdPhrase);
   try {
-    final kdf = PBKDF2KeyDerivator(HMac(SHA512Digest(), 128))
-      ..init(Pbkdf2Parameters(salt, 2048, 64));
-    return kdf.process(password);
+    return _pbkdf2HmacSha512(password, salt, 2048);
   } finally {
     password.fillRange(0, password.length, 0);
     salt.fillRange(0, salt.length, 0);
   }
 }
+
+/// PBKDF2-HMAC-SHA512 (RFC 8018) for a 64-byte key, i.e. exactly one block:
+/// T = U1 ^ … ^ Uc with U1 = HMAC(P, S ‖ INT(1)), Ui = HMAC(P, Ui−1).
+///
+/// pointycastle's `PBKDF2KeyDerivator` keeps copies of the password, the
+/// output and its state in buffers it never clears; this version owns every
+/// buffer, zeroes U and S ‖ INT(1) always and T on error, and scrubs the
+/// HMAC key pads before returning.
+Uint8List _pbkdf2HmacSha512(Uint8List password, Uint8List salt, int rounds) {
+  const hLen = 64;
+  final mac = HMac(SHA512Digest(), 128);
+  final u = Uint8List(hLen);
+  final t = Uint8List(hLen);
+  final block = Uint8List(salt.length + 4);
+  var ok = false;
+  try {
+    mac.init(KeyParameter(password));
+    block
+      ..setRange(0, salt.length, salt)
+      ..[salt.length + 3] = 1; // INT(1), big-endian
+    mac
+      ..update(block, 0, block.length)
+      ..doFinal(u, 0);
+    t.setRange(0, hLen, u);
+    for (var i = 1; i < rounds; i++) {
+      mac
+        ..update(u, 0, hLen)
+        ..doFinal(u, 0);
+      for (var j = 0; j < hLen; j++) {
+        t[j] ^= u[j];
+      }
+    }
+    ok = true;
+    return t;
+  } finally {
+    u.fillRange(0, hLen, 0);
+    block.fillRange(0, block.length, 0);
+    if (!ok) t.fillRange(0, hLen, 0);
+    _scrubHmac(mac);
+  }
+}
+
+/// Overwrites an [HMac]'s key-dependent state (`key ^ ipad`, `key ^ opad`
+/// and the digest's state/W buffer) with constants: re-initialising with an
+/// empty key reuses the same buffers.
+void _scrubHmac(HMac mac) => mac.init(KeyParameter(Uint8List(0)));
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Public derivation API
@@ -197,8 +338,10 @@ Uint8List bip39ToSeed(String phrase, {String passphrase = ''}) {
 /// "numbers + separators" toggles.
 ///
 /// Throws [Pin24Exception]; checks run in the Python order: seed source,
-/// BIP39, seed length, nickname empty, nickname UTF-8, size, mask,
-/// `minFromSet` length, minimums vs size, `size > 256`.
+/// BIP39, passphrase UTF-8, seed length, nickname empty, nickname UTF-8,
+/// size, mask, `minFromSet` length, minimums vs size, `size > 256`
+/// ([Pin24Exception.moduloRange]). The last two are decided before any
+/// allocation or draw, so a huge [size] fails fast (see [sampleUnshuffled]).
 String derivePassword({
   String? seedPhrase,
   Uint8List? bip39Seed,
@@ -459,9 +602,16 @@ Bip32Node bip32HardenedChild(Uint8List key, Uint8List chain, int index) {
   return Bip32Node(childKey, childChain);
 }
 
+/// HMAC-SHA512 into a fresh buffer the caller owns and wipes; the HMAC's
+/// key pads are scrubbed before returning.
 Uint8List _hmacSha512(Uint8List key, Uint8List data) {
-  final mac = HMac(SHA512Digest(), 128)..init(KeyParameter(key));
-  return mac.process(data);
+  final mac = HMac(SHA512Digest(), 128);
+  try {
+    mac.init(KeyParameter(key));
+    return mac.process(data);
+  } finally {
+    _scrubHmac(mac);
+  }
 }
 
 bool _isZero(Uint8List bytes) {
@@ -518,6 +668,40 @@ int _compare33(Uint8List a, Uint8List b) {
 // mbedtls CTR_DRBG-AES-256 as configured by BOLOS for app-passwords
 // ─────────────────────────────────────────────────────────────────────────────
 
+/// pointycastle's [AESEngine] whose round-key schedules can be wiped.
+///
+/// `AESEngine.init` allocates a new schedule on every call (through the
+/// public `generateWorkingKey`) and simply drops the previous one, so
+/// re-keying never erases old round keys. This subclass remembers the
+/// schedule it handed out, zeroes the previous one in place on every re-key,
+/// and zeroes the current one on [wipeKeySchedule]. The block state itself
+/// lives in locals only.
+class WipeableAesEngine extends AESEngine {
+  List<List<int>>? _schedule;
+
+  @override
+  List<List<int>> generateWorkingKey(
+    bool forEncryption,
+    KeyParameter params,
+  ) {
+    final schedule = super.generateWorkingKey(forEncryption, params);
+    wipeKeySchedule();
+    _schedule = schedule;
+    return schedule;
+  }
+
+  /// Zeroes the current round keys in place. The engine then encrypts with
+  /// an all-zero schedule (not a valid AES key) until it is re-initialised.
+  void wipeKeySchedule() {
+    final schedule = _schedule;
+    if (schedule == null) return;
+    for (final round in schedule) {
+      round.fillRange(0, round.length, 0);
+    }
+    _schedule = null;
+  }
+}
+
 /// NIST SP 800-90A block-cipher derivation function, mbedtls flavour
 /// (`block_cipher_df` in `ctr_drbg.c`): CBC-MAC under key 00 01 … 1F over
 /// IV ‖ u32be(len) ‖ u32be(48) ‖ [data] ‖ 0x80, three times with only IV byte
@@ -534,13 +718,42 @@ Uint8List blockCipherDf(Uint8List data) {
     ..setUint32(_blockSize, data.length)
     ..setUint32(_blockSize + 4, _seedLen);
 
-  final aes = AESEngine()
+  final aes = WipeableAesEngine()
     ..init(
       true,
       KeyParameter(Uint8List.fromList(List<int>.generate(_keySize, (i) => i))),
     );
   final tmp = Uint8List(_seedLen);
   final chain = Uint8List(_blockSize);
+  final outKey = Uint8List(_keySize);
+  final iv = Uint8List(_blockSize);
+  final out = Uint8List(_seedLen);
+  var ok = false;
+  try {
+    _blockCipherDfInto(aes, buf, bufLen, tmp, chain, outKey, iv, out);
+    ok = true;
+    return out;
+  } finally {
+    for (final b in [buf, tmp, chain, outKey, iv]) {
+      b.fillRange(0, b.length, 0);
+    }
+    if (!ok) out.fillRange(0, out.length, 0);
+    aes.wipeKeySchedule();
+  }
+}
+
+/// The CBC-MAC and output stages of [blockCipherDf], writing into buffers
+/// the caller owns and wipes.
+void _blockCipherDfInto(
+  WipeableAesEngine aes,
+  Uint8List buf,
+  int bufLen,
+  Uint8List tmp,
+  Uint8List chain,
+  Uint8List outKey,
+  Uint8List iv,
+  Uint8List out,
+) {
   for (var j = 0; j < _seedLen; j += _blockSize) {
     chain.fillRange(0, _blockSize, 0);
     var p = 0;
@@ -558,18 +771,13 @@ Uint8List blockCipherDf(Uint8List data) {
     buf[3] = (buf[3] + 1) & 0xff;
   }
 
-  final outKey = Uint8List.fromList(Uint8List.sublistView(tmp, 0, _keySize));
-  final iv = Uint8List.fromList(Uint8List.sublistView(tmp, _keySize));
+  outKey.setRange(0, _keySize, tmp);
+  iv.setRange(0, _blockSize, tmp, _keySize);
   aes.init(true, KeyParameter(outKey));
-  final out = Uint8List(_seedLen);
   for (var j = 0; j < _seedLen; j += _blockSize) {
     aes.processBlock(iv, 0, out, j);
     iv.setRange(0, _blockSize, out, j);
   }
-  for (final b in [buf, tmp, chain, outKey, iv]) {
-    b.fillRange(0, b.length, 0);
-  }
-  return out;
 }
 
 /// mbedtls CTR_DRBG with AES-256 and the derivation function, as BOLOS
@@ -597,7 +805,7 @@ class CtrDrbg {
 
   final Uint8List _key = Uint8List(_keySize);
   final Uint8List _v = Uint8List(_blockSize);
-  final AESEngine _aes = AESEngine();
+  final WipeableAesEngine _aes = WipeableAesEngine();
   int _generateCalls = 0;
 
   /// Copy of the current key K (for tests and cross-checks).
@@ -681,12 +889,12 @@ class CtrDrbg {
     }
   }
 
-  /// Zeroes K and V and drops the AES round keys. The instance must not be
-  /// used afterwards.
+  /// Zeroes K, V and the AES round keys in place (every earlier schedule was
+  /// already zeroed on re-key). The instance must not be used afterwards.
   void wipe() {
     _key.fillRange(0, _keySize, 0);
     _v.fillRange(0, _blockSize, 0);
-    _rekey();
+    _aes.wipeKeySchedule();
   }
 }
 
@@ -698,7 +906,19 @@ class CtrDrbg {
 /// append it to the union and sample its minimum count; then fill the rest
 /// from the union. Returns the unshuffled bytes (caller owns and wipes them).
 ///
-/// Negative minimums count as 0; minimums of disabled sets are ignored.
+/// Negative minimums count as 0; minimums of disabled sets are ignored. The
+/// "minimums exceed size" check is overflow-safe (`minCount > size - offset`),
+/// so minimums up to 2^63 − 1 give [Pin24Exception.minExceedsSize] like
+/// Python instead of wrapping around.
+///
+/// `size > 256` can never produce a password: Python samples all `size`
+/// bytes and then fails in the shuffle's first `rng_u8_modulo(size)`. The
+/// outcome depends only on the minimums, so it is decided up front, before
+/// any allocation or draw: [Pin24Exception.minExceedsSize] if the enabled
+/// sets' positive minimums add up to more than [size] (Python checks them
+/// first), else [Pin24Exception.moduloRange]. Only the number of DRBG draws
+/// differs from Python ([drbg] is left untouched), and it is unobservable
+/// through [derivePassword].
 Uint8List sampleUnshuffled(
   CtrDrbg drbg, {
   required int setMask,
@@ -723,6 +943,22 @@ Uint8List sampleUnshuffled(
       'min_from_set must have exactly $_numSets entries',
     );
   }
+  if (size > 256) {
+    var needed = 0;
+    var remaining = setMask;
+    for (var i = 0; i < _numSets && remaining != 0; i++, remaining >>= 1) {
+      if (remaining & 1 == 0) continue;
+      final minCount = minFromSet[i];
+      if (minCount > 0) {
+        if (minCount > size - needed) throw _minExceedsSize;
+        needed += minCount;
+      }
+    }
+    throw const Pin24Exception(
+      Pin24Exception.moduloRange,
+      'rng_u8_modulo only supports modulo <= 256',
+    );
+  }
   final out = Uint8List(size);
   try {
     var offset = 0;
@@ -737,12 +973,7 @@ Uint8List sampleUnshuffled(
       union.addAll(charset);
       final minCount = minFromSet[i];
       if (minCount > 0) {
-        if (offset + minCount > size) {
-          throw const Pin24Exception(
-            Pin24Exception.minExceedsSize,
-            'min_from_set requires more chars than size allows',
-          );
-        }
+        if (minCount > size - offset) throw _minExceedsSize;
         for (var k = 0; k < minCount; k++) {
           out[offset++] = charset[drbg.rngU8Modulo(charset.length)];
         }
@@ -757,6 +988,11 @@ Uint8List sampleUnshuffled(
     rethrow;
   }
 }
+
+const Pin24Exception _minExceedsSize = Pin24Exception(
+  Pin24Exception.minExceedsSize,
+  'min_from_set requires more chars than size allows',
+);
 
 /// Fisher-Yates as in `shuffle_array`: for i = len−1 down to 1,
 /// j = rngU8Modulo(i + 1), swap. A buffer longer than 256 throws

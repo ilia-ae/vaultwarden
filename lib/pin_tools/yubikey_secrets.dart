@@ -24,7 +24,10 @@
 ///   and a sign.
 ///
 /// YAML manifest parsing, `--fill` text splicing and ykman provisioning are
-/// desktop-only and deliberately not ported.
+/// desktop-only and deliberately not ported. Values from Ledger Passwords
+/// (yubikey-fleet `docs/BITWARDEN.md`, operator decision 2026-08-30) are
+/// derived in `yubikey_ledger.dart`; this file only validates them against
+/// the card limits ([ykValidateLedgerValue]) when exporting.
 ///
 /// Pure Dart (no Flutter imports), so it runs in `Isolate.run` and plain
 /// `dart test`. No function here logs or embeds a secret value in an error.
@@ -645,6 +648,122 @@ List<String> ykCheckValue(String field, String value) =>
     [for (final p in ykValidateValue(field, value)) p.message];
 
 // ──────────────────────────────────────────────
+// Card limits for values from Ledger Passwords
+// ──────────────────────────────────────────────
+
+/// Inclusive length limits of the card itself, in UTF-8 bytes.
+typedef YkHardwareLimit = ({int min, int max});
+
+/// Card limits for the fields Ledger Passwords may fill (yubikey-fleet
+/// `docs/BITWARDEN.md` "Границы (факт)", read from ykman 5.9.0 and the cards
+/// on 2026-08-30): PIV PIN/PUK 6–8 bytes (`yubikit/piv.py`), OpenPGP User
+/// PIN 6–127 and Admin PIN 8–127 (`openpgp.py` minimums, card `max_len`),
+/// FIDO2 PIN 4–63 (`ykman/_cli/fido.py`). These are wider than the fleet
+/// policy in [ykFields], which a 20-character Ledger output would fail.
+///
+/// Fields 25 and 41 are never taken from Ledger, 45/46 come from the serial.
+const Map<String, YkHardwareLimit> ykHardwareLimits = {
+  '00': (min: 6, max: 8),
+  '14': (min: 6, max: 8),
+  '23': (min: 6, max: 127),
+  '24': (min: 8, max: 127),
+  '34': (min: 4, max: 63),
+};
+
+/// Why a Ledger-sourced value cannot be used as is.
+enum YkLedgerProblemKind {
+  /// UTF-8 length outside [ykHardwareLimits]. Ledger outputs are 20
+  /// characters and the PIV pick is 8, so this only fires for values that
+  /// did not come from Ledger.
+  length,
+
+  /// A character outside what Ledger can type. For the 8 characters picked
+  /// for PIV PIN (00) and PUK (14) that is printable ASCII without space
+  /// (0x21–0x7E): BITWARDEN.md condition 1, they are typed into macOS dialogs
+  /// whose keyboard layout is not under control. For whole outputs
+  /// (23/24/34) it is printable ASCII including space (0x20–0x7E).
+  notPrintableAscii,
+
+  /// The value cannot travel in the unquoted `--bitwarden` CSV: a comma or
+  /// quote, a leading or trailing space (CSV readers trim), or a leading `=`
+  /// `+` `-` `@` that a spreadsheet would run as a formula. Only masks with
+  /// separators or special characters can produce these.
+  csvUnsafe,
+}
+
+/// One problem of a Ledger-sourced value, structured so the UI can localise
+/// it. Never holds the value itself.
+class YkLedgerProblem {
+  final YkLedgerProblemKind kind;
+
+  /// Field number (a key of [ykHardwareLimits]).
+  final String field;
+
+  /// Value length in UTF-8 bytes.
+  final int byteLength;
+
+  const YkLedgerProblem({
+    required this.kind,
+    required this.field,
+    required this.byteLength,
+  });
+
+  /// English description (no value echoed).
+  String get message {
+    final name = ykFields[field]!.name;
+    final limit = ykHardwareLimits[field]!;
+    return switch (kind) {
+      YkLedgerProblemKind.length => 'field $field ($name): $byteLength bytes, '
+          'the card accepts ${limit.min}..${limit.max}',
+      YkLedgerProblemKind.notPrintableAscii =>
+        'field $field ($name): characters outside printable ASCII'
+            '${field == '00' || field == '14' ? ' without space' : ''}',
+      YkLedgerProblemKind.csvUnsafe =>
+        'field $field ($name): a character the unquoted CSV export cannot '
+            'carry (comma, quote, edge space or leading = + - @)',
+    };
+  }
+
+  @override
+  String toString() => message;
+}
+
+/// Checks a value taken from Ledger Passwords against the card limits
+/// ([ykHardwareLimits]), BITWARDEN.md condition 1 (printable ASCII without
+/// space for the PIV PIN/PUK pick) and the unquoted CSV. Returns the
+/// problems in that order; empty means the value can be set and exported.
+///
+/// Throws [ArgumentError] for a field Ledger may not fill (not in
+/// [ykHardwareLimits]).
+List<YkLedgerProblem> ykValidateLedgerValue(String field, String value) {
+  final limit = ykHardwareLimits[field];
+  if (limit == null) {
+    throw ArgumentError.value(
+        field, 'field', 'is not a field Ledger Passwords may fill');
+  }
+  // A lone surrogate counts as U+FFFD here; notPrintableAscii flags it.
+  final bytes = utf8.encode(value).length;
+  final lowest = field == '00' || field == '14' ? 0x21 : 0x20;
+  final printable = value.codeUnits.every((u) => u >= lowest && u <= 0x7E);
+  return [
+    if (bytes < limit.min || bytes > limit.max)
+      YkLedgerProblem(
+          kind: YkLedgerProblemKind.length, field: field, byteLength: bytes),
+    if (!printable)
+      YkLedgerProblem(
+          kind: YkLedgerProblemKind.notPrintableAscii,
+          field: field,
+          byteLength: bytes),
+    if (_csvUnsafe(value) ||
+        _spreadsheetFormula(value) ||
+        value.startsWith(' ') ||
+        value.endsWith(' '))
+      YkLedgerProblem(
+          kind: YkLedgerProblemKind.csvUnsafe, field: field, byteLength: bytes),
+  ];
+}
+
+// ──────────────────────────────────────────────
 // Per-key resolution
 // ──────────────────────────────────────────────
 
@@ -654,11 +773,22 @@ class YkKeySecrets {
   final String serial;
   final Map<String, String> values;
 
-  const YkKeySecrets({required this.serial, required this.values});
+  /// Fields whose value came from Ledger Passwords. [ykBitwardenCsv]
+  /// validates these against the card limits ([ykValidateLedgerValue])
+  /// instead of the fleet policy ([ykCheckValue]). Only numbers in
+  /// [ykHardwareLimits] are allowed. Empty for everything the script itself
+  /// produces.
+  final Set<String> ledgerFields;
+
+  const YkKeySecrets({
+    required this.serial,
+    required this.values,
+    this.ledgerFields = const {},
+  });
 
   @override
-  String toString() =>
-      'YkKeySecrets($serial, fields: ${values.keys.join(',')})';
+  String toString() => 'YkKeySecrets($serial, fields: ${values.keys.join(',')}'
+      '${ledgerFields.isEmpty ? '' : ', ledger: ${ledgerFields.join(',')}'})';
 }
 
 /// Resolves every needed field of one key the way the script's main loop
@@ -760,6 +890,18 @@ bool _spreadsheetFormula(String s) => s.isNotEmpty && '=+-@\t\r'.contains(s[0]);
 /// returns them (stripped, non-empty); deriving from any serial is
 /// unaffected, only the export refuses.
 ///
+/// Values from Ledger Passwords (fields listed in
+/// [YkKeySecrets.ledgerFields], e.g. from `ykResolveKeyWithLedger`) take a
+/// separate validation path: the card limits via [ykValidateLedgerValue]
+/// instead of the fleet policy, since a whole 20-character Ledger output is
+/// longer than the fleet's 16 and may contain letters where the fleet
+/// expects digits. Any problem there (condition 1, CSV-unsafe characters
+/// from separator/special masks) is `VALUE_INVALID` too, and nothing is
+/// exported. The CSV format is unchanged. `ledgerFields` outside
+/// [ykHardwareLimits] throw [ArgumentError]. The desktop script's own
+/// `--check` would still reject such values: it knows only the fleet
+/// policy.
+///
 /// The result holds plaintext secrets: write it to the app sandbox with
 /// owner-only permissions, hand it to the share sheet, delete it after.
 String ykBitwardenCsv(List<YkKeySecrets> keys) {
@@ -767,6 +909,15 @@ String ykBitwardenCsv(List<YkKeySecrets> keys) {
     throw ArgumentError.value(keys, 'keys', 'no keys to export');
   }
   final bySerial = <String, Map<String, String>>{};
+  final ledgerBySerial = <String, Set<String>>{};
+  for (final k in keys) {
+    for (final f in k.ledgerFields) {
+      if (!ykHardwareLimits.containsKey(f)) {
+        throw ArgumentError.value(
+            f, 'ledgerFields', 'is not a field Ledger Passwords may fill');
+      }
+    }
+  }
   for (final k in keys) {
     final serial = k.serial;
     if (serial.isEmpty || pythonStrip(serial) != serial) {
@@ -788,11 +939,19 @@ String ykBitwardenCsv(List<YkKeySecrets> keys) {
       );
     }
     bySerial[serial] = k.values;
+    ledgerBySerial[serial] = k.ledgerFields;
   }
 
   final problems = <String>[];
   for (final MapEntry(key: serial, value: values) in bySerial.entries) {
+    final ledger = ledgerBySerial[serial]!;
     for (final MapEntry(key: f, value: v) in values.entries) {
+      if (ledger.contains(f)) {
+        for (final p in ykValidateLedgerValue(f, v)) {
+          problems.add('$serial ${p.message}');
+        }
+        continue;
+      }
       for (final p in ykCheckValue(f, v)) {
         problems.add('$serial $p');
       }

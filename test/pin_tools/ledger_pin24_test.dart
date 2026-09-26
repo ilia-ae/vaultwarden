@@ -31,6 +31,29 @@ Uint8List _sha256(List<int> data) =>
 
 int _parseHexInt(String s) => int.parse(s.substring(2), radix: 16);
 
+String _str(Object? cps) => String.fromCharCodes((cps! as List).cast<int>());
+
+Matcher _pin24Error(String code) =>
+    isA<Pin24Exception>().having((e) => e.code, 'code', code);
+
+/// Records every round-key schedule the engine hands to AESEngine.
+class _SpyAes extends WipeableAesEngine {
+  final schedules = <List<List<int>>>[];
+
+  @override
+  List<List<int>> generateWorkingKey(
+    bool forEncryption,
+    KeyParameter params,
+  ) {
+    final schedule = super.generateWorkingKey(forEncryption, params);
+    schedules.add(schedule);
+    return schedule;
+  }
+}
+
+bool _allZero(List<List<int>> schedule) =>
+    schedule.every((round) => round.every((w) => w == 0));
+
 const _abandon12 = 'abandon abandon abandon abandon abandon abandon abandon '
     'abandon abandon abandon abandon about';
 const _speculos = 'glory promote mansion idle axis finger extra february '
@@ -241,7 +264,7 @@ void main() {
         expect(_hex(seed), seedEntry['seed_hex']);
         if (passphrase.isNotEmpty) {
           expect(
-            _hex(utf8.encode(unorm.nfkd(passphrase))),
+            _hex(utf8.encode(pythonNfkd(passphrase))),
             v['passphrase_nfkd_utf8_hex'],
           );
         }
@@ -366,7 +389,7 @@ void main() {
         if (cp >= 0xD800 && cp <= 0xDFFF) continue;
         final c = String.fromCharCode(cp);
         final lower = pythonLower(c);
-        final folded = unorm.nfkd(lower);
+        final folded = pythonNfkd(lower);
         final want = expected[cp];
         if (letters.hasMatch(folded) ? folded != want : want != null) {
           foldMismatches.add('U+${cp.toRadixString(16)}');
@@ -757,6 +780,353 @@ void main() {
         expect(d.digitsInOutput + d.paddedZeros, 12);
         expect(d.pin.substring(d.digitsInOutput), '0' * d.paddedZeros);
       }
+    });
+  });
+
+  group('verifier regressions', () {
+    final reg = _load('pin24_regressions.json');
+    final nfkdDoc = _load('pin24_nfkd_py16.json');
+    final abandonSeed = _unhex(
+      (reg['meta'] as Map)['mnemonic_seed_hex'] as String,
+    );
+
+    test('fixtures come from Python with Unicode 16.0.0', () {
+      expect((reg['meta'] as Map)['unidata_version'], '16.0.0');
+      expect((nfkdDoc['meta'] as Map)['unidata_version'], '16.0.0');
+    });
+
+    for (final v
+        in (reg['nfkd_vectors'] as List).cast<Map<String, dynamic>>()) {
+      test('NFKD shim vector ${v['id']}', () {
+        final pp = _str(v['passphrase_cps']);
+        final mnemonic = v['mnemonic'] as String;
+        final nickname = v['nickname'] as String;
+        // The vector really exercises the shim: plain unorm would differ.
+        expect(unorm.nfkd(pp), isNot(pythonNfkd(pp)));
+        expect(pythonNfkd(pp).runes.toList(), v['nfkd_cps']);
+        expect(_hex(utf8.encode(pythonNfkd(pp))), v['nfkd_utf8_hex']);
+        final seed = bip39ToSeed(mnemonic, passphrase: pp);
+        expect(_hex(seed), v['seed_hex']);
+        expect(
+            derivePassword(bip39Seed: seed, nickname: nickname), v['password']);
+        expect(
+          derivePin(
+            seedPhrase: mnemonic,
+            nickname: nickname,
+            length: 8,
+            bip39Passphrase: pp,
+          ),
+          v['pin8'],
+        );
+      });
+    }
+
+    for (final e in (reg['nfkd_errors'] as List).cast<Map<String, dynamic>>()) {
+      test('NFKD error position ${e['id']}', () {
+        _expectPin24Error(
+          'bip39_to_seed',
+          {'phrase': e['mnemonic'], 'passphrase': _str(e['passphrase_cps'])},
+          Pin24Exception.passphraseNotUtf8,
+          e['message'] as String,
+        );
+      });
+    }
+
+    test(
+        'pythonNfkd == Python NFKD for every code point, alone and in '
+        'canonical-reordering probes', () {
+      final table = <int, List<int>>{
+        for (final e in (nfkdDoc['nfkd'] as Map).entries)
+          int.parse(e.key as String, radix: 16): [
+            for (final h in (e.value as String).split(','))
+              int.parse(h, radix: 16),
+          ],
+      };
+      expect(table, hasLength((nfkdDoc['meta'] as Map)['nfkd_entries']));
+      final ccc = <int, int>{};
+      for (final r in (nfkdDoc['ccc'] as List).cast<List<dynamic>>()) {
+        for (var cp = r[0] as int; cp <= (r[1] as int); cp++) {
+          ccc[cp] = r[2] as int;
+        }
+      }
+      expect(ccc[0x0334], 1);
+      expect(ccc[0x0345], 240);
+
+      // UAX #15: full decomposition of each code point (table, or the
+      // algorithmic Hangul syllables), then a stable sort of every run of
+      // non-starters by combining class.
+      List<int> decompose(int cp) {
+        final d = table[cp];
+        if (d != null) return d;
+        if (cp >= 0xAC00 && cp <= 0xD7A3) {
+          final s = cp - 0xAC00;
+          return [
+            0x1100 + s ~/ 588,
+            0x1161 + (s % 588) ~/ 28,
+            if (s % 28 != 0) 0x11A7 + s % 28,
+          ];
+        }
+        return [cp];
+      }
+
+      List<int> reference(List<int> cps) {
+        final out = [for (final cp in cps) ...decompose(cp)];
+        for (var i = 1; i < out.length; i++) {
+          final k = ccc[out[i]] ?? 0;
+          if (k == 0) continue;
+          var j = i;
+          while (j > 0) {
+            final prev = ccc[out[j - 1]] ?? 0;
+            if (prev == 0 || prev <= k) break;
+            final t = out[j - 1];
+            out[j - 1] = out[j];
+            out[j] = t;
+            j--;
+          }
+        }
+        return out;
+      }
+
+      bool same(String got, List<int> want) {
+        final r = got.runes.toList();
+        if (r.length != want.length) return false;
+        for (var i = 0; i < r.length; i++) {
+          if (r[i] != want[i]) return false;
+        }
+        return true;
+      }
+
+      final bad = <String>[];
+      final unormDivergent = <int>{};
+      final ovl = String.fromCharCode(0x0334);
+      final ypo = String.fromCharCode(0x0345);
+      for (var cp = 0; cp < 0x110000 && bad.length < 20; cp++) {
+        if (cp >= 0xD800 && cp <= 0xDFFF) continue;
+        final c = String.fromCharCode(cp);
+        final hex = 'U+${cp.toRadixString(16)}';
+        if (!same(pythonNfkd(c), decompose(cp))) bad.add('alone $hex');
+        final probe1 = reference([0x41, cp, 0x0334]);
+        if (!same(pythonNfkd('A$c$ovl'), probe1)) bad.add('A c 0334 $hex');
+        if (!same(pythonNfkd('A$ypo$c'), reference([0x41, 0x0345, cp]))) {
+          bad.add('A 0345 c $hex');
+        }
+        if (!same(unorm.nfkd('A$c$ovl'), probe1) ||
+            !same(unorm.nfkd(c), decompose(cp))) {
+          unormDivergent.add(cp);
+        }
+      }
+      expect(bad, isEmpty);
+      // The shim covers exactly the code points plain unorm_dart 0.3.2 gets
+      // wrong. If this fails after a unorm_dart upgrade, revisit the list in
+      // ledger_pin24.dart (e.g. once yshrsmz/unorm-dart#84 is fixed).
+      expect(unormDivergent, {
+        for (var cp = 0x1ACF; cp <= 0x1ADD; cp++) cp,
+        for (var cp = 0x1AE0; cp <= 0x1AEB; cp++) cp,
+        0xA7F1, 0xD7A4, 0x10EFA, 0x10EFB, //
+        0x1E6E3, 0x1E6E6, 0x1E6EE, 0x1E6EF, 0x1E6F5,
+      });
+    }, timeout: const Timeout(Duration(minutes: 5)));
+
+    test(
+        'pythonNfkd keeps lone surrogates and splits around shimmed code '
+        'points', () {
+      final d800 = String.fromCharCode(0xD800);
+      expect(pythonNfkd(''), '');
+      expect(pythonNfkd('힤$d800').codeUnits, [0xD7A4, 0xD800]);
+      expect(pythonNfkd('ﬁ힤ﬁ'), 'fi힤fi');
+      expect(pythonNfkd('\u{1E6F5}'), '\u{1E6F5}');
+      expect(pythonNfkd('é꟱é'), 'é꟱é');
+    });
+
+    for (final c in [
+      ...(reg['size_errors'] as List).cast<Map<String, dynamic>>(),
+      ...(reg['overflow_errors'] as List).cast<Map<String, dynamic>>(),
+    ]) {
+      test('size/minimums ${c['id']}', () {
+        final message = c['message'] as String;
+        final code = message.startsWith('rng_u8_modulo')
+            ? Pin24Exception.moduloRange
+            : Pin24Exception.minExceedsSize;
+        final sw = Stopwatch()..start();
+        _expectPin24Error(
+          'derive_password',
+          {
+            'bip39_seed_hex': _hex(abandonSeed),
+            'nickname': 'visa',
+            'set_mask': c['set_mask'],
+            'min_from_set': c['min_from_set'],
+            'size': c['size'],
+          },
+          code,
+          message,
+        );
+        expect(sw.elapsed, lessThan(const Duration(seconds: 2)));
+      });
+    }
+
+    test('size > 256 is decided before any allocation or draw', () {
+      final drbg = CtrDrbg.instantiate(Uint8List(32));
+      expect(
+        () => sampleUnshuffled(
+          drbg,
+          setMask: kPinMask,
+          minFromSet: kDefaultMinSet,
+          size: 100000,
+        ),
+        throwsA(_pin24Error(Pin24Exception.moduloRange)),
+      );
+      expect(drbg.generateCalls, 0);
+      expect(
+        () => sampleUnshuffled(
+          drbg,
+          setMask: 0x03,
+          minFromSet: const [0x7FFFFFFFFFFFFFFF, 1, 0, 0, 0, 0, 0, 0],
+          size: 1 << 40,
+        ),
+        throwsA(_pin24Error(Pin24Exception.minExceedsSize)),
+      );
+      expect(drbg.generateCalls, 0);
+      final sw = Stopwatch()..start();
+      expect(
+        () => derivePassword(
+          bip39Seed: abandonSeed,
+          nickname: 'visa',
+          size: 1 << 30,
+        ),
+        throwsA(_pin24Error(Pin24Exception.moduloRange)),
+      );
+      expect(sw.elapsed, lessThan(const Duration(seconds: 2)));
+      // Exactly 256 still works (shuffle modulo 256 is allowed).
+      expect(
+        derivePassword(bip39Seed: abandonSeed, nickname: 'visa', size: 256),
+        hasLength(256),
+      );
+    });
+
+    test('huge minimums give MIN_EXCEEDS_SIZE, never a RangeError', () {
+      const big = 0x7FFFFFFFFFFFFFFF;
+      for (final (mins, size) in [
+        (const [1, big, 0, 0, 0, 0, 0, 0], 20),
+        (const [big, 0, 0, 0, 0, 0, 0, 0], 1),
+        (const [big, big, 0, 0, 0, 0, 0, 0], 256),
+      ]) {
+        final drbg = CtrDrbg.instantiate(Uint8List(32));
+        expect(
+          () => sampleUnshuffled(
+            drbg,
+            setMask: 0x03,
+            minFromSet: mins,
+            size: size,
+          ),
+          throwsA(_pin24Error(Pin24Exception.minExceedsSize)),
+        );
+      }
+    });
+
+    test('toString withholds the message of *_NOT_UTF8 errors', () {
+      final d800 = String.fromCharCode(0xD800);
+      final dc00 = String.fromCharCode(0xDC00);
+      final errors = <Pin24Exception>[];
+      for (final f in [
+        () => bip39ToSeed(_abandon12, passphrase: 'secret$d800'),
+        () => derivePassword(bip39Seed: abandonSeed, nickname: 'visa$dc00'),
+      ]) {
+        try {
+          f();
+          fail('expected Pin24Exception');
+        } on Pin24Exception catch (e) {
+          errors.add(e);
+        }
+      }
+      expect(errors.map((e) => e.code), [
+        Pin24Exception.passphraseNotUtf8,
+        Pin24Exception.nicknameNotUtf8,
+      ]);
+      expect(
+        errors[0].message,
+        "'utf-8' codec can't encode character '\\ud800' in position 14: "
+        'surrogates not allowed',
+      );
+      for (final e in errors) {
+        expect(e.messageQuotesInput, isTrue);
+        expect(e.message, contains('position'));
+        expect(e.toString(), startsWith('Pin24Exception(${e.code})'));
+        expect(e.toString(), isNot(contains('position')));
+        expect(e.toString(), isNot(contains(e.message)));
+      }
+      const plain = Pin24Exception(Pin24Exception.moduloRange, 'm');
+      expect(plain.messageQuotesInput, isFalse);
+      expect(plain.toString(), 'Pin24Exception(MODULO_RANGE): m');
+    });
+
+    test('WipeableAesEngine zeroes old schedules on re-key and on wipe', () {
+      final a = (primitives['aes256_ecb_nist'] as Map).cast<String, dynamic>();
+      final k1 = _unhex(a['key_hex'] as String);
+      final k2 = Uint8List.fromList(List.generate(32, (i) => 255 - i));
+      final spy = _SpyAes()..init(true, KeyParameter(k1));
+      final out = Uint8List(16);
+      spy.processBlock(_unhex(a['plaintext_hex'] as String), 0, out, 0);
+      expect(_hex(out), a['ciphertext_hex']);
+      expect(_allZero(spy.schedules.single), isFalse);
+
+      spy.init(true, KeyParameter(k2));
+      expect(spy.schedules, hasLength(2));
+      expect(_allZero(spy.schedules[0]), isTrue);
+      expect(_allZero(spy.schedules[1]), isFalse);
+      spy.wipeKeySchedule();
+      expect(_allZero(spy.schedules[1]), isTrue);
+      spy.wipeKeySchedule(); // idempotent
+
+      // After wiping, the output no longer depends on the key.
+      final e1 = WipeableAesEngine()..init(true, KeyParameter(k1));
+      final e2 = WipeableAesEngine()..init(true, KeyParameter(k2));
+      final block = Uint8List.fromList(List.generate(16, (i) => i));
+      final o1 = Uint8List(16);
+      final o2 = Uint8List(16);
+      e1.processBlock(block, 0, o1, 0);
+      e2.processBlock(block, 0, o2, 0);
+      expect(o1, isNot(o2));
+      e1.wipeKeySchedule();
+      e2.wipeKeySchedule();
+      e1.processBlock(block, 0, o1, 0);
+      e2.processBlock(block, 0, o2, 0);
+      expect(o1, o2);
+    });
+
+    for (final d in (reg['normalize_divergences'] as List)
+        .cast<Map<String, dynamic>>()) {
+      test(
+          'lower() divergence ${d['id']}: a-z projection and validity match '
+          'Python', () {
+        final input = _str(d['input_cps']);
+        final pyNormalized = _str(d['normalized_cps']);
+        final normalized = normalizeSeedPhrase(input);
+        String az(String s) => s.replaceAll(RegExp('[^a-z]+'), ' ');
+        expect(az(normalized), az(pyNormalized));
+        expect(
+          bip39ChecksumValid(pythonNfkd(normalized).split(' ')),
+          d['bip39_check'],
+        );
+        if (d['bip39_check'] == false) {
+          expect(() => bip39ToSeed(input),
+              throwsA(_pin24Error(Pin24Exception.bip39Invalid)));
+        }
+        final parsed = parseSeedWords(input);
+        expect(parsed.words, d['ui_words']);
+        expect(parsed.invalidPositions, d['ui_bad']);
+        expect(parsed.partialPositions, d['ui_partial']);
+      });
+    }
+
+    test('the divergence fixture really diverges from Dart lower()', () {
+      final diverging = [
+        for (final d in (reg['normalize_divergences'] as List)
+            .cast<Map<String, dynamic>>())
+          if (normalizeSeedPhrase(_str(d['input_cps'])) !=
+              _str(d['normalized_cps']))
+            d['id'],
+      ];
+      expect(diverging, isNotEmpty);
     });
   });
 }

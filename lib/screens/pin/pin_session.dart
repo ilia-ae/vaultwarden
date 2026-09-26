@@ -1,0 +1,268 @@
+/// Section-level state of the PIN tab, shared by every tool in it.
+///
+/// * [pinSessionProvider]: one [PinSession] while the PIN tab is mounted
+///   (`autoDispose`: it dies when the tab is left, the app locks or the
+///   screen goes away). Owns the seed cache, the wipe signal and the
+///   inactivity timer.
+/// * [pinSeedProvider]: the session's [PinSeedCache], the 64-byte BIP39 seed
+///   shared by PIN 24 and the YubiKey-from-Ledger tool.
+/// * [pinToolProvider]: which tool is shown (not sensitive).
+/// * [pinComputeRunnerProvider]: where derivations run (`Isolate.run`).
+///
+/// Nothing here is persisted. Provider values never render their secrets in
+/// `toString`, so a `ProviderObserver` cannot log them.
+library;
+
+import 'dart:async';
+import 'dart:isolate';
+
+import 'package:flutter/foundation.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:pointycastle/digests/sha256.dart';
+
+import 'pin24_engine.dart';
+
+/// The tools of the PIN tab, in picker order. [legacyMask] only appears
+/// with "Show legacy tools" on.
+enum PinTool {
+  pin24('pin24'),
+  pinShift('shift'),
+  yubikey('yubikey'),
+  legacyMask('legacy');
+
+  const PinTool(this.id);
+
+  /// Stable id, used in Semantics identifiers (`pin_tool_<id>`).
+  final String id;
+}
+
+/// Which tool the PIN tab shows. Survives tab switches within a run; not
+/// persisted, not secret.
+final pinToolProvider = StateProvider<PinTool>((_) => PinTool.pin24);
+
+/// Runs derivations off the UI isolate. Widget tests override it with an
+/// inline runner, because their fake clock cannot drive a real isolate.
+final pinComputeRunnerProvider =
+    Provider<PinComputeRunner>((_) => _isolateRun);
+
+Future<R> _isolateRun<R>(FutureOr<R> Function() computation) =>
+    Isolate.run(computation);
+
+/// The PIN tab's session; see [PinSession].
+final pinSessionProvider = Provider.autoDispose<PinSession>((ref) {
+  final session = PinSession();
+  ref.onDispose(session.dispose);
+  return session;
+});
+
+/// The shared seed cache of the current [PinSession].
+final pinSeedProvider = Provider.autoDispose<PinSeedCache>(
+  (ref) => ref.watch(pinSessionProvider).seed,
+);
+
+/// What a wipe clears.
+enum PinWipeScope {
+  /// Seed phrase, passphrase, cached seed and reveal toggles only (🧹).
+  seed,
+
+  /// Every input and output of every tool (🚨, background, inactivity).
+  all,
+}
+
+/// Why a wipe happened (drives the SnackBar that explains it).
+enum PinWipeReason { user, background, inactivity, screenshot }
+
+/// One wipe, delivered to every listener of [PinSession.wipes].
+@immutable
+class PinWipeEvent {
+  const PinWipeEvent({
+    required this.serial,
+    required this.scope,
+    required this.reason,
+    required this.hadContent,
+  });
+
+  /// Increases with every wipe, so two identical wipes are still distinct.
+  final int serial;
+  final PinWipeScope scope;
+  final PinWipeReason reason;
+
+  /// Whether anything (input, output or cached seed) was cleared.
+  final bool hadContent;
+
+  @override
+  String toString() => 'PinWipeEvent($serial, $scope, $reason)';
+}
+
+/// State shared by the tools of the PIN tab for as long as it is mounted.
+///
+/// Tools:
+/// * listen to [wipes] and clear their inputs/outputs on every event
+///   ([PinWipeScope.seed] clears only the seed phrase and passphrase);
+/// * call [touch] on every edit, so the inactivity timer restarts;
+/// * register a [registerContentProbe] so a wipe knows whether anything was
+///   actually cleared.
+class PinSession {
+  PinSession({this.inactivityTimeout = const Duration(seconds: 120)});
+
+  /// Idle time after which everything is wiped. Independent of the app's
+  /// lock timeout (which can be "never") and of demo mode.
+  final Duration inactivityTimeout;
+
+  /// The 64-byte BIP39 seed, cached between derivations.
+  final PinSeedCache seed = PinSeedCache();
+
+  final ValueNotifier<PinWipeEvent?> _wipes = ValueNotifier<PinWipeEvent?>(
+    null,
+  );
+  final List<bool Function()> _probes = [];
+  Timer? _idle;
+  int _serial = 0;
+  bool _disposed = false;
+
+  /// The last wipe; listeners are notified on every new one.
+  ValueListenable<PinWipeEvent?> get wipes => _wipes;
+
+  /// Restarts the inactivity timer. Call on every user interaction.
+  void touch() {
+    if (_disposed) return;
+    _idle?.cancel();
+    _idle = Timer(inactivityTimeout, () {
+      _idle = null;
+      wipe(reason: PinWipeReason.inactivity);
+    });
+  }
+
+  /// Registers a callback telling whether a tool holds anything to wipe.
+  /// Returns the function that unregisters it.
+  VoidCallback registerContentProbe(bool Function() hasContent) {
+    _probes.add(hasContent);
+    return () => _probes.remove(hasContent);
+  }
+
+  /// Whether any tool holds input/output or a seed is cached.
+  bool get hasContent => seed.hasSeed || _probes.any((p) => p());
+
+  /// Zeroes the cached seed and tells every tool to clear itself.
+  void wipe({PinWipeScope scope = PinWipeScope.all, required PinWipeReason reason}) {
+    if (_disposed) return;
+    final hadContent = hasContent;
+    seed.wipe();
+    _wipes.value = PinWipeEvent(
+      serial: ++_serial,
+      scope: scope,
+      reason: reason,
+      hadContent: hadContent,
+    );
+  }
+
+  void dispose() {
+    if (_disposed) return;
+    _disposed = true;
+    _idle?.cancel();
+    _idle = null;
+    _probes.clear();
+    seed.wipe();
+    seed.dispose();
+    _wipes.dispose();
+  }
+
+  @override
+  String toString() => 'PinSession(${seed.hasSeed ? 'seed cached' : 'empty'})';
+}
+
+/// The derived 64-byte BIP39 seed plus a digest of the (canonical phrase,
+/// passphrase) it came from, so PBKDF2 (2048 × HMAC-SHA512) runs once per
+/// phrase instead of on every nickname or length change.
+///
+/// Both buffers are zeroed on [wipe], on replacement and on dispose. Callers
+/// get copies and must zero them after use.
+class PinSeedCache extends ChangeNotifier {
+  Uint8List? _key;
+  Uint8List? _seed;
+  int _wordCount = 0;
+
+  bool get hasSeed => _seed != null;
+
+  /// Words of the phrase the cached seed came from (0 when empty).
+  int get wordCount => _wordCount;
+
+  /// Cache key for a phrase + passphrase: SHA-256 over their UTF-16 code
+  /// units (lossless even for lone surrogates), length-prefixed.
+  static Uint8List keyFor(String canonicalPhrase, String passphrase) {
+    final a = canonicalPhrase.codeUnits;
+    final b = passphrase.codeUnits;
+    final buf = Uint8List(4 + 2 * a.length + 2 * b.length);
+    final view = ByteData.sublistView(buf)..setUint32(0, a.length);
+    var o = 4;
+    for (final c in a) {
+      view.setUint16(o, c);
+      o += 2;
+    }
+    for (final c in b) {
+      view.setUint16(o, c);
+      o += 2;
+    }
+    final digest = SHA256Digest().process(buf);
+    buf.fillRange(0, buf.length, 0);
+    return digest;
+  }
+
+  /// A copy of the cached seed if it was derived from [key]'s phrase and
+  /// passphrase, else `null`.
+  Uint8List? lookup(Uint8List key) {
+    final seed = _seed;
+    final own = _key;
+    if (seed == null || own == null || !_sameBytes(own, key)) return null;
+    return Uint8List.fromList(seed);
+  }
+
+  /// A copy of whatever seed is cached (for a tool that reuses the seed
+  /// entered in PIN 24), or `null`.
+  Uint8List? copySeed() {
+    final seed = _seed;
+    return seed == null ? null : Uint8List.fromList(seed);
+  }
+
+  /// Takes ownership of [seed] and [key]; the previous ones are zeroed.
+  void store(Uint8List key, Uint8List seed, {required int wordCount}) {
+    _zero();
+    _key = key;
+    _seed = seed;
+    _wordCount = wordCount;
+    notifyListeners();
+  }
+
+  /// Zeroes and drops the cached seed.
+  void wipe() {
+    final had = _seed != null;
+    _zero();
+    if (had) notifyListeners();
+  }
+
+  void _zero() {
+    _key?.fillRange(0, _key!.length, 0);
+    _seed?.fillRange(0, _seed!.length, 0);
+    _key = null;
+    _seed = null;
+    _wordCount = 0;
+  }
+
+  @override
+  void dispose() {
+    _zero();
+    super.dispose();
+  }
+
+  static bool _sameBytes(Uint8List a, Uint8List b) {
+    if (a.length != b.length) return false;
+    var diff = 0;
+    for (var i = 0; i < a.length; i++) {
+      diff |= a[i] ^ b[i];
+    }
+    return diff == 0;
+  }
+
+  @override
+  String toString() => 'PinSeedCache(${hasSeed ? 'seed' : 'empty'})';
+}

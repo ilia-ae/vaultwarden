@@ -238,4 +238,83 @@ void main() {
       });
     });
   });
+
+  group('lookup structures (prefix set, binary search) vs brute force', () {
+    const letters = 'abcdefghijklmnopqrstuvwxyz';
+    final shortPrefixes = [
+      for (final a in letters.split('')) ...[
+        a,
+        for (final b in letters.split('')) '$a$b',
+      ],
+    ];
+    final wordPrefixes = {
+      for (final w in bip39English)
+        for (var n = 1; n <= w.length; n++) w.substring(0, n),
+    };
+
+    test('the wordlist is strictly sorted (binary search precondition)', () {
+      for (var i = 1; i < bip39English.length; i++) {
+        expect(bip39English[i - 1].compareTo(bip39English[i]), lessThan(0),
+            reason: bip39English[i]);
+      }
+    });
+
+    test('word states and ambiguous words agree with brute force', () {
+      final probes = <String>{
+        ...shortPrefixes,
+        ...wordPrefixes,
+        for (final w in bip39English) ...[
+          '${w}s',
+          '${w}a',
+          w.substring(1),
+          '${w.substring(0, w.length - 1)}z',
+          'z$w',
+        ],
+      }.toList();
+      final parsed = parseSeedWords(probes.join(' '));
+      expect(parsed.words, probes);
+      for (var i = 0; i < probes.length; i++) {
+        final w = probes[i];
+        final Bip39WordState want;
+        if (bip39English.contains(w)) {
+          want = Bip39WordState.valid;
+        } else if (bip39English.any((x) => x.startsWith(w))) {
+          want = Bip39WordState.partial;
+        } else {
+          want = Bip39WordState.invalid;
+        }
+        expect(parsed.states[i], want, reason: w);
+        expect(
+          isAmbiguousPrefixWord(w),
+          bip39English.contains(w) &&
+              bip39English.any((x) => x != w && x.startsWith(w)),
+          reason: w,
+        );
+      }
+    });
+
+    test('suggestionsForPrefix agrees with brute force (all limits)', () {
+      const limits = [-5000, -7, -1, 0, 1, 2, 6, 100, 5000];
+      for (final prefix in {...shortPrefixes, ...wordPrefixes, 'zzz', '~'}) {
+        final all = [
+          for (final w in bip39English)
+            if (w.startsWith(prefix)) w,
+        ];
+        final n = all.length;
+        expect(suggestionsForPrefix(prefix), all.take(6).toList(),
+            reason: prefix);
+        for (final limit in limits) {
+          final end = limit >= 0
+              ? (limit < n ? limit : n)
+              : (n + limit > 0 ? n + limit : 0);
+          expect(
+              suggestionsForPrefix(prefix, limit: limit), all.sublist(0, end),
+              reason: '$prefix[:$limit]');
+        }
+      }
+      expect(suggestionsForPrefix(''), isEmpty);
+      expect(suggestionsForPrefix('', limit: -1), isEmpty);
+      expect(() => suggestionsForPrefix('ab').add('x'), throwsUnsupportedError);
+    });
+  });
 }

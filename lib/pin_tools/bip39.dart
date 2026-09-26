@@ -29,6 +29,15 @@ final Map<String, int> _wordIndex = {
   for (var i = 0; i < bip39English.length; i++) bip39English[i]: i,
 };
 
+/// Every non-empty proper prefix of every word (`a`, `ab`, …, `abando`, …;
+/// about 7.5k entries). A non-word is a prefix of some word exactly when it
+/// is in this set, and a word is a prefix of another word exactly when it is
+/// in it too. Lazily initialised, never mutated.
+final Set<String> _properPrefixes = {
+  for (final w in bip39English)
+    for (var n = 1; n < w.length; n++) w.substring(0, n),
+};
+
 /// Any run of characters that is not an ASCII lowercase letter
 /// (`_WORD_SEP_RE` in `pin24_ui.py`).
 final RegExp _wordSeparator = RegExp('[^a-z]+');
@@ -47,10 +56,15 @@ bool isBip39Word(String word) => _wordIndex.containsKey(word);
 /// fix `İdle` would parse as the valid word `idle` here but as `i` + `dle`
 /// (UI) or an invalid word (backend) in Python.
 ///
-/// Known remaining differences are harmless for BIP39: Dart never picks the
-/// Greek final sigma (ς) and its case tables predate Unicode 16 for a few
-/// hundred non-Latin letters. None of those can lowercase/NFKD into ASCII
-/// `a`–`z`; the test suite checks this exhaustively over all code points.
+/// Parity is guaranteed only on the projection BIP39 depends on: which
+/// characters are (or NFKD-fold to) ASCII `a`–`z`, and where everything else
+/// sits. Word splitting, word states, validity and the derived seed are
+/// therefore identical to Python. The full string is not: Dart never picks
+/// the Greek final sigma (Python: `ΟΔΟΣ` → `οδος`, Dart: `οδοσ`), and its
+/// case tables predate Unicode 16 for 437 non-Latin letters (e.g. Georgian
+/// Mtavruli U+1C90, Adlam U+1E900, Greek U+037F). None of those lowercase or
+/// NFKD-fold into ASCII `a`–`z`; the test suite checks this exhaustively over
+/// all code points. Never display the result as Python's value.
 String pythonLower(String s) {
   if (!s.contains('\u0130')) return s.toLowerCase();
   return s.split('\u0130').map((part) => part.toLowerCase()).join('i\u0307');
@@ -119,11 +133,11 @@ ParsedSeed parseSeedWords(String input) {
   );
 }
 
+/// O(1): a non-word is `partial` exactly when some word starts with it,
+/// i.e. when it is a proper prefix of that word.
 Bip39WordState _classify(String word) {
   if (isBip39Word(word)) return Bip39WordState.valid;
-  for (final w in bip39English) {
-    if (w.startsWith(word)) return Bip39WordState.partial;
-  }
+  if (_properPrefixes.contains(word)) return Bip39WordState.partial;
   return Bip39WordState.invalid;
 }
 
@@ -228,29 +242,37 @@ bool bip39ChecksumValid(List<String> words) {
 /// Wordlist words starting with [prefix], in wordlist order, cut like the
 /// Python slice `matches[:limit]` (a negative [limit] drops that many from the
 /// end). An empty prefix yields nothing.
+///
+/// The wordlist is strictly sorted, so the matches are one contiguous run
+/// that starts at the first word `>= prefix` (binary search).
 List<String> suggestionsForPrefix(
   String prefix, {
   int limit = kDefaultSuggestionLimit,
 }) {
   if (prefix.isEmpty) return const [];
-  final matches = [
-    for (final w in bip39English)
-      if (w.startsWith(prefix)) w,
-  ];
-  final n = matches.length;
-  final end =
+  var lo = 0;
+  var hi = bip39English.length;
+  while (lo < hi) {
+    final mid = (lo + hi) >> 1;
+    if (bip39English[mid].compareTo(prefix) < 0) {
+      lo = mid + 1;
+    } else {
+      hi = mid;
+    }
+  }
+  var end = lo;
+  while (end < bip39English.length && bip39English[end].startsWith(prefix)) {
+    end++;
+  }
+  final n = end - lo;
+  final take =
       limit >= 0 ? (limit < n ? limit : n) : (n + limit > 0 ? n + limit : 0);
-  return List.unmodifiable(matches.sublist(0, end));
+  return List.unmodifiable(bip39English.sublist(lo, lo + take));
 }
 
 /// True for the 49 words that are also a prefix of another word (`act` →
 /// `action`, `art` → `artist`, …). Every other word is fixed by its first
 /// four letters, so these are the only ones that must not be auto-accepted
 /// as soon as they are typed.
-bool isAmbiguousPrefixWord(String word) {
-  if (!isBip39Word(word)) return false;
-  for (final w in bip39English) {
-    if (w != word && w.startsWith(word)) return true;
-  }
-  return false;
-}
+bool isAmbiguousPrefixWord(String word) =>
+    isBip39Word(word) && _properPrefixes.contains(word);
