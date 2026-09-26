@@ -1,0 +1,1311 @@
+{
+  "meta": {
+    "generator": "/private/tmp/claude-501/-Users-ilya-CODE-vaultwarden/fc401efa-332a-4a8e-a761-97ec2c64ab4b/scratchpad/gen_pin_vectors.py",
+    "python": "3.14.4",
+    "seed": 20260926,
+    "sources": {
+      "src/crypto_tools/pin_shift.py": "7d8b6d9d76dc668b90bc90e7db93bf156bf4cae72ee4f3e1ad165c8743d3800f",
+      "tests/test_pin_shift.py": "27b623e7040cafe6ba17386377908e856edb02356280f3d78d0420babe49fbe5"
+    },
+    "validation_order": [
+      "1. pin: falsy or not pin.isdigit() -> ValueError('PIN must be a non-empty digit string')",
+      "2. shift: not isinstance(shift, str) -> TypeError(f'Shift must be a digit string, got {type(shift).__name__}')",
+      "3. shift: empty or not shift.isdigit() -> ValueError('Shift must be a non-empty digit string')",
+      "4. len(shift) != len(pin) -> ValueError(f'Shift length ({len(shift)}) must match PIN length ({len(pin)})')",
+      "5. per-char int(): ValueError(\"invalid literal for int() with base 10: 'X'\") for isdigit-but-not-decimal chars (superscripts, circled digits)"
+    ],
+    "cli_behaviour": "cli.py catches ValueError only -> SystemExit(str(e)): message on stderr, exit status 1"
+  },
+  "errors": [
+    {
+      "id": "t_rejects_empty_pin",
+      "source": "tests/test_pin_shift.py",
+      "pin": {
+        "type": "str",
+        "value": "",
+        "codepoints": [],
+        "len_codepoints": 0,
+        "len_utf16": 0
+      },
+      "shift": {
+        "type": "str",
+        "value": "1",
+        "codepoints": [
+          "U+0031"
+        ],
+        "len_codepoints": 1,
+        "len_utf16": 1
+      },
+      "decode": false,
+      "python": {
+        "ok": false,
+        "error_type": "ValueError",
+        "message": "PIN must be a non-empty digit string"
+      }
+    },
+    {
+      "id": "t_rejects_non_digit_pin",
+      "source": "tests/test_pin_shift.py",
+      "pin": {
+        "type": "str",
+        "value": "12a4",
+        "codepoints": [
+          "U+0031",
+          "U+0032",
+          "U+0061",
+          "U+0034"
+        ],
+        "len_codepoints": 4,
+        "len_utf16": 4
+      },
+      "shift": {
+        "type": "str",
+        "value": "1234",
+        "codepoints": [
+          "U+0031",
+          "U+0032",
+          "U+0033",
+          "U+0034"
+        ],
+        "len_codepoints": 4,
+        "len_utf16": 4
+      },
+      "decode": false,
+      "python": {
+        "ok": false,
+        "error_type": "ValueError",
+        "message": "PIN must be a non-empty digit string"
+      }
+    },
+    {
+      "id": "t_rejects_empty_vector",
+      "source": "tests/test_pin_shift.py",
+      "pin": {
+        "type": "str",
+        "value": "1234",
+        "codepoints": [
+          "U+0031",
+          "U+0032",
+          "U+0033",
+          "U+0034"
+        ],
+        "len_codepoints": 4,
+        "len_utf16": 4
+      },
+      "shift": {
+        "type": "str",
+        "value": "",
+        "codepoints": [],
+        "len_codepoints": 0,
+        "len_utf16": 0
+      },
+      "decode": false,
+      "python": {
+        "ok": false,
+        "error_type": "ValueError",
+        "message": "Shift must be a non-empty digit string"
+      }
+    },
+    {
+      "id": "t_rejects_non_digit_vector",
+      "source": "tests/test_pin_shift.py",
+      "pin": {
+        "type": "str",
+        "value": "1234",
+        "codepoints": [
+          "U+0031",
+          "U+0032",
+          "U+0033",
+          "U+0034"
+        ],
+        "len_codepoints": 4,
+        "len_utf16": 4
+      },
+      "shift": {
+        "type": "str",
+        "value": "37a9",
+        "codepoints": [
+          "U+0033",
+          "U+0037",
+          "U+0061",
+          "U+0039"
+        ],
+        "len_codepoints": 4,
+        "len_utf16": 4
+      },
+      "decode": false,
+      "python": {
+        "ok": false,
+        "error_type": "ValueError",
+        "message": "Shift must be a non-empty digit string"
+      }
+    },
+    {
+      "id": "t_rejects_vector_shorter",
+      "source": "tests/test_pin_shift.py",
+      "pin": {
+        "type": "str",
+        "value": "1234",
+        "codepoints": [
+          "U+0031",
+          "U+0032",
+          "U+0033",
+          "U+0034"
+        ],
+        "len_codepoints": 4,
+        "len_utf16": 4
+      },
+      "shift": {
+        "type": "str",
+        "value": "37",
+        "codepoints": [
+          "U+0033",
+          "U+0037"
+        ],
+        "len_codepoints": 2,
+        "len_utf16": 2
+      },
+      "decode": false,
+      "python": {
+        "ok": false,
+        "error_type": "ValueError",
+        "message": "Shift length (2) must match PIN length (4)"
+      }
+    },
+    {
+      "id": "t_rejects_vector_longer",
+      "source": "tests/test_pin_shift.py",
+      "pin": {
+        "type": "str",
+        "value": "1234",
+        "codepoints": [
+          "U+0031",
+          "U+0032",
+          "U+0033",
+          "U+0034"
+        ],
+        "len_codepoints": 4,
+        "len_utf16": 4
+      },
+      "shift": {
+        "type": "str",
+        "value": "37190",
+        "codepoints": [
+          "U+0033",
+          "U+0037",
+          "U+0031",
+          "U+0039",
+          "U+0030"
+        ],
+        "len_codepoints": 5,
+        "len_utf16": 5
+      },
+      "decode": false,
+      "python": {
+        "ok": false,
+        "error_type": "ValueError",
+        "message": "Shift length (5) must match PIN length (4)"
+      }
+    },
+    {
+      "id": "t_rejects_int_shift",
+      "source": "tests/test_pin_shift.py",
+      "pin": {
+        "type": "str",
+        "value": "1234",
+        "codepoints": [
+          "U+0031",
+          "U+0032",
+          "U+0033",
+          "U+0034"
+        ],
+        "len_codepoints": 4,
+        "len_utf16": 4
+      },
+      "shift": {
+        "type": "int",
+        "value": 3
+      },
+      "decode": false,
+      "python": {
+        "ok": false,
+        "error_type": "TypeError",
+        "message": "Shift must be a digit string, got int"
+      },
+      "port_note": "Dart: statically impossible (String param); keep as compile-time guarantee"
+    },
+    {
+      "id": "t_rejects_bool_shift",
+      "source": "tests/test_pin_shift.py",
+      "pin": {
+        "type": "str",
+        "value": "1234",
+        "codepoints": [
+          "U+0031",
+          "U+0032",
+          "U+0033",
+          "U+0034"
+        ],
+        "len_codepoints": 4,
+        "len_utf16": 4
+      },
+      "shift": {
+        "type": "bool",
+        "value": true
+      },
+      "decode": false,
+      "python": {
+        "ok": false,
+        "error_type": "TypeError",
+        "message": "Shift must be a digit string, got bool"
+      },
+      "port_note": "Dart: statically impossible"
+    },
+    {
+      "id": "s_pin_leading_space",
+      "source": "synthetic",
+      "pin": {
+        "type": "str",
+        "value": " 1234",
+        "codepoints": [
+          "U+0020",
+          "U+0031",
+          "U+0032",
+          "U+0033",
+          "U+0034"
+        ],
+        "len_codepoints": 5,
+        "len_utf16": 5
+      },
+      "shift": {
+        "type": "str",
+        "value": "3719",
+        "codepoints": [
+          "U+0033",
+          "U+0037",
+          "U+0031",
+          "U+0039"
+        ],
+        "len_codepoints": 4,
+        "len_utf16": 4
+      },
+      "decode": false,
+      "python": {
+        "ok": false,
+        "error_type": "ValueError",
+        "message": "PIN must be a non-empty digit string"
+      },
+      "port_note": "core does NOT strip; only the UI strips"
+    },
+    {
+      "id": "s_pin_trailing_newline",
+      "source": "synthetic",
+      "pin": {
+        "type": "str",
+        "value": "1234\n",
+        "codepoints": [
+          "U+0031",
+          "U+0032",
+          "U+0033",
+          "U+0034",
+          "U+000A"
+        ],
+        "len_codepoints": 5,
+        "len_utf16": 5
+      },
+      "shift": {
+        "type": "str",
+        "value": "3719",
+        "codepoints": [
+          "U+0033",
+          "U+0037",
+          "U+0031",
+          "U+0039"
+        ],
+        "len_codepoints": 4,
+        "len_utf16": 4
+      },
+      "decode": false,
+      "python": {
+        "ok": false,
+        "error_type": "ValueError",
+        "message": "PIN must be a non-empty digit string"
+      },
+      "port_note": "core does NOT strip"
+    },
+    {
+      "id": "s_shift_leading_space",
+      "source": "synthetic",
+      "pin": {
+        "type": "str",
+        "value": "1234",
+        "codepoints": [
+          "U+0031",
+          "U+0032",
+          "U+0033",
+          "U+0034"
+        ],
+        "len_codepoints": 4,
+        "len_utf16": 4
+      },
+      "shift": {
+        "type": "str",
+        "value": " 3719",
+        "codepoints": [
+          "U+0020",
+          "U+0033",
+          "U+0037",
+          "U+0031",
+          "U+0039"
+        ],
+        "len_codepoints": 5,
+        "len_utf16": 5
+      },
+      "decode": false,
+      "python": {
+        "ok": false,
+        "error_type": "ValueError",
+        "message": "Shift must be a non-empty digit string"
+      }
+    },
+    {
+      "id": "s_pin_minus_sign",
+      "source": "synthetic",
+      "pin": {
+        "type": "str",
+        "value": "-123",
+        "codepoints": [
+          "U+002D",
+          "U+0031",
+          "U+0032",
+          "U+0033"
+        ],
+        "len_codepoints": 4,
+        "len_utf16": 4
+      },
+      "shift": {
+        "type": "str",
+        "value": "1111",
+        "codepoints": [
+          "U+0031",
+          "U+0031",
+          "U+0031",
+          "U+0031"
+        ],
+        "len_codepoints": 4,
+        "len_utf16": 4
+      },
+      "decode": false,
+      "python": {
+        "ok": false,
+        "error_type": "ValueError",
+        "message": "PIN must be a non-empty digit string"
+      }
+    },
+    {
+      "id": "s_pin_plus_sign",
+      "source": "synthetic",
+      "pin": {
+        "type": "str",
+        "value": "+123",
+        "codepoints": [
+          "U+002B",
+          "U+0031",
+          "U+0032",
+          "U+0033"
+        ],
+        "len_codepoints": 4,
+        "len_utf16": 4
+      },
+      "shift": {
+        "type": "str",
+        "value": "1111",
+        "codepoints": [
+          "U+0031",
+          "U+0031",
+          "U+0031",
+          "U+0031"
+        ],
+        "len_codepoints": 4,
+        "len_utf16": 4
+      },
+      "decode": false,
+      "python": {
+        "ok": false,
+        "error_type": "ValueError",
+        "message": "PIN must be a non-empty digit string"
+      }
+    },
+    {
+      "id": "s_pin_decimal_point",
+      "source": "synthetic",
+      "pin": {
+        "type": "str",
+        "value": "12.4",
+        "codepoints": [
+          "U+0031",
+          "U+0032",
+          "U+002E",
+          "U+0034"
+        ],
+        "len_codepoints": 4,
+        "len_utf16": 4
+      },
+      "shift": {
+        "type": "str",
+        "value": "1111",
+        "codepoints": [
+          "U+0031",
+          "U+0031",
+          "U+0031",
+          "U+0031"
+        ],
+        "len_codepoints": 4,
+        "len_utf16": 4
+      },
+      "decode": false,
+      "python": {
+        "ok": false,
+        "error_type": "ValueError",
+        "message": "PIN must be a non-empty digit string"
+      }
+    },
+    {
+      "id": "s_pin_inner_space",
+      "source": "synthetic",
+      "pin": {
+        "type": "str",
+        "value": "12 34",
+        "codepoints": [
+          "U+0031",
+          "U+0032",
+          "U+0020",
+          "U+0033",
+          "U+0034"
+        ],
+        "len_codepoints": 5,
+        "len_utf16": 5
+      },
+      "shift": {
+        "type": "str",
+        "value": "12345",
+        "codepoints": [
+          "U+0031",
+          "U+0032",
+          "U+0033",
+          "U+0034",
+          "U+0035"
+        ],
+        "len_codepoints": 5,
+        "len_utf16": 5
+      },
+      "decode": false,
+      "python": {
+        "ok": false,
+        "error_type": "ValueError",
+        "message": "PIN must be a non-empty digit string"
+      }
+    },
+    {
+      "id": "s_shift_none",
+      "source": "synthetic",
+      "pin": {
+        "type": "str",
+        "value": "1234",
+        "codepoints": [
+          "U+0031",
+          "U+0032",
+          "U+0033",
+          "U+0034"
+        ],
+        "len_codepoints": 4,
+        "len_utf16": 4
+      },
+      "shift": {
+        "type": "NoneType",
+        "value": null
+      },
+      "decode": false,
+      "python": {
+        "ok": false,
+        "error_type": "TypeError",
+        "message": "Shift must be a digit string, got NoneType"
+      },
+      "port_note": "Dart: non-nullable String"
+    },
+    {
+      "id": "s_shift_bytes",
+      "source": "synthetic",
+      "pin": {
+        "type": "str",
+        "value": "1234",
+        "codepoints": [
+          "U+0031",
+          "U+0032",
+          "U+0033",
+          "U+0034"
+        ],
+        "len_codepoints": 4,
+        "len_utf16": 4
+      },
+      "shift": {
+        "type": "bytes",
+        "hex": "33373139"
+      },
+      "decode": false,
+      "python": {
+        "ok": false,
+        "error_type": "TypeError",
+        "message": "Shift must be a digit string, got bytes"
+      },
+      "port_note": "Dart: n/a"
+    },
+    {
+      "id": "s_shift_float",
+      "source": "synthetic",
+      "pin": {
+        "type": "str",
+        "value": "1234",
+        "codepoints": [
+          "U+0031",
+          "U+0032",
+          "U+0033",
+          "U+0034"
+        ],
+        "len_codepoints": 4,
+        "len_utf16": 4
+      },
+      "shift": {
+        "type": "float",
+        "value": 3.0
+      },
+      "decode": false,
+      "python": {
+        "ok": false,
+        "error_type": "TypeError",
+        "message": "Shift must be a digit string, got float"
+      },
+      "port_note": "Dart: n/a"
+    },
+    {
+      "id": "s_shift_list",
+      "source": "synthetic",
+      "pin": {
+        "type": "str",
+        "value": "1234",
+        "codepoints": [
+          "U+0031",
+          "U+0032",
+          "U+0033",
+          "U+0034"
+        ],
+        "len_codepoints": 4,
+        "len_utf16": 4
+      },
+      "shift": {
+        "type": "list",
+        "repr": "['3', '7', '1', '9']"
+      },
+      "decode": false,
+      "python": {
+        "ok": false,
+        "error_type": "TypeError",
+        "message": "Shift must be a digit string, got list"
+      },
+      "port_note": "Dart: n/a"
+    },
+    {
+      "id": "s_pin_none",
+      "source": "synthetic",
+      "pin": {
+        "type": "NoneType",
+        "value": null
+      },
+      "shift": {
+        "type": "str",
+        "value": "1234",
+        "codepoints": [
+          "U+0031",
+          "U+0032",
+          "U+0033",
+          "U+0034"
+        ],
+        "len_codepoints": 4,
+        "len_utf16": 4
+      },
+      "decode": false,
+      "python": {
+        "ok": false,
+        "error_type": "ValueError",
+        "message": "PIN must be a non-empty digit string"
+      },
+      "port_note": "Python quirk: None pin -> ValueError (not TypeError) because `not None` is True"
+    },
+    {
+      "id": "s_pin_int_zero",
+      "source": "synthetic",
+      "pin": {
+        "type": "int",
+        "value": 0
+      },
+      "shift": {
+        "type": "str",
+        "value": "1",
+        "codepoints": [
+          "U+0031"
+        ],
+        "len_codepoints": 1,
+        "len_utf16": 1
+      },
+      "decode": false,
+      "python": {
+        "ok": false,
+        "error_type": "ValueError",
+        "message": "PIN must be a non-empty digit string"
+      },
+      "port_note": "Python quirk: falsy int -> ValueError"
+    },
+    {
+      "id": "s_pin_int",
+      "source": "synthetic",
+      "pin": {
+        "type": "int",
+        "value": 1234
+      },
+      "shift": {
+        "type": "str",
+        "value": "1234",
+        "codepoints": [
+          "U+0031",
+          "U+0032",
+          "U+0033",
+          "U+0034"
+        ],
+        "len_codepoints": 4,
+        "len_utf16": 4
+      },
+      "decode": false,
+      "python": {
+        "ok": false,
+        "error_type": "AttributeError",
+        "message": "'int' object has no attribute 'isdigit'"
+      },
+      "port_note": "Python quirk: truthy int -> AttributeError; Dart n/a"
+    },
+    {
+      "id": "s_order_pin_before_shift_type",
+      "source": "synthetic",
+      "pin": {
+        "type": "str",
+        "value": "",
+        "codepoints": [],
+        "len_codepoints": 0,
+        "len_utf16": 0
+      },
+      "shift": {
+        "type": "int",
+        "value": 3
+      },
+      "decode": false,
+      "python": {
+        "ok": false,
+        "error_type": "ValueError",
+        "message": "PIN must be a non-empty digit string"
+      },
+      "port_note": "check order: pin validated before shift type"
+    },
+    {
+      "id": "s_order_pin_before_shift_value",
+      "source": "synthetic",
+      "pin": {
+        "type": "str",
+        "value": "12a4",
+        "codepoints": [
+          "U+0031",
+          "U+0032",
+          "U+0061",
+          "U+0034"
+        ],
+        "len_codepoints": 4,
+        "len_utf16": 4
+      },
+      "shift": {
+        "type": "str",
+        "value": "",
+        "codepoints": [],
+        "len_codepoints": 0,
+        "len_utf16": 0
+      },
+      "decode": false,
+      "python": {
+        "ok": false,
+        "error_type": "ValueError",
+        "message": "PIN must be a non-empty digit string"
+      },
+      "port_note": "check order: pin validated before shift value"
+    },
+    {
+      "id": "s_order_shift_value_before_length",
+      "source": "synthetic",
+      "pin": {
+        "type": "str",
+        "value": "1234",
+        "codepoints": [
+          "U+0031",
+          "U+0032",
+          "U+0033",
+          "U+0034"
+        ],
+        "len_codepoints": 4,
+        "len_utf16": 4
+      },
+      "shift": {
+        "type": "str",
+        "value": "3a",
+        "codepoints": [
+          "U+0033",
+          "U+0061"
+        ],
+        "len_codepoints": 2,
+        "len_utf16": 2
+      },
+      "decode": false,
+      "python": {
+        "ok": false,
+        "error_type": "ValueError",
+        "message": "Shift must be a non-empty digit string"
+      },
+      "port_note": "check order: shift digits before length"
+    },
+    {
+      "id": "s_both_empty",
+      "source": "synthetic",
+      "pin": {
+        "type": "str",
+        "value": "",
+        "codepoints": [],
+        "len_codepoints": 0,
+        "len_utf16": 0
+      },
+      "shift": {
+        "type": "str",
+        "value": "",
+        "codepoints": [],
+        "len_codepoints": 0,
+        "len_utf16": 0
+      },
+      "decode": false,
+      "python": {
+        "ok": false,
+        "error_type": "ValueError",
+        "message": "PIN must be a non-empty digit string"
+      }
+    },
+    {
+      "id": "s_decode_empty_shift",
+      "source": "synthetic",
+      "pin": {
+        "type": "str",
+        "value": "1234",
+        "codepoints": [
+          "U+0031",
+          "U+0032",
+          "U+0033",
+          "U+0034"
+        ],
+        "len_codepoints": 4,
+        "len_utf16": 4
+      },
+      "shift": {
+        "type": "str",
+        "value": "",
+        "codepoints": [],
+        "len_codepoints": 0,
+        "len_utf16": 0
+      },
+      "decode": true,
+      "python": {
+        "ok": false,
+        "error_type": "ValueError",
+        "message": "Shift must be a non-empty digit string"
+      },
+      "port_note": "decode flag irrelevant to validation"
+    },
+    {
+      "id": "s_decode_len_mismatch",
+      "source": "synthetic",
+      "pin": {
+        "type": "str",
+        "value": "12345678",
+        "codepoints": [
+          "U+0031",
+          "U+0032",
+          "U+0033",
+          "U+0034",
+          "U+0035",
+          "U+0036",
+          "U+0037",
+          "U+0038"
+        ],
+        "len_codepoints": 8,
+        "len_utf16": 8
+      },
+      "shift": {
+        "type": "str",
+        "value": "1234567",
+        "codepoints": [
+          "U+0031",
+          "U+0032",
+          "U+0033",
+          "U+0034",
+          "U+0035",
+          "U+0036",
+          "U+0037"
+        ],
+        "len_codepoints": 7,
+        "len_utf16": 7
+      },
+      "decode": true,
+      "python": {
+        "ok": false,
+        "error_type": "ValueError",
+        "message": "Shift length (7) must match PIN length (8)"
+      }
+    },
+    {
+      "id": "s_len_mismatch_17_vs_16",
+      "source": "synthetic",
+      "pin": {
+        "type": "str",
+        "value": "00000000000000000",
+        "codepoints": [
+          "U+0030",
+          "U+0030",
+          "U+0030",
+          "U+0030",
+          "U+0030",
+          "U+0030",
+          "U+0030",
+          "U+0030",
+          "U+0030",
+          "U+0030",
+          "U+0030",
+          "U+0030",
+          "U+0030",
+          "U+0030",
+          "U+0030",
+          "U+0030",
+          "U+0030"
+        ],
+        "len_codepoints": 17,
+        "len_utf16": 17
+      },
+      "shift": {
+        "type": "str",
+        "value": "0000000000000000",
+        "codepoints": [
+          "U+0030",
+          "U+0030",
+          "U+0030",
+          "U+0030",
+          "U+0030",
+          "U+0030",
+          "U+0030",
+          "U+0030",
+          "U+0030",
+          "U+0030",
+          "U+0030",
+          "U+0030",
+          "U+0030",
+          "U+0030",
+          "U+0030",
+          "U+0030"
+        ],
+        "len_codepoints": 16,
+        "len_utf16": 16
+      },
+      "decode": false,
+      "python": {
+        "ok": false,
+        "error_type": "ValueError",
+        "message": "Shift length (16) must match PIN length (17)"
+      },
+      "port_note": "core has no max length; message still reports both lengths"
+    },
+    {
+      "id": "s_superscript_pin",
+      "source": "synthetic",
+      "pin": {
+        "type": "str",
+        "value": "²234",
+        "codepoints": [
+          "U+00B2",
+          "U+0032",
+          "U+0033",
+          "U+0034"
+        ],
+        "len_codepoints": 4,
+        "len_utf16": 4
+      },
+      "shift": {
+        "type": "str",
+        "value": "1111",
+        "codepoints": [
+          "U+0031",
+          "U+0031",
+          "U+0031",
+          "U+0031"
+        ],
+        "len_codepoints": 4,
+        "len_utf16": 4
+      },
+      "decode": false,
+      "python": {
+        "ok": false,
+        "error_type": "ValueError",
+        "message": "invalid literal for int() with base 10: '²'"
+      },
+      "port_note": "Python str.isdigit() accepts U+00B2 but int() rejects it -> leaked int() message"
+    },
+    {
+      "id": "s_superscript_shift",
+      "source": "synthetic",
+      "pin": {
+        "type": "str",
+        "value": "1234",
+        "codepoints": [
+          "U+0031",
+          "U+0032",
+          "U+0033",
+          "U+0034"
+        ],
+        "len_codepoints": 4,
+        "len_utf16": 4
+      },
+      "shift": {
+        "type": "str",
+        "value": "1²34",
+        "codepoints": [
+          "U+0031",
+          "U+00B2",
+          "U+0033",
+          "U+0034"
+        ],
+        "len_codepoints": 4,
+        "len_utf16": 4
+      },
+      "decode": false,
+      "python": {
+        "ok": false,
+        "error_type": "ValueError",
+        "message": "invalid literal for int() with base 10: '²'"
+      },
+      "port_note": "same int() leak on the shift side"
+    },
+    {
+      "id": "s_circled_digit_pin",
+      "source": "synthetic",
+      "pin": {
+        "type": "str",
+        "value": "①234",
+        "codepoints": [
+          "U+2460",
+          "U+0032",
+          "U+0033",
+          "U+0034"
+        ],
+        "len_codepoints": 4,
+        "len_utf16": 4
+      },
+      "shift": {
+        "type": "str",
+        "value": "1111",
+        "codepoints": [
+          "U+0031",
+          "U+0031",
+          "U+0031",
+          "U+0031"
+        ],
+        "len_codepoints": 4,
+        "len_utf16": 4
+      },
+      "decode": false,
+      "python": {
+        "ok": false,
+        "error_type": "ValueError",
+        "message": "invalid literal for int() with base 10: '①'"
+      },
+      "port_note": "U+2460 CIRCLED DIGIT ONE: isdigit True, int() fails"
+    }
+  ],
+  "python_accepts_but_port_should_reject": [
+    {
+      "id": "d_fullwidth_pin",
+      "pin": {
+        "type": "str",
+        "value": "１２３４",
+        "codepoints": [
+          "U+FF11",
+          "U+FF12",
+          "U+FF13",
+          "U+FF14"
+        ],
+        "len_codepoints": 4,
+        "len_utf16": 4
+      },
+      "shift": {
+        "type": "str",
+        "value": "3719",
+        "codepoints": [
+          "U+0033",
+          "U+0037",
+          "U+0031",
+          "U+0039"
+        ],
+        "len_codepoints": 4,
+        "len_utf16": 4
+      },
+      "decode": false,
+      "python": {
+        "ok": true,
+        "result": "4943"
+      },
+      "dart_recommended": {
+        "ok": false,
+        "error_type": "ArgumentError/FormatException",
+        "message": "PIN must be a non-empty digit string",
+        "why": "core accepts ASCII 0-9 only; UI may normalize U+0660-0669 / U+06F0-06F9 to ASCII before calling core"
+      }
+    },
+    {
+      "id": "d_arabic_indic_pin",
+      "pin": {
+        "type": "str",
+        "value": "١٢٣٤",
+        "codepoints": [
+          "U+0661",
+          "U+0662",
+          "U+0663",
+          "U+0664"
+        ],
+        "len_codepoints": 4,
+        "len_utf16": 4
+      },
+      "shift": {
+        "type": "str",
+        "value": "3719",
+        "codepoints": [
+          "U+0033",
+          "U+0037",
+          "U+0031",
+          "U+0039"
+        ],
+        "len_codepoints": 4,
+        "len_utf16": 4
+      },
+      "decode": false,
+      "python": {
+        "ok": true,
+        "result": "4943"
+      },
+      "dart_recommended": {
+        "ok": false,
+        "error_type": "ArgumentError/FormatException",
+        "message": "PIN must be a non-empty digit string",
+        "why": "core accepts ASCII 0-9 only; UI may normalize U+0660-0669 / U+06F0-06F9 to ASCII before calling core"
+      }
+    },
+    {
+      "id": "d_persian_shift",
+      "pin": {
+        "type": "str",
+        "value": "1234",
+        "codepoints": [
+          "U+0031",
+          "U+0032",
+          "U+0033",
+          "U+0034"
+        ],
+        "len_codepoints": 4,
+        "len_utf16": 4
+      },
+      "shift": {
+        "type": "str",
+        "value": "۳۷۱۹",
+        "codepoints": [
+          "U+06F3",
+          "U+06F7",
+          "U+06F1",
+          "U+06F9"
+        ],
+        "len_codepoints": 4,
+        "len_utf16": 4
+      },
+      "decode": false,
+      "python": {
+        "ok": true,
+        "result": "4943"
+      },
+      "dart_recommended": {
+        "ok": false,
+        "error_type": "ArgumentError/FormatException",
+        "message": "Shift must be a non-empty digit string",
+        "why": "core accepts ASCII 0-9 only; UI may normalize U+0660-0669 / U+06F0-06F9 to ASCII before calling core"
+      }
+    },
+    {
+      "id": "d_devanagari_pin_decode",
+      "pin": {
+        "type": "str",
+        "value": "४९४३",
+        "codepoints": [
+          "U+096A",
+          "U+096F",
+          "U+096A",
+          "U+0969"
+        ],
+        "len_codepoints": 4,
+        "len_utf16": 4
+      },
+      "shift": {
+        "type": "str",
+        "value": "3719",
+        "codepoints": [
+          "U+0033",
+          "U+0037",
+          "U+0031",
+          "U+0039"
+        ],
+        "len_codepoints": 4,
+        "len_utf16": 4
+      },
+      "decode": true,
+      "python": {
+        "ok": true,
+        "result": "1234"
+      },
+      "dart_recommended": {
+        "ok": false,
+        "error_type": "ArgumentError/FormatException",
+        "message": "PIN must be a non-empty digit string",
+        "why": "core accepts ASCII 0-9 only; UI may normalize U+0660-0669 / U+06F0-06F9 to ASCII before calling core"
+      }
+    },
+    {
+      "id": "d_mixed_ascii_fullwidth",
+      "pin": {
+        "type": "str",
+        "value": "12３4",
+        "codepoints": [
+          "U+0031",
+          "U+0032",
+          "U+FF13",
+          "U+0034"
+        ],
+        "len_codepoints": 4,
+        "len_utf16": 4
+      },
+      "shift": {
+        "type": "str",
+        "value": "3719",
+        "codepoints": [
+          "U+0033",
+          "U+0037",
+          "U+0031",
+          "U+0039"
+        ],
+        "len_codepoints": 4,
+        "len_utf16": 4
+      },
+      "decode": false,
+      "python": {
+        "ok": true,
+        "result": "4943"
+      },
+      "dart_recommended": {
+        "ok": false,
+        "error_type": "ArgumentError/FormatException",
+        "message": "PIN must be a non-empty digit string",
+        "why": "core accepts ASCII 0-9 only; UI may normalize U+0660-0669 / U+06F0-06F9 to ASCII before calling core"
+      }
+    },
+    {
+      "id": "d_math_bold_astral_pin",
+      "pin": {
+        "type": "str",
+        "value": "𝟏234",
+        "codepoints": [
+          "U+1D7CF",
+          "U+0032",
+          "U+0033",
+          "U+0034"
+        ],
+        "len_codepoints": 4,
+        "len_utf16": 5
+      },
+      "shift": {
+        "type": "str",
+        "value": "3719",
+        "codepoints": [
+          "U+0033",
+          "U+0037",
+          "U+0031",
+          "U+0039"
+        ],
+        "len_codepoints": 4,
+        "len_utf16": 4
+      },
+      "decode": false,
+      "python": {
+        "ok": true,
+        "result": "4943"
+      },
+      "dart_recommended": {
+        "ok": false,
+        "error_type": "ArgumentError/FormatException",
+        "message": "PIN must be a non-empty digit string",
+        "why": "core accepts ASCII 0-9 only; UI may normalize U+0660-0669 / U+06F0-06F9 to ASCII before calling core"
+      }
+    },
+    {
+      "id": "d_math_bold_astral_len_mismatch_utf16",
+      "pin": {
+        "type": "str",
+        "value": "𝟏234",
+        "codepoints": [
+          "U+1D7CF",
+          "U+0032",
+          "U+0033",
+          "U+0034"
+        ],
+        "len_codepoints": 4,
+        "len_utf16": 5
+      },
+      "shift": {
+        "type": "str",
+        "value": "37190",
+        "codepoints": [
+          "U+0033",
+          "U+0037",
+          "U+0031",
+          "U+0039",
+          "U+0030"
+        ],
+        "len_codepoints": 5,
+        "len_utf16": 5
+      },
+      "decode": false,
+      "python": {
+        "ok": false,
+        "error_type": "ValueError",
+        "message": "Shift length (5) must match PIN length (4)"
+      },
+      "dart_recommended": {
+        "ok": false,
+        "error_type": "ArgumentError/FormatException",
+        "message": "PIN must be a non-empty digit string",
+        "why": "core accepts ASCII 0-9 only; UI may normalize U+0660-0669 / U+06F0-06F9 to ASCII before calling core"
+      }
+    }
+  ]
+}

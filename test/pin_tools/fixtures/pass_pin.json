@@ -1,0 +1,1840 @@
+{
+  "meta": {
+    "generator": "/private/tmp/claude-501/-Users-ilya-CODE-vaultwarden/fc401efa-332a-4a8e-a761-97ec2c64ab4b/scratchpad/gen_pin_vectors.py",
+    "python": "3.14.4",
+    "seed": 20260926,
+    "sources": {
+      "pin/pass_pin.py": "673bf83d64e04c043cc7c4938b6ac8a39049236fd431edc9c59343b494bdc262"
+    },
+    "function": "generate_pin(mask_str: str, input_str: str) -> str",
+    "algorithm": [
+      "mask = [int(c) for c in mask_str]; must be exactly 8 values",
+      "elements = list(''.join(input_str.strip().split())); must be exactly 20 code points",
+      "pos_0 = mask[0] - 1; pos_i = (pos_{i-1} + mask[i]) % 20 for i >= 1",
+      "out_i = elements[pos_i]; elements[pos_i] = '0'  (a revisited position yields '0')",
+      "each mask value must be in 1..20 -> effectively 1..9 (single chars), checked inside the loop"
+    ],
+    "python_whitespace_codepoints": [
+      "U+0009",
+      "U+000A",
+      "U+000B",
+      "U+000C",
+      "U+000D",
+      "U+001C",
+      "U+001D",
+      "U+001E",
+      "U+001F",
+      "U+0020",
+      "U+0085",
+      "U+00A0",
+      "U+1680",
+      "U+2000",
+      "U+2001",
+      "U+2002",
+      "U+2003",
+      "U+2004",
+      "U+2005",
+      "U+2006",
+      "U+2007",
+      "U+2008",
+      "U+2009",
+      "U+200A",
+      "U+2028",
+      "U+2029",
+      "U+202F",
+      "U+205F",
+      "U+3000"
+    ],
+    "probe_method": "positions are cross-checked by running the real generate_pin on 20 distinct letters"
+  },
+  "count": 51,
+  "vectors": [
+    {
+      "id": "doc_example_mask",
+      "mask": "24681357",
+      "input": "73015946288150347629",
+      "input_normalized": "73015946288150347629",
+      "expected": "39197124",
+      "input_len_codepoints": 20,
+      "normalized_len_codepoints": 20,
+      "normalized_len_utf16": 20,
+      "probe_input": "ABCDEFGHIJKLMNOPQRST",
+      "probe_output": "BFLTADIP",
+      "positions_0based": [
+        1,
+        5,
+        11,
+        19,
+        0,
+        3,
+        8,
+        15
+      ],
+      "positions_1based": [
+        2,
+        6,
+        12,
+        20,
+        1,
+        4,
+        9,
+        16
+      ],
+      "revisit_steps_0based": [],
+      "note": "mask from the docstring/prompt example"
+    },
+    {
+      "id": "probe_24681357",
+      "mask": "24681357",
+      "input": "ABCDEFGHIJKLMNOPQRST",
+      "input_normalized": "ABCDEFGHIJKLMNOPQRST",
+      "expected": "BFLTADIP",
+      "input_len_codepoints": 20,
+      "normalized_len_codepoints": 20,
+      "normalized_len_utf16": 20,
+      "probe_input": "ABCDEFGHIJKLMNOPQRST",
+      "probe_output": "BFLTADIP",
+      "positions_0based": [
+        1,
+        5,
+        11,
+        19,
+        0,
+        3,
+        8,
+        15
+      ],
+      "positions_1based": [
+        2,
+        6,
+        12,
+        20,
+        1,
+        4,
+        9,
+        16
+      ],
+      "revisit_steps_0based": [],
+      "note": "letters reveal positions directly"
+    },
+    {
+      "id": "all_ones",
+      "mask": "11111111",
+      "input": "73015946288150347629",
+      "input_normalized": "73015946288150347629",
+      "expected": "73015946",
+      "input_len_codepoints": 20,
+      "normalized_len_codepoints": 20,
+      "normalized_len_utf16": 20,
+      "probe_input": "ABCDEFGHIJKLMNOPQRST",
+      "probe_output": "ABCDEFGH",
+      "positions_0based": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "positions_1based": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "revisit_steps_0based": [],
+      "note": "positions 0..7"
+    },
+    {
+      "id": "all_nines",
+      "mask": "99999999",
+      "input": "73015946288150347629",
+      "input_normalized": "73015946288150347629",
+      "expected": "26445001",
+      "input_len_codepoints": 20,
+      "normalized_len_codepoints": 20,
+      "normalized_len_utf16": 20,
+      "probe_input": "ABCDEFGHIJKLMNOPQRST",
+      "probe_output": "IRGPENCL",
+      "positions_0based": [
+        8,
+        17,
+        6,
+        15,
+        4,
+        13,
+        2,
+        11
+      ],
+      "positions_1based": [
+        9,
+        18,
+        7,
+        16,
+        5,
+        14,
+        3,
+        12
+      ],
+      "revisit_steps_0based": [],
+      "note": "8,17,6,15,4,13,2,11 - wraps, no revisit"
+    },
+    {
+      "id": "ascending",
+      "mask": "12345678",
+      "input": "73015946288150347629",
+      "input_normalized": "73015946288150347629",
+      "expected": "70983064",
+      "input_len_codepoints": 20,
+      "normalized_len_codepoints": 20,
+      "normalized_len_utf16": 20,
+      "probe_input": "ABCDEFGHIJKLMNOPQRST",
+      "probe_output": "ACFJO0HP",
+      "positions_0based": [
+        0,
+        2,
+        5,
+        9,
+        14,
+        0,
+        7,
+        15
+      ],
+      "positions_1based": [
+        1,
+        3,
+        6,
+        10,
+        15,
+        1,
+        8,
+        16
+      ],
+      "revisit_steps_0based": [
+        5
+      ]
+    },
+    {
+      "id": "descending",
+      "mask": "87654321",
+      "input": "73015946288150347629",
+      "input_normalized": "73015946288150347629",
+      "expected": "63798504",
+      "input_len_codepoints": 20,
+      "normalized_len_codepoints": 20,
+      "normalized_len_utf16": 20,
+      "probe_input": "ABCDEFGHIJKLMNOPQRST",
+      "probe_output": "HOAFJM0P",
+      "positions_0based": [
+        7,
+        14,
+        0,
+        5,
+        9,
+        12,
+        14,
+        15
+      ],
+      "positions_1based": [
+        8,
+        15,
+        1,
+        6,
+        10,
+        13,
+        15,
+        16
+      ],
+      "revisit_steps_0based": [
+        6
+      ]
+    },
+    {
+      "id": "first9_rest9",
+      "mask": "19999999",
+      "input": "73015946288150347629",
+      "input_normalized": "73015946288150347629",
+      "expected": "78267931",
+      "input_len_codepoints": 20,
+      "normalized_len_codepoints": 20,
+      "normalized_len_utf16": 20,
+      "probe_input": "ABCDEFGHIJKLMNOPQRST",
+      "probe_output": "AJSHQFOD",
+      "positions_0based": [
+        0,
+        9,
+        18,
+        7,
+        16,
+        5,
+        14,
+        3
+      ],
+      "positions_1based": [
+        1,
+        10,
+        19,
+        8,
+        17,
+        6,
+        15,
+        4
+      ],
+      "revisit_steps_0based": []
+    },
+    {
+      "id": "wrap_exact_20",
+      "mask": "15555111",
+      "input": "ABCDEFGHIJKLMNOPQRST",
+      "input_normalized": "ABCDEFGHIJKLMNOPQRST",
+      "expected": "AFKP0BCD",
+      "input_len_codepoints": 20,
+      "normalized_len_codepoints": 20,
+      "normalized_len_utf16": 20,
+      "probe_input": "ABCDEFGHIJKLMNOPQRST",
+      "probe_output": "AFKP0BCD",
+      "positions_0based": [
+        0,
+        5,
+        10,
+        15,
+        0,
+        1,
+        2,
+        3
+      ],
+      "positions_1based": [
+        1,
+        6,
+        11,
+        16,
+        1,
+        2,
+        3,
+        4
+      ],
+      "revisit_steps_0based": [
+        4
+      ],
+      "note": "0,5,10,15,0(revisit->'0'),1,2,3"
+    },
+    {
+      "id": "wrap_exact_20_digits",
+      "mask": "15555111",
+      "input": "73015946288150347629",
+      "input_normalized": "73015946288150347629",
+      "expected": "79840301",
+      "input_len_codepoints": 20,
+      "normalized_len_codepoints": 20,
+      "normalized_len_utf16": 20,
+      "probe_input": "ABCDEFGHIJKLMNOPQRST",
+      "probe_output": "AFKP0BCD",
+      "positions_0based": [
+        0,
+        5,
+        10,
+        15,
+        0,
+        1,
+        2,
+        3
+      ],
+      "positions_1based": [
+        1,
+        6,
+        11,
+        16,
+        1,
+        2,
+        3,
+        4
+      ],
+      "revisit_steps_0based": [
+        4
+      ],
+      "note": "revisit returns literal '0' regardless of original char"
+    },
+    {
+      "id": "all_fives",
+      "mask": "55555555",
+      "input": "ABCDEFGHIJKLMNOPQRST",
+      "input_normalized": "ABCDEFGHIJKLMNOPQRST",
+      "expected": "EJOT0000",
+      "input_len_codepoints": 20,
+      "normalized_len_codepoints": 20,
+      "normalized_len_utf16": 20,
+      "probe_input": "ABCDEFGHIJKLMNOPQRST",
+      "probe_output": "EJOT0000",
+      "positions_0based": [
+        4,
+        9,
+        14,
+        19,
+        4,
+        9,
+        14,
+        19
+      ],
+      "positions_1based": [
+        5,
+        10,
+        15,
+        20,
+        5,
+        10,
+        15,
+        20
+      ],
+      "revisit_steps_0based": [
+        4,
+        5,
+        6,
+        7
+      ],
+      "note": "4,9,14,19,4,9,14,19 -> last 4 all revisits -> '0000'"
+    },
+    {
+      "id": "all_fours",
+      "mask": "44444444",
+      "input": "ABCDEFGHIJKLMNOPQRST",
+      "input_normalized": "ABCDEFGHIJKLMNOPQRST",
+      "expected": "DHLPT000",
+      "input_len_codepoints": 20,
+      "normalized_len_codepoints": 20,
+      "normalized_len_utf16": 20,
+      "probe_input": "ABCDEFGHIJKLMNOPQRST",
+      "probe_output": "DHLPT000",
+      "positions_0based": [
+        3,
+        7,
+        11,
+        15,
+        19,
+        3,
+        7,
+        11
+      ],
+      "positions_1based": [
+        4,
+        8,
+        12,
+        16,
+        20,
+        4,
+        8,
+        12
+      ],
+      "revisit_steps_0based": [
+        5,
+        6,
+        7
+      ],
+      "note": "3,7,11,15,19,3,7,11 -> 3 revisits"
+    },
+    {
+      "id": "all_twos",
+      "mask": "22222222",
+      "input": "ABCDEFGHIJKLMNOPQRST",
+      "input_normalized": "ABCDEFGHIJKLMNOPQRST",
+      "expected": "BDFHJLNP",
+      "input_len_codepoints": 20,
+      "normalized_len_codepoints": 20,
+      "normalized_len_utf16": 20,
+      "probe_input": "ABCDEFGHIJKLMNOPQRST",
+      "probe_output": "BDFHJLNP",
+      "positions_0based": [
+        1,
+        3,
+        5,
+        7,
+        9,
+        11,
+        13,
+        15
+      ],
+      "positions_1based": [
+        2,
+        4,
+        6,
+        8,
+        10,
+        12,
+        14,
+        16
+      ],
+      "revisit_steps_0based": [],
+      "note": "1,3,...,15 - no wrap"
+    },
+    {
+      "id": "revisit_first_pos_zero_char",
+      "mask": "15555111",
+      "input": "0BCDEFGHIJKLMNOPQRST",
+      "input_normalized": "0BCDEFGHIJKLMNOPQRST",
+      "expected": "0FKP0BCD",
+      "input_len_codepoints": 20,
+      "normalized_len_codepoints": 20,
+      "normalized_len_utf16": 20,
+      "probe_input": "ABCDEFGHIJKLMNOPQRST",
+      "probe_output": "AFKP0BCD",
+      "positions_0based": [
+        0,
+        5,
+        10,
+        15,
+        0,
+        1,
+        2,
+        3
+      ],
+      "positions_1based": [
+        1,
+        6,
+        11,
+        16,
+        1,
+        2,
+        3,
+        4
+      ],
+      "revisit_steps_0based": [
+        4
+      ],
+      "note": "original '0' at a revisited position: indistinguishable"
+    },
+    {
+      "id": "ten_pairs_spaces",
+      "mask": "24681357",
+      "input": "12 34 56 78 90 12 34 56 78 90",
+      "input_normalized": "12345678901234567890",
+      "expected": "26201496",
+      "input_len_codepoints": 29,
+      "normalized_len_codepoints": 20,
+      "normalized_len_utf16": 20,
+      "probe_input": "ABCDEFGHIJKLMNOPQRST",
+      "probe_output": "BFLTADIP",
+      "positions_0based": [
+        1,
+        5,
+        11,
+        19,
+        0,
+        3,
+        8,
+        15
+      ],
+      "positions_1based": [
+        2,
+        6,
+        12,
+        20,
+        1,
+        4,
+        9,
+        16
+      ],
+      "revisit_steps_0based": [],
+      "note": "docstring: '10 pairs separated by spaces'"
+    },
+    {
+      "id": "tabs_newlines",
+      "mask": "13572468",
+      "input": "\t1234\n5678  9012\r\n3456 7890  ",
+      "input_normalized": "12345678901234567890",
+      "expected": "14968280",
+      "input_len_codepoints": 29,
+      "normalized_len_codepoints": 20,
+      "normalized_len_utf16": 20,
+      "probe_input": "ABCDEFGHIJKLMNOPQRST",
+      "probe_output": "ADIPRBH0",
+      "positions_0based": [
+        0,
+        3,
+        8,
+        15,
+        17,
+        1,
+        7,
+        15
+      ],
+      "positions_1based": [
+        1,
+        4,
+        9,
+        16,
+        18,
+        2,
+        8,
+        16
+      ],
+      "revisit_steps_0based": [
+        7
+      ],
+      "note": "all Python whitespace removed"
+    },
+    {
+      "id": "nbsp_inside",
+      "mask": "31415926",
+      "input": "1234 5678 9012 3456 7890",
+      "input_normalized": "12345678901234567890",
+      "expected": "34894051",
+      "input_len_codepoints": 24,
+      "normalized_len_codepoints": 20,
+      "normalized_len_utf16": 20,
+      "probe_input": "ABCDEFGHIJKLMNOPQRST",
+      "probe_output": "CDHIN0EK",
+      "positions_0based": [
+        2,
+        3,
+        7,
+        8,
+        13,
+        2,
+        4,
+        10
+      ],
+      "positions_1based": [
+        3,
+        4,
+        8,
+        9,
+        14,
+        3,
+        5,
+        11
+      ],
+      "revisit_steps_0based": [
+        5
+      ],
+      "note": "U+00A0 is whitespace in Python split()"
+    },
+    {
+      "id": "letters_output",
+      "mask": "27182818",
+      "input": "abcdefghijklmnopqrst",
+      "input_normalized": "abcdefghijklmnopqrst",
+      "expected": "bijrth0q",
+      "input_len_codepoints": 20,
+      "normalized_len_codepoints": 20,
+      "normalized_len_utf16": 20,
+      "probe_input": "ABCDEFGHIJKLMNOPQRST",
+      "probe_output": "BIJRTH0Q",
+      "positions_0based": [
+        1,
+        8,
+        9,
+        17,
+        19,
+        7,
+        8,
+        16
+      ],
+      "positions_1based": [
+        2,
+        9,
+        10,
+        18,
+        20,
+        8,
+        9,
+        17
+      ],
+      "revisit_steps_0based": [
+        6
+      ],
+      "note": "output is not guaranteed numeric"
+    },
+    {
+      "id": "symbols",
+      "mask": "11235813",
+      "input": "!@#$%^&*()_+-=[]{};:",
+      "input_normalized": "!@#$%^&*()_+-=[]{};:",
+      "expected": "!@$&+:00",
+      "input_len_codepoints": 20,
+      "normalized_len_codepoints": 20,
+      "normalized_len_utf16": 20,
+      "probe_input": "ABCDEFGHIJKLMNOPQRST",
+      "probe_output": "ABDGLT00",
+      "positions_0based": [
+        0,
+        1,
+        3,
+        6,
+        11,
+        19,
+        0,
+        3
+      ],
+      "positions_1based": [
+        1,
+        2,
+        4,
+        7,
+        12,
+        20,
+        1,
+        4
+      ],
+      "revisit_steps_0based": [
+        6,
+        7
+      ],
+      "note": "any non-whitespace char allowed"
+    },
+    {
+      "id": "cyrillic",
+      "mask": "98765432",
+      "input": "абвгдеёжзийклмнопрст",
+      "input_normalized": "абвгдеёжзийклмнопрст",
+      "expected": "зпгинсб0",
+      "input_len_codepoints": 20,
+      "normalized_len_codepoints": 20,
+      "normalized_len_utf16": 20,
+      "probe_input": "ABCDEFGHIJKLMNOPQRST",
+      "probe_output": "IQDJOSB0",
+      "positions_0based": [
+        8,
+        16,
+        3,
+        9,
+        14,
+        18,
+        1,
+        3
+      ],
+      "positions_1based": [
+        9,
+        17,
+        4,
+        10,
+        15,
+        19,
+        2,
+        4
+      ],
+      "revisit_steps_0based": [
+        7
+      ],
+      "note": "non-ASCII letters allowed; length is in code points"
+    },
+    {
+      "id": "astral_emoji",
+      "mask": "12121212",
+      "input": "😀😁😂😃😄😀😁😂😃😄😀😁😂😃😄😀😁😂😃😄",
+      "input_normalized": "😀😁😂😃😄😀😁😂😃😄😀😁😂😃😄😀😁😂😃😄",
+      "expected": "😀😂😃😀😁😃😄😁",
+      "input_len_codepoints": 20,
+      "normalized_len_codepoints": 20,
+      "normalized_len_utf16": 40,
+      "probe_input": "ABCDEFGHIJKLMNOPQRST",
+      "probe_output": "ACDFGIJL",
+      "positions_0based": [
+        0,
+        2,
+        3,
+        5,
+        6,
+        8,
+        9,
+        11
+      ],
+      "positions_1based": [
+        1,
+        3,
+        4,
+        6,
+        7,
+        9,
+        10,
+        12
+      ],
+      "revisit_steps_0based": [],
+      "note": "20 code points = 40 UTF-16 units; Dart must count runes"
+    },
+    {
+      "id": "leading_trailing_ws",
+      "mask": "24681357",
+      "input": "   73015946288150347629   ",
+      "input_normalized": "73015946288150347629",
+      "expected": "39197124",
+      "input_len_codepoints": 26,
+      "normalized_len_codepoints": 20,
+      "normalized_len_utf16": 20,
+      "probe_input": "ABCDEFGHIJKLMNOPQRST",
+      "probe_output": "BFLTADIP",
+      "positions_0based": [
+        1,
+        5,
+        11,
+        19,
+        0,
+        3,
+        8,
+        15
+      ],
+      "positions_1based": [
+        2,
+        6,
+        12,
+        20,
+        1,
+        4,
+        9,
+        16
+      ],
+      "revisit_steps_0based": []
+    },
+    {
+      "id": "probe_zero_filled",
+      "mask": "19191919",
+      "input": "ABCDEFGHIJKLMNOPQRST",
+      "input_normalized": "ABCDEFGHIJKLMNOPQRST",
+      "expected": "AJKT0000",
+      "input_len_codepoints": 20,
+      "normalized_len_codepoints": 20,
+      "normalized_len_utf16": 20,
+      "probe_input": "ABCDEFGHIJKLMNOPQRST",
+      "probe_output": "AJKT0000",
+      "positions_0based": [
+        0,
+        9,
+        10,
+        19,
+        0,
+        9,
+        10,
+        19
+      ],
+      "positions_1based": [
+        1,
+        10,
+        11,
+        20,
+        1,
+        10,
+        11,
+        20
+      ],
+      "revisit_steps_0based": [
+        4,
+        5,
+        6,
+        7
+      ]
+    },
+    {
+      "id": "x1c_separator_py_ws",
+      "mask": "24681357",
+      "input": "1234\u001c5678\u001c9012\u001c3456\u001c7890",
+      "input_normalized": "12345678901234567890",
+      "expected": "26201496",
+      "input_len_codepoints": 24,
+      "normalized_len_codepoints": 20,
+      "normalized_len_utf16": 20,
+      "probe_input": "ABCDEFGHIJKLMNOPQRST",
+      "probe_output": "BFLTADIP",
+      "positions_0based": [
+        1,
+        5,
+        11,
+        19,
+        0,
+        3,
+        8,
+        15
+      ],
+      "positions_1based": [
+        2,
+        6,
+        12,
+        20,
+        1,
+        4,
+        9,
+        16
+      ],
+      "revisit_steps_0based": [],
+      "note": "U+001C is whitespace for Python str.split() but NOT for Dart/JS RegExp \\s"
+    },
+    {
+      "id": "x85_nel_py_ws",
+      "mask": "24681357",
+      "input": "12345678901234567890",
+      "input_normalized": "12345678901234567890",
+      "expected": "26201496",
+      "input_len_codepoints": 21,
+      "normalized_len_codepoints": 20,
+      "normalized_len_utf16": 20,
+      "probe_input": "ABCDEFGHIJKLMNOPQRST",
+      "probe_output": "BFLTADIP",
+      "positions_0based": [
+        1,
+        5,
+        11,
+        19,
+        0,
+        3,
+        8,
+        15
+      ],
+      "positions_1based": [
+        2,
+        6,
+        12,
+        20,
+        1,
+        4,
+        9,
+        16
+      ],
+      "revisit_steps_0based": [],
+      "note": "U+0085 NEL is whitespace for Python split(), not for Dart \\s"
+    },
+    {
+      "id": "ideographic_space",
+      "mask": "24681357",
+      "input": "1234567890　1234567890",
+      "input_normalized": "12345678901234567890",
+      "expected": "26201496",
+      "input_len_codepoints": 21,
+      "normalized_len_codepoints": 20,
+      "normalized_len_utf16": 20,
+      "probe_input": "ABCDEFGHIJKLMNOPQRST",
+      "probe_output": "BFLTADIP",
+      "positions_0based": [
+        1,
+        5,
+        11,
+        19,
+        0,
+        3,
+        8,
+        15
+      ],
+      "positions_1based": [
+        2,
+        6,
+        12,
+        20,
+        1,
+        4,
+        9,
+        16
+      ],
+      "revisit_steps_0based": [],
+      "note": "U+3000 is whitespace in both"
+    },
+    {
+      "id": "r_digits_00",
+      "mask": "48622287",
+      "input": "51412744025893082814",
+      "input_normalized": "51412744025893082814",
+      "expected": "18841001",
+      "input_len_codepoints": 20,
+      "normalized_len_codepoints": 20,
+      "normalized_len_utf16": 20,
+      "probe_input": "ABCDEFGHIJKLMNOPQRST",
+      "probe_output": "DLRTB00S",
+      "positions_0based": [
+        3,
+        11,
+        17,
+        19,
+        1,
+        3,
+        11,
+        18
+      ],
+      "positions_1based": [
+        4,
+        12,
+        18,
+        20,
+        2,
+        4,
+        12,
+        19
+      ],
+      "revisit_steps_0based": [
+        5,
+        6
+      ]
+    },
+    {
+      "id": "r_digits_01",
+      "mask": "47272117",
+      "input": "02495027292213002981",
+      "input_normalized": "02495027292213002981",
+      "expected": "92112400",
+      "input_len_codepoints": 20,
+      "normalized_len_codepoints": 20,
+      "normalized_len_utf16": 20,
+      "probe_input": "ABCDEFGHIJKLMNOPQRST",
+      "probe_output": "DKMTBC00",
+      "positions_0based": [
+        3,
+        10,
+        12,
+        19,
+        1,
+        2,
+        3,
+        10
+      ],
+      "positions_1based": [
+        4,
+        11,
+        13,
+        20,
+        2,
+        3,
+        4,
+        11
+      ],
+      "revisit_steps_0based": [
+        6,
+        7
+      ]
+    },
+    {
+      "id": "r_digits_02",
+      "mask": "18281524",
+      "input": "79810833774325921157",
+      "input_normalized": "79810833774325921157",
+      "expected": "77457030",
+      "input_len_codepoints": 20,
+      "normalized_len_codepoints": 20,
+      "normalized_len_utf16": 20,
+      "probe_input": "ABCDEFGHIJKLMNOPQRST",
+      "probe_output": "AIKSTEG0",
+      "positions_0based": [
+        0,
+        8,
+        10,
+        18,
+        19,
+        4,
+        6,
+        10
+      ],
+      "positions_1based": [
+        1,
+        9,
+        11,
+        19,
+        20,
+        5,
+        7,
+        11
+      ],
+      "revisit_steps_0based": [
+        7
+      ]
+    },
+    {
+      "id": "r_digits_03",
+      "mask": "76828127",
+      "input": "76566893682175721599",
+      "input_normalized": "76566893682175721599",
+      "expected": "97752150",
+      "input_len_codepoints": 20,
+      "normalized_len_codepoints": 20,
+      "normalized_len_utf16": 20,
+      "probe_input": "ABCDEFGHIJKLMNOPQRST",
+      "probe_output": "GMACKLN0",
+      "positions_0based": [
+        6,
+        12,
+        0,
+        2,
+        10,
+        11,
+        13,
+        0
+      ],
+      "positions_1based": [
+        7,
+        13,
+        1,
+        3,
+        11,
+        12,
+        14,
+        1
+      ],
+      "revisit_steps_0based": [
+        7
+      ]
+    },
+    {
+      "id": "r_digits_04",
+      "mask": "15717997",
+      "input": "77854637370642844079",
+      "input_normalized": "77854637370642844079",
+      "expected": "76420770",
+      "input_len_codepoints": 20,
+      "normalized_len_codepoints": 20,
+      "normalized_len_utf16": 20,
+      "probe_input": "ABCDEFGHIJKLMNOPQRST",
+      "probe_output": "AFMN0JS0",
+      "positions_0based": [
+        0,
+        5,
+        12,
+        13,
+        0,
+        9,
+        18,
+        5
+      ],
+      "positions_1based": [
+        1,
+        6,
+        13,
+        14,
+        1,
+        10,
+        19,
+        6
+      ],
+      "revisit_steps_0based": [
+        4,
+        7
+      ]
+    },
+    {
+      "id": "r_digits_05",
+      "mask": "49376933",
+      "input": "85031200323958672814",
+      "input_normalized": "85031200323958672814",
+      "expected": "35703880",
+      "input_len_codepoints": 20,
+      "normalized_len_codepoints": 20,
+      "normalized_len_utf16": 20,
+      "probe_input": "ABCDEFGHIJKLMNOPQRST",
+      "probe_output": "DMPCIRA0",
+      "positions_0based": [
+        3,
+        12,
+        15,
+        2,
+        8,
+        17,
+        0,
+        3
+      ],
+      "positions_1based": [
+        4,
+        13,
+        16,
+        3,
+        9,
+        18,
+        1,
+        4
+      ],
+      "revisit_steps_0based": [
+        7
+      ]
+    },
+    {
+      "id": "r_digits_06",
+      "mask": "83944771",
+      "input": "11796343616648871390",
+      "input_normalized": "11796343616648871390",
+      "expected": "36090817",
+      "input_len_codepoints": 20,
+      "normalized_len_codepoints": 20,
+      "normalized_len_utf16": 20,
+      "probe_input": "ABCDEFGHIJKLMNOPQRST",
+      "probe_output": "HKTD0OBC",
+      "positions_0based": [
+        7,
+        10,
+        19,
+        3,
+        7,
+        14,
+        1,
+        2
+      ],
+      "positions_1based": [
+        8,
+        11,
+        20,
+        4,
+        8,
+        15,
+        2,
+        3
+      ],
+      "revisit_steps_0based": [
+        4
+      ]
+    },
+    {
+      "id": "r_digits_07",
+      "mask": "82113395",
+      "input": "14525978799428599941",
+      "input_normalized": "14525978799428599941",
+      "expected": "89945970",
+      "input_len_codepoints": 20,
+      "normalized_len_codepoints": 20,
+      "normalized_len_utf16": 20,
+      "probe_input": "ABCDEFGHIJKLMNOPQRST",
+      "probe_output": "HJKLORG0",
+      "positions_0based": [
+        7,
+        9,
+        10,
+        11,
+        14,
+        17,
+        6,
+        11
+      ],
+      "positions_1based": [
+        8,
+        10,
+        11,
+        12,
+        15,
+        18,
+        7,
+        12
+      ],
+      "revisit_steps_0based": [
+        7
+      ]
+    },
+    {
+      "id": "r_digits_08",
+      "mask": "78761148",
+      "input": "81438091337218761445",
+      "input_normalized": "81438091337218761445",
+      "expected": "97113380",
+      "input_len_codepoints": 20,
+      "normalized_len_codepoints": 20,
+      "normalized_len_utf16": 20,
+      "probe_input": "ABCDEFGHIJKLMNOPQRST",
+      "probe_output": "GOBHIJN0",
+      "positions_0based": [
+        6,
+        14,
+        1,
+        7,
+        8,
+        9,
+        13,
+        1
+      ],
+      "positions_1based": [
+        7,
+        15,
+        2,
+        8,
+        9,
+        10,
+        14,
+        2
+      ],
+      "revisit_steps_0based": [
+        7
+      ]
+    },
+    {
+      "id": "r_digits_09",
+      "mask": "51595151",
+      "input": "67080286342872096388",
+      "input_normalized": "67080286342872096388",
+      "expected": "02280008",
+      "input_len_codepoints": 20,
+      "normalized_len_codepoints": 20,
+      "normalized_len_utf16": 20,
+      "probe_input": "ABCDEFGHIJKLMNOPQRST",
+      "probe_output": "EFKT000L",
+      "positions_0based": [
+        4,
+        5,
+        10,
+        19,
+        4,
+        5,
+        10,
+        11
+      ],
+      "positions_1based": [
+        5,
+        6,
+        11,
+        20,
+        5,
+        6,
+        11,
+        12
+      ],
+      "revisit_steps_0based": [
+        4,
+        5,
+        6
+      ]
+    },
+    {
+      "id": "r_digits_10",
+      "mask": "32473638",
+      "input": "44958517974925435633",
+      "input_normalized": "44958517974925435633",
+      "expected": "98933070",
+      "input_len_codepoints": 20,
+      "normalized_len_codepoints": 20,
+      "normalized_len_utf16": 20,
+      "probe_input": "ABCDEFGHIJKLMNOPQRST",
+      "probe_output": "CEIPS0H0",
+      "positions_0based": [
+        2,
+        4,
+        8,
+        15,
+        18,
+        4,
+        7,
+        15
+      ],
+      "positions_1based": [
+        3,
+        5,
+        9,
+        16,
+        19,
+        5,
+        8,
+        16
+      ],
+      "revisit_steps_0based": [
+        5,
+        7
+      ]
+    },
+    {
+      "id": "r_digits_11",
+      "mask": "35214954",
+      "input": "39840693282854302585",
+      "input_normalized": "39840693282854302585",
+      "expected": "83823425",
+      "input_len_codepoints": 20,
+      "normalized_len_codepoints": 20,
+      "normalized_len_utf16": 20,
+      "probe_input": "ABCDEFGHIJKLMNOPQRST",
+      "probe_output": "CHJKODIM",
+      "positions_0based": [
+        2,
+        7,
+        9,
+        10,
+        14,
+        3,
+        8,
+        12
+      ],
+      "positions_1based": [
+        3,
+        8,
+        10,
+        11,
+        15,
+        4,
+        9,
+        13
+      ],
+      "revisit_steps_0based": []
+    },
+    {
+      "id": "r_digits_12",
+      "mask": "28471416",
+      "input": "24491271010575305365",
+      "input_normalized": "24491271010575305365",
+      "expected": "41520277",
+      "input_len_codepoints": 20,
+      "normalized_len_codepoints": 20,
+      "normalized_len_utf16": 20,
+      "probe_input": "ABCDEFGHIJKLMNOPQRST",
+      "probe_output": "BJNA0FGM",
+      "positions_0based": [
+        1,
+        9,
+        13,
+        0,
+        1,
+        5,
+        6,
+        12
+      ],
+      "positions_1based": [
+        2,
+        10,
+        14,
+        1,
+        2,
+        6,
+        7,
+        13
+      ],
+      "revisit_steps_0based": [
+        4
+      ]
+    },
+    {
+      "id": "r_digits_13",
+      "mask": "73865286",
+      "input": "74145185216127948111",
+      "input_normalized": "74145185216127948111",
+      "expected": "81142615",
+      "input_len_codepoints": 20,
+      "normalized_len_codepoints": 20,
+      "normalized_len_utf16": 20,
+      "probe_input": "ABCDEFGHIJKLMNOPQRST",
+      "probe_output": "GJRDIKSE",
+      "positions_0based": [
+        6,
+        9,
+        17,
+        3,
+        8,
+        10,
+        18,
+        4
+      ],
+      "positions_1based": [
+        7,
+        10,
+        18,
+        4,
+        9,
+        11,
+        19,
+        5
+      ],
+      "revisit_steps_0based": []
+    },
+    {
+      "id": "r_digits_14",
+      "mask": "39685941",
+      "input": "10347138301573874380",
+      "input_normalized": "10347138301573874380",
+      "expected": "35311047",
+      "input_len_codepoints": 20,
+      "normalized_len_codepoints": 20,
+      "normalized_len_utf16": 20,
+      "probe_input": "ABCDEFGHIJKLMNOPQRST",
+      "probe_output": "CLRFKTDE",
+      "positions_0based": [
+        2,
+        11,
+        17,
+        5,
+        10,
+        19,
+        3,
+        4
+      ],
+      "positions_1based": [
+        3,
+        12,
+        18,
+        6,
+        11,
+        20,
+        4,
+        5
+      ],
+      "revisit_steps_0based": []
+    },
+    {
+      "id": "r_digits_15",
+      "mask": "76149361",
+      "input": "38405043173444537735",
+      "input_normalized": "38405043173444537735",
+      "expected": "44470737",
+      "input_len_codepoints": 20,
+      "normalized_len_codepoints": 20,
+      "normalized_len_utf16": 20,
+      "probe_input": "ABCDEFGHIJKLMNOPQRST",
+      "probe_output": "GMNR0JPQ",
+      "positions_0based": [
+        6,
+        12,
+        13,
+        17,
+        6,
+        9,
+        15,
+        16
+      ],
+      "positions_1based": [
+        7,
+        13,
+        14,
+        18,
+        7,
+        10,
+        16,
+        17
+      ],
+      "revisit_steps_0based": [
+        4
+      ]
+    },
+    {
+      "id": "r_alnum_00",
+      "mask": "82372676",
+      "input": "6rV1ny6234nGVnBXuUUh",
+      "input_normalized": "6rV1ny6234nGVnBXuUUh",
+      "expected": "24Vhr0B6",
+      "input_len_codepoints": 20,
+      "normalized_len_codepoints": 20,
+      "normalized_len_utf16": 20,
+      "probe_input": "ABCDEFGHIJKLMNOPQRST",
+      "probe_output": "HJMTB0OA",
+      "positions_0based": [
+        7,
+        9,
+        12,
+        19,
+        1,
+        7,
+        14,
+        0
+      ],
+      "positions_1based": [
+        8,
+        10,
+        13,
+        20,
+        2,
+        8,
+        15,
+        1
+      ],
+      "revisit_steps_0based": [
+        5
+      ]
+    },
+    {
+      "id": "r_alnum_01",
+      "mask": "72226685",
+      "input": "pqN6KqoX0KiSSJySHDeM",
+      "input_normalized": "pqN6KqoX0KiSSJySHDeM",
+      "expected": "o0iSeK0D",
+      "input_len_codepoints": 20,
+      "normalized_len_codepoints": 20,
+      "normalized_len_utf16": 20,
+      "probe_input": "ABCDEFGHIJKLMNOPQRST",
+      "probe_output": "GIKMSE0R",
+      "positions_0based": [
+        6,
+        8,
+        10,
+        12,
+        18,
+        4,
+        12,
+        17
+      ],
+      "positions_1based": [
+        7,
+        9,
+        11,
+        13,
+        19,
+        5,
+        13,
+        18
+      ],
+      "revisit_steps_0based": [
+        6
+      ]
+    },
+    {
+      "id": "r_alnum_02",
+      "mask": "35598797",
+      "input": "Td3gJSsVEXu60YPLTZui",
+      "input_normalized": "Td3gJSsVEXu60YPLTZui",
+      "expected": "3V0dXTS0",
+      "input_len_codepoints": 20,
+      "normalized_len_codepoints": 20,
+      "normalized_len_utf16": 20,
+      "probe_input": "ABCDEFGHIJKLMNOPQRST",
+      "probe_output": "CHMBJQF0",
+      "positions_0based": [
+        2,
+        7,
+        12,
+        1,
+        9,
+        16,
+        5,
+        12
+      ],
+      "positions_1based": [
+        3,
+        8,
+        13,
+        2,
+        10,
+        17,
+        6,
+        13
+      ],
+      "revisit_steps_0based": [
+        7
+      ]
+    },
+    {
+      "id": "r_alnum_03",
+      "mask": "96588681",
+      "input": "KmCzmowHarZFzyVCjuQn",
+      "input_normalized": "KmCzmowHarZFzyVCjuQn",
+      "expected": "aVnHCmrZ",
+      "input_len_codepoints": 20,
+      "normalized_len_codepoints": 20,
+      "normalized_len_utf16": 20,
+      "probe_input": "ABCDEFGHIJKLMNOPQRST",
+      "probe_output": "IOTHPBJK",
+      "positions_0based": [
+        8,
+        14,
+        19,
+        7,
+        15,
+        1,
+        9,
+        10
+      ],
+      "positions_1based": [
+        9,
+        15,
+        20,
+        8,
+        16,
+        2,
+        10,
+        11
+      ],
+      "revisit_steps_0based": []
+    },
+    {
+      "id": "r_alnum_04",
+      "mask": "36363581",
+      "input": "1QPsZrRpjHmHB7ATh3FY",
+      "input_normalized": "1QPsZrRpjHmHB7ATh3FY",
+      "expected": "PjH31r7A",
+      "input_len_codepoints": 20,
+      "normalized_len_codepoints": 20,
+      "normalized_len_utf16": 20,
+      "probe_input": "ABCDEFGHIJKLMNOPQRST",
+      "probe_output": "CILRAFNO",
+      "positions_0based": [
+        2,
+        8,
+        11,
+        17,
+        0,
+        5,
+        13,
+        14
+      ],
+      "positions_1based": [
+        3,
+        9,
+        12,
+        18,
+        1,
+        6,
+        14,
+        15
+      ],
+      "revisit_steps_0based": []
+    },
+    {
+      "id": "r_alnum_05",
+      "mask": "52526525",
+      "input": "z7rApPgTQDM4jrUBH6zH",
+      "input_normalized": "z7rApPgTQDM4jrUBH6zH",
+      "expected": "pg4rH000",
+      "input_len_codepoints": 20,
+      "normalized_len_codepoints": 20,
+      "normalized_len_utf16": 20,
+      "probe_input": "ABCDEFGHIJKLMNOPQRST",
+      "probe_output": "EGLNT000",
+      "positions_0based": [
+        4,
+        6,
+        11,
+        13,
+        19,
+        4,
+        6,
+        11
+      ],
+      "positions_1based": [
+        5,
+        7,
+        12,
+        14,
+        20,
+        5,
+        7,
+        12
+      ],
+      "revisit_steps_0based": [
+        5,
+        6,
+        7
+      ]
+    },
+    {
+      "id": "r_pairs_00",
+      "mask": "52369313",
+      "input": "08 94 88 44 71 28 30 81 40 55",
+      "input_normalized": "08948844712830814055",
+      "expected": "84110478",
+      "input_len_codepoints": 29,
+      "normalized_len_codepoints": 20,
+      "normalized_len_utf16": 20,
+      "probe_input": "ABCDEFGHIJKLMNOPQRST",
+      "probe_output": "EGJP0HIL",
+      "positions_0based": [
+        4,
+        6,
+        9,
+        15,
+        4,
+        7,
+        8,
+        11
+      ],
+      "positions_1based": [
+        5,
+        7,
+        10,
+        16,
+        5,
+        8,
+        9,
+        12
+      ],
+      "revisit_steps_0based": [
+        4
+      ]
+    },
+    {
+      "id": "r_pairs_01",
+      "mask": "78179548",
+      "input": "07 08 97 53 65 99 65 58 96 15",
+      "input_normalized": "07089753659965589615",
+      "expected": "55809906",
+      "input_len_codepoints": 29,
+      "normalized_len_codepoints": 20,
+      "normalized_len_utf16": 20,
+      "probe_input": "ABCDEFGHIJKLMNOPQRST",
+      "probe_output": "GOPCLQAI",
+      "positions_0based": [
+        6,
+        14,
+        15,
+        2,
+        11,
+        16,
+        0,
+        8
+      ],
+      "positions_1based": [
+        7,
+        15,
+        16,
+        3,
+        12,
+        17,
+        1,
+        9
+      ],
+      "revisit_steps_0based": []
+    },
+    {
+      "id": "r_pairs_02",
+      "mask": "72473798",
+      "input": "41 25 49 41 37 90 11 45 53 94",
+      "input_normalized": "41254941379011455394",
+      "expected": "43142790",
+      "input_len_codepoints": 29,
+      "normalized_len_codepoints": 20,
+      "normalized_len_utf16": 20,
+      "probe_input": "ABCDEFGHIJKLMNOPQRST",
+      "probe_output": "GIMTCJS0",
+      "positions_0based": [
+        6,
+        8,
+        12,
+        19,
+        2,
+        9,
+        18,
+        6
+      ],
+      "positions_1based": [
+        7,
+        9,
+        13,
+        20,
+        3,
+        10,
+        19,
+        7
+      ],
+      "revisit_steps_0based": [
+        7
+      ]
+    },
+    {
+      "id": "r_pairs_03",
+      "mask": "16983584",
+      "input": "52 93 17 34 71 93 84 95 53 24",
+      "input_normalized": "52931734719384955324",
+      "expected": "53530340",
+      "input_len_codepoints": 29,
+      "normalized_len_codepoints": 20,
+      "normalized_len_utf16": 20,
+      "probe_input": "ABCDEFGHIJKLMNOPQRST",
+      "probe_output": "AGPD0LT0",
+      "positions_0based": [
+        0,
+        6,
+        15,
+        3,
+        6,
+        11,
+        19,
+        3
+      ],
+      "positions_1based": [
+        1,
+        7,
+        16,
+        4,
+        7,
+        12,
+        20,
+        4
+      ],
+      "revisit_steps_0based": [
+        4,
+        7
+      ]
+    }
+  ]
+}

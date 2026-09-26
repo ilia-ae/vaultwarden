@@ -1,0 +1,1339 @@
+{
+  "meta": {
+    "generator": "/private/tmp/claude-501/-Users-ilya-CODE-vaultwarden/fc401efa-332a-4a8e-a761-97ec2c64ab4b/scratchpad/gen_pin_vectors.py",
+    "python": "3.14.4",
+    "seed": 20260926,
+    "sources": {
+      "pin/pass_pin.py": "673bf83d64e04c043cc7c4938b6ac8a39049236fd431edc9c59343b494bdc262"
+    },
+    "messages_ru_en": {
+      "Маска должна содержать ровно 8 цифр, например, '24681357'.": "The mask must contain exactly 8 digits, e.g. '24681357'.",
+      "Входная строка должна содержать ровно 20 символов (без пробелов).": "The input string must contain exactly 20 characters (excluding whitespace).",
+      "Значение маски на позиции {i} должно быть от 1 до 20.": "Mask value at position {i} must be between 1 and 20.",
+      "Маска должна содержать только цифры.": "The mask must contain digits only. (main() pre-check)",
+      "Ошибка при вводе: {e}": "Input error: {e} (secure_input, exit 1)",
+      "Ввод прерван пользователем.": "Input cancelled by the user. (exit 1)",
+      "Произошла непредвиденная ошибка: {e}": "Unexpected error: {e} (exit 1)"
+    },
+    "validation_order": [
+      "1. mask: every char through int() and len == 8 -> mask message",
+      "2. input: whitespace-stripped length == 20 -> input message",
+      "3. per step inside the loop: mask value 1..20 -> position message (1-based)"
+    ]
+  },
+  "errors": [
+    {
+      "id": "mask_empty",
+      "mask": {
+        "type": "str",
+        "value": "",
+        "codepoints": [],
+        "len_codepoints": 0,
+        "len_utf16": 0
+      },
+      "input": {
+        "type": "str",
+        "value": "73015946288150347629",
+        "codepoints": [
+          "U+0037",
+          "U+0033",
+          "U+0030",
+          "U+0031",
+          "U+0035",
+          "U+0039",
+          "U+0034",
+          "U+0036",
+          "U+0032",
+          "U+0038",
+          "U+0038",
+          "U+0031",
+          "U+0035",
+          "U+0030",
+          "U+0033",
+          "U+0034",
+          "U+0037",
+          "U+0036",
+          "U+0032",
+          "U+0039"
+        ],
+        "len_codepoints": 20,
+        "len_utf16": 20
+      },
+      "python": {
+        "ok": false,
+        "error_type": "ValueError",
+        "message": "Маска должна содержать ровно 8 цифр, например, '24681357'."
+      }
+    },
+    {
+      "id": "mask_7",
+      "mask": {
+        "type": "str",
+        "value": "1234567",
+        "codepoints": [
+          "U+0031",
+          "U+0032",
+          "U+0033",
+          "U+0034",
+          "U+0035",
+          "U+0036",
+          "U+0037"
+        ],
+        "len_codepoints": 7,
+        "len_utf16": 7
+      },
+      "input": {
+        "type": "str",
+        "value": "73015946288150347629",
+        "codepoints": [
+          "U+0037",
+          "U+0033",
+          "U+0030",
+          "U+0031",
+          "U+0035",
+          "U+0039",
+          "U+0034",
+          "U+0036",
+          "U+0032",
+          "U+0038",
+          "U+0038",
+          "U+0031",
+          "U+0035",
+          "U+0030",
+          "U+0033",
+          "U+0034",
+          "U+0037",
+          "U+0036",
+          "U+0032",
+          "U+0039"
+        ],
+        "len_codepoints": 20,
+        "len_utf16": 20
+      },
+      "python": {
+        "ok": false,
+        "error_type": "ValueError",
+        "message": "Маска должна содержать ровно 8 цифр, например, '24681357'."
+      }
+    },
+    {
+      "id": "mask_9",
+      "mask": {
+        "type": "str",
+        "value": "123456789",
+        "codepoints": [
+          "U+0031",
+          "U+0032",
+          "U+0033",
+          "U+0034",
+          "U+0035",
+          "U+0036",
+          "U+0037",
+          "U+0038",
+          "U+0039"
+        ],
+        "len_codepoints": 9,
+        "len_utf16": 9
+      },
+      "input": {
+        "type": "str",
+        "value": "73015946288150347629",
+        "codepoints": [
+          "U+0037",
+          "U+0033",
+          "U+0030",
+          "U+0031",
+          "U+0035",
+          "U+0039",
+          "U+0034",
+          "U+0036",
+          "U+0032",
+          "U+0038",
+          "U+0038",
+          "U+0031",
+          "U+0035",
+          "U+0030",
+          "U+0033",
+          "U+0034",
+          "U+0037",
+          "U+0036",
+          "U+0032",
+          "U+0039"
+        ],
+        "len_codepoints": 20,
+        "len_utf16": 20
+      },
+      "python": {
+        "ok": false,
+        "error_type": "ValueError",
+        "message": "Маска должна содержать ровно 8 цифр, например, '24681357'."
+      }
+    },
+    {
+      "id": "mask_letter",
+      "mask": {
+        "type": "str",
+        "value": "1234567a",
+        "codepoints": [
+          "U+0031",
+          "U+0032",
+          "U+0033",
+          "U+0034",
+          "U+0035",
+          "U+0036",
+          "U+0037",
+          "U+0061"
+        ],
+        "len_codepoints": 8,
+        "len_utf16": 8
+      },
+      "input": {
+        "type": "str",
+        "value": "73015946288150347629",
+        "codepoints": [
+          "U+0037",
+          "U+0033",
+          "U+0030",
+          "U+0031",
+          "U+0035",
+          "U+0039",
+          "U+0034",
+          "U+0036",
+          "U+0032",
+          "U+0038",
+          "U+0038",
+          "U+0031",
+          "U+0035",
+          "U+0030",
+          "U+0033",
+          "U+0034",
+          "U+0037",
+          "U+0036",
+          "U+0032",
+          "U+0039"
+        ],
+        "len_codepoints": 20,
+        "len_utf16": 20
+      },
+      "python": {
+        "ok": false,
+        "error_type": "ValueError",
+        "message": "Маска должна содержать ровно 8 цифр, например, '24681357'."
+      }
+    },
+    {
+      "id": "mask_inner_space",
+      "mask": {
+        "type": "str",
+        "value": "1234 678",
+        "codepoints": [
+          "U+0031",
+          "U+0032",
+          "U+0033",
+          "U+0034",
+          "U+0020",
+          "U+0036",
+          "U+0037",
+          "U+0038"
+        ],
+        "len_codepoints": 8,
+        "len_utf16": 8
+      },
+      "input": {
+        "type": "str",
+        "value": "73015946288150347629",
+        "codepoints": [
+          "U+0037",
+          "U+0033",
+          "U+0030",
+          "U+0031",
+          "U+0035",
+          "U+0039",
+          "U+0034",
+          "U+0036",
+          "U+0032",
+          "U+0038",
+          "U+0038",
+          "U+0031",
+          "U+0035",
+          "U+0030",
+          "U+0033",
+          "U+0034",
+          "U+0037",
+          "U+0036",
+          "U+0032",
+          "U+0039"
+        ],
+        "len_codepoints": 20,
+        "len_utf16": 20
+      },
+      "python": {
+        "ok": false,
+        "error_type": "ValueError",
+        "message": "Маска должна содержать ровно 8 цифр, например, '24681357'."
+      },
+      "note": "int(' ') fails -> generic mask message"
+    },
+    {
+      "id": "mask_spaced_9chars",
+      "mask": {
+        "type": "str",
+        "value": "1234 5678",
+        "codepoints": [
+          "U+0031",
+          "U+0032",
+          "U+0033",
+          "U+0034",
+          "U+0020",
+          "U+0035",
+          "U+0036",
+          "U+0037",
+          "U+0038"
+        ],
+        "len_codepoints": 9,
+        "len_utf16": 9
+      },
+      "input": {
+        "type": "str",
+        "value": "73015946288150347629",
+        "codepoints": [
+          "U+0037",
+          "U+0033",
+          "U+0030",
+          "U+0031",
+          "U+0035",
+          "U+0039",
+          "U+0034",
+          "U+0036",
+          "U+0032",
+          "U+0038",
+          "U+0038",
+          "U+0031",
+          "U+0035",
+          "U+0030",
+          "U+0033",
+          "U+0034",
+          "U+0037",
+          "U+0036",
+          "U+0032",
+          "U+0039"
+        ],
+        "len_codepoints": 20,
+        "len_utf16": 20
+      },
+      "python": {
+        "ok": false,
+        "error_type": "ValueError",
+        "message": "Маска должна содержать ровно 8 цифр, например, '24681357'."
+      },
+      "note": "generate_pin does not strip/split the mask"
+    },
+    {
+      "id": "mask_minus",
+      "mask": {
+        "type": "str",
+        "value": "12-45678",
+        "codepoints": [
+          "U+0031",
+          "U+0032",
+          "U+002D",
+          "U+0034",
+          "U+0035",
+          "U+0036",
+          "U+0037",
+          "U+0038"
+        ],
+        "len_codepoints": 8,
+        "len_utf16": 8
+      },
+      "input": {
+        "type": "str",
+        "value": "73015946288150347629",
+        "codepoints": [
+          "U+0037",
+          "U+0033",
+          "U+0030",
+          "U+0031",
+          "U+0035",
+          "U+0039",
+          "U+0034",
+          "U+0036",
+          "U+0032",
+          "U+0038",
+          "U+0038",
+          "U+0031",
+          "U+0035",
+          "U+0030",
+          "U+0033",
+          "U+0034",
+          "U+0037",
+          "U+0036",
+          "U+0032",
+          "U+0039"
+        ],
+        "len_codepoints": 20,
+        "len_utf16": 20
+      },
+      "python": {
+        "ok": false,
+        "error_type": "ValueError",
+        "message": "Маска должна содержать ровно 8 цифр, например, '24681357'."
+      }
+    },
+    {
+      "id": "mask_superscript",
+      "mask": {
+        "type": "str",
+        "value": "²2345678",
+        "codepoints": [
+          "U+00B2",
+          "U+0032",
+          "U+0033",
+          "U+0034",
+          "U+0035",
+          "U+0036",
+          "U+0037",
+          "U+0038"
+        ],
+        "len_codepoints": 8,
+        "len_utf16": 8
+      },
+      "input": {
+        "type": "str",
+        "value": "73015946288150347629",
+        "codepoints": [
+          "U+0037",
+          "U+0033",
+          "U+0030",
+          "U+0031",
+          "U+0035",
+          "U+0039",
+          "U+0034",
+          "U+0036",
+          "U+0032",
+          "U+0038",
+          "U+0038",
+          "U+0031",
+          "U+0035",
+          "U+0030",
+          "U+0033",
+          "U+0034",
+          "U+0037",
+          "U+0036",
+          "U+0032",
+          "U+0039"
+        ],
+        "len_codepoints": 20,
+        "len_utf16": 20
+      },
+      "python": {
+        "ok": false,
+        "error_type": "ValueError",
+        "message": "Маска должна содержать ровно 8 цифр, например, '24681357'."
+      },
+      "note": "isdigit True in main(), int() fails in generate_pin"
+    },
+    {
+      "id": "mask_zero_pos1",
+      "mask": {
+        "type": "str",
+        "value": "02345678",
+        "codepoints": [
+          "U+0030",
+          "U+0032",
+          "U+0033",
+          "U+0034",
+          "U+0035",
+          "U+0036",
+          "U+0037",
+          "U+0038"
+        ],
+        "len_codepoints": 8,
+        "len_utf16": 8
+      },
+      "input": {
+        "type": "str",
+        "value": "73015946288150347629",
+        "codepoints": [
+          "U+0037",
+          "U+0033",
+          "U+0030",
+          "U+0031",
+          "U+0035",
+          "U+0039",
+          "U+0034",
+          "U+0036",
+          "U+0032",
+          "U+0038",
+          "U+0038",
+          "U+0031",
+          "U+0035",
+          "U+0030",
+          "U+0033",
+          "U+0034",
+          "U+0037",
+          "U+0036",
+          "U+0032",
+          "U+0039"
+        ],
+        "len_codepoints": 20,
+        "len_utf16": 20
+      },
+      "python": {
+        "ok": false,
+        "error_type": "ValueError",
+        "message": "Значение маски на позиции 1 должно быть от 1 до 20."
+      },
+      "note": "only '0' can violate 1..20 (single-char parsing)"
+    },
+    {
+      "id": "mask_zero_pos2",
+      "mask": {
+        "type": "str",
+        "value": "10345678",
+        "codepoints": [
+          "U+0031",
+          "U+0030",
+          "U+0033",
+          "U+0034",
+          "U+0035",
+          "U+0036",
+          "U+0037",
+          "U+0038"
+        ],
+        "len_codepoints": 8,
+        "len_utf16": 8
+      },
+      "input": {
+        "type": "str",
+        "value": "73015946288150347629",
+        "codepoints": [
+          "U+0037",
+          "U+0033",
+          "U+0030",
+          "U+0031",
+          "U+0035",
+          "U+0039",
+          "U+0034",
+          "U+0036",
+          "U+0032",
+          "U+0038",
+          "U+0038",
+          "U+0031",
+          "U+0035",
+          "U+0030",
+          "U+0033",
+          "U+0034",
+          "U+0037",
+          "U+0036",
+          "U+0032",
+          "U+0039"
+        ],
+        "len_codepoints": 20,
+        "len_utf16": 20
+      },
+      "python": {
+        "ok": false,
+        "error_type": "ValueError",
+        "message": "Значение маски на позиции 2 должно быть от 1 до 20."
+      }
+    },
+    {
+      "id": "mask_zero_pos8",
+      "mask": {
+        "type": "str",
+        "value": "12345670",
+        "codepoints": [
+          "U+0031",
+          "U+0032",
+          "U+0033",
+          "U+0034",
+          "U+0035",
+          "U+0036",
+          "U+0037",
+          "U+0030"
+        ],
+        "len_codepoints": 8,
+        "len_utf16": 8
+      },
+      "input": {
+        "type": "str",
+        "value": "73015946288150347629",
+        "codepoints": [
+          "U+0037",
+          "U+0033",
+          "U+0030",
+          "U+0031",
+          "U+0035",
+          "U+0039",
+          "U+0034",
+          "U+0036",
+          "U+0032",
+          "U+0038",
+          "U+0038",
+          "U+0031",
+          "U+0035",
+          "U+0030",
+          "U+0033",
+          "U+0034",
+          "U+0037",
+          "U+0036",
+          "U+0032",
+          "U+0039"
+        ],
+        "len_codepoints": 20,
+        "len_utf16": 20
+      },
+      "python": {
+        "ok": false,
+        "error_type": "ValueError",
+        "message": "Значение маски на позиции 8 должно быть от 1 до 20."
+      }
+    },
+    {
+      "id": "mask_all_zero",
+      "mask": {
+        "type": "str",
+        "value": "00000000",
+        "codepoints": [
+          "U+0030",
+          "U+0030",
+          "U+0030",
+          "U+0030",
+          "U+0030",
+          "U+0030",
+          "U+0030",
+          "U+0030"
+        ],
+        "len_codepoints": 8,
+        "len_utf16": 8
+      },
+      "input": {
+        "type": "str",
+        "value": "73015946288150347629",
+        "codepoints": [
+          "U+0037",
+          "U+0033",
+          "U+0030",
+          "U+0031",
+          "U+0035",
+          "U+0039",
+          "U+0034",
+          "U+0036",
+          "U+0032",
+          "U+0038",
+          "U+0038",
+          "U+0031",
+          "U+0035",
+          "U+0030",
+          "U+0033",
+          "U+0034",
+          "U+0037",
+          "U+0036",
+          "U+0032",
+          "U+0039"
+        ],
+        "len_codepoints": 20,
+        "len_utf16": 20
+      },
+      "python": {
+        "ok": false,
+        "error_type": "ValueError",
+        "message": "Значение маски на позиции 1 должно быть от 1 до 20."
+      },
+      "note": "reports first offending position"
+    },
+    {
+      "id": "input_19",
+      "mask": {
+        "type": "str",
+        "value": "24681357",
+        "codepoints": [
+          "U+0032",
+          "U+0034",
+          "U+0036",
+          "U+0038",
+          "U+0031",
+          "U+0033",
+          "U+0035",
+          "U+0037"
+        ],
+        "len_codepoints": 8,
+        "len_utf16": 8
+      },
+      "input": {
+        "type": "str",
+        "value": "7301594628815034762",
+        "codepoints": [
+          "U+0037",
+          "U+0033",
+          "U+0030",
+          "U+0031",
+          "U+0035",
+          "U+0039",
+          "U+0034",
+          "U+0036",
+          "U+0032",
+          "U+0038",
+          "U+0038",
+          "U+0031",
+          "U+0035",
+          "U+0030",
+          "U+0033",
+          "U+0034",
+          "U+0037",
+          "U+0036",
+          "U+0032"
+        ],
+        "len_codepoints": 19,
+        "len_utf16": 19
+      },
+      "python": {
+        "ok": false,
+        "error_type": "ValueError",
+        "message": "Входная строка должна содержать ровно 20 символов (без пробелов)."
+      }
+    },
+    {
+      "id": "input_21",
+      "mask": {
+        "type": "str",
+        "value": "24681357",
+        "codepoints": [
+          "U+0032",
+          "U+0034",
+          "U+0036",
+          "U+0038",
+          "U+0031",
+          "U+0033",
+          "U+0035",
+          "U+0037"
+        ],
+        "len_codepoints": 8,
+        "len_utf16": 8
+      },
+      "input": {
+        "type": "str",
+        "value": "730159462881503476291",
+        "codepoints": [
+          "U+0037",
+          "U+0033",
+          "U+0030",
+          "U+0031",
+          "U+0035",
+          "U+0039",
+          "U+0034",
+          "U+0036",
+          "U+0032",
+          "U+0038",
+          "U+0038",
+          "U+0031",
+          "U+0035",
+          "U+0030",
+          "U+0033",
+          "U+0034",
+          "U+0037",
+          "U+0036",
+          "U+0032",
+          "U+0039",
+          "U+0031"
+        ],
+        "len_codepoints": 21,
+        "len_utf16": 21
+      },
+      "python": {
+        "ok": false,
+        "error_type": "ValueError",
+        "message": "Входная строка должна содержать ровно 20 символов (без пробелов)."
+      }
+    },
+    {
+      "id": "input_empty",
+      "mask": {
+        "type": "str",
+        "value": "24681357",
+        "codepoints": [
+          "U+0032",
+          "U+0034",
+          "U+0036",
+          "U+0038",
+          "U+0031",
+          "U+0033",
+          "U+0035",
+          "U+0037"
+        ],
+        "len_codepoints": 8,
+        "len_utf16": 8
+      },
+      "input": {
+        "type": "str",
+        "value": "",
+        "codepoints": [],
+        "len_codepoints": 0,
+        "len_utf16": 0
+      },
+      "python": {
+        "ok": false,
+        "error_type": "ValueError",
+        "message": "Входная строка должна содержать ровно 20 символов (без пробелов)."
+      }
+    },
+    {
+      "id": "input_only_ws",
+      "mask": {
+        "type": "str",
+        "value": "24681357",
+        "codepoints": [
+          "U+0032",
+          "U+0034",
+          "U+0036",
+          "U+0038",
+          "U+0031",
+          "U+0033",
+          "U+0035",
+          "U+0037"
+        ],
+        "len_codepoints": 8,
+        "len_utf16": 8
+      },
+      "input": {
+        "type": "str",
+        "value": " \t\n ",
+        "codepoints": [
+          "U+0020",
+          "U+0009",
+          "U+000A",
+          "U+0020"
+        ],
+        "len_codepoints": 4,
+        "len_utf16": 4
+      },
+      "python": {
+        "ok": false,
+        "error_type": "ValueError",
+        "message": "Входная строка должна содержать ровно 20 символов (без пробелов)."
+      }
+    },
+    {
+      "id": "input_20_with_2_spaces",
+      "mask": {
+        "type": "str",
+        "value": "24681357",
+        "codepoints": [
+          "U+0032",
+          "U+0034",
+          "U+0036",
+          "U+0038",
+          "U+0031",
+          "U+0033",
+          "U+0035",
+          "U+0037"
+        ],
+        "len_codepoints": 8,
+        "len_utf16": 8
+      },
+      "input": {
+        "type": "str",
+        "value": "730159462 881503476 ",
+        "codepoints": [
+          "U+0037",
+          "U+0033",
+          "U+0030",
+          "U+0031",
+          "U+0035",
+          "U+0039",
+          "U+0034",
+          "U+0036",
+          "U+0032",
+          "U+0020",
+          "U+0038",
+          "U+0038",
+          "U+0031",
+          "U+0035",
+          "U+0030",
+          "U+0033",
+          "U+0034",
+          "U+0037",
+          "U+0036",
+          "U+0020"
+        ],
+        "len_codepoints": 20,
+        "len_utf16": 20
+      },
+      "python": {
+        "ok": false,
+        "error_type": "ValueError",
+        "message": "Входная строка должна содержать ровно 20 символов (без пробелов)."
+      },
+      "note": "20 raw chars but 18 after whitespace removal"
+    },
+    {
+      "id": "input_bom_counts",
+      "mask": {
+        "type": "str",
+        "value": "24681357",
+        "codepoints": [
+          "U+0032",
+          "U+0034",
+          "U+0036",
+          "U+0038",
+          "U+0031",
+          "U+0033",
+          "U+0035",
+          "U+0037"
+        ],
+        "len_codepoints": 8,
+        "len_utf16": 8
+      },
+      "input": {
+        "type": "str",
+        "value": "﻿73015946288150347629",
+        "codepoints": [
+          "U+FEFF",
+          "U+0037",
+          "U+0033",
+          "U+0030",
+          "U+0031",
+          "U+0035",
+          "U+0039",
+          "U+0034",
+          "U+0036",
+          "U+0032",
+          "U+0038",
+          "U+0038",
+          "U+0031",
+          "U+0035",
+          "U+0030",
+          "U+0033",
+          "U+0034",
+          "U+0037",
+          "U+0036",
+          "U+0032",
+          "U+0039"
+        ],
+        "len_codepoints": 21,
+        "len_utf16": 21
+      },
+      "python": {
+        "ok": false,
+        "error_type": "ValueError",
+        "message": "Входная строка должна содержать ровно 20 символов (без пробелов)."
+      },
+      "note": "U+FEFF is NOT whitespace in Python -> 21 chars (Dart \\s WOULD strip it)"
+    },
+    {
+      "id": "order_mask_len_before_input",
+      "mask": {
+        "type": "str",
+        "value": "1234567",
+        "codepoints": [
+          "U+0031",
+          "U+0032",
+          "U+0033",
+          "U+0034",
+          "U+0035",
+          "U+0036",
+          "U+0037"
+        ],
+        "len_codepoints": 7,
+        "len_utf16": 7
+      },
+      "input": {
+        "type": "str",
+        "value": "short",
+        "codepoints": [
+          "U+0073",
+          "U+0068",
+          "U+006F",
+          "U+0072",
+          "U+0074"
+        ],
+        "len_codepoints": 5,
+        "len_utf16": 5
+      },
+      "python": {
+        "ok": false,
+        "error_type": "ValueError",
+        "message": "Маска должна содержать ровно 8 цифр, например, '24681357'."
+      },
+      "note": "mask format checked first"
+    },
+    {
+      "id": "order_input_before_mask_zero",
+      "mask": {
+        "type": "str",
+        "value": "10345678",
+        "codepoints": [
+          "U+0031",
+          "U+0030",
+          "U+0033",
+          "U+0034",
+          "U+0035",
+          "U+0036",
+          "U+0037",
+          "U+0038"
+        ],
+        "len_codepoints": 8,
+        "len_utf16": 8
+      },
+      "input": {
+        "type": "str",
+        "value": "short",
+        "codepoints": [
+          "U+0073",
+          "U+0068",
+          "U+006F",
+          "U+0072",
+          "U+0074"
+        ],
+        "len_codepoints": 5,
+        "len_utf16": 5
+      },
+      "python": {
+        "ok": false,
+        "error_type": "ValueError",
+        "message": "Входная строка должна содержать ровно 20 символов (без пробелов)."
+      },
+      "note": "input length checked BEFORE the in-loop 1..20 check"
+    },
+    {
+      "id": "astral_utf16_trap",
+      "mask": {
+        "type": "str",
+        "value": "24681357",
+        "codepoints": [
+          "U+0032",
+          "U+0034",
+          "U+0036",
+          "U+0038",
+          "U+0031",
+          "U+0033",
+          "U+0035",
+          "U+0037"
+        ],
+        "len_codepoints": 8,
+        "len_utf16": 8
+      },
+      "input": {
+        "type": "str",
+        "value": "😀😀😀😀😀😀😀😀😀😀😀",
+        "codepoints": [
+          "U+1F600",
+          "U+1F600",
+          "U+1F600",
+          "U+1F600",
+          "U+1F600",
+          "U+1F600",
+          "U+1F600",
+          "U+1F600",
+          "U+1F600",
+          "U+1F600",
+          "U+1F600"
+        ],
+        "len_codepoints": 11,
+        "len_utf16": 22
+      },
+      "python": {
+        "ok": false,
+        "error_type": "ValueError",
+        "message": "Входная строка должна содержать ровно 20 символов (без пробелов)."
+      },
+      "note": "11 code points (22 UTF-16 units) -> rejected; 10 emoji = 20 UTF-16 units must also be rejected"
+    },
+    {
+      "id": "astral_10_emoji",
+      "mask": {
+        "type": "str",
+        "value": "24681357",
+        "codepoints": [
+          "U+0032",
+          "U+0034",
+          "U+0036",
+          "U+0038",
+          "U+0031",
+          "U+0033",
+          "U+0035",
+          "U+0037"
+        ],
+        "len_codepoints": 8,
+        "len_utf16": 8
+      },
+      "input": {
+        "type": "str",
+        "value": "😀😀😀😀😀😀😀😀😀😀",
+        "codepoints": [
+          "U+1F600",
+          "U+1F600",
+          "U+1F600",
+          "U+1F600",
+          "U+1F600",
+          "U+1F600",
+          "U+1F600",
+          "U+1F600",
+          "U+1F600",
+          "U+1F600"
+        ],
+        "len_codepoints": 10,
+        "len_utf16": 20
+      },
+      "python": {
+        "ok": false,
+        "error_type": "ValueError",
+        "message": "Входная строка должна содержать ровно 20 символов (без пробелов)."
+      },
+      "note": "10 code points; Dart String.length == 20 would wrongly accept"
+    }
+  ],
+  "python_accepts_but_port_should_decide": [
+    {
+      "id": "arabic_indic_mask",
+      "mask": {
+        "type": "str",
+        "value": "٢٤٦٨١٣٥٧",
+        "codepoints": [
+          "U+0662",
+          "U+0664",
+          "U+0666",
+          "U+0668",
+          "U+0661",
+          "U+0663",
+          "U+0665",
+          "U+0667"
+        ],
+        "len_codepoints": 8,
+        "len_utf16": 8
+      },
+      "input": {
+        "type": "str",
+        "value": "73015946288150347629",
+        "codepoints": [
+          "U+0037",
+          "U+0033",
+          "U+0030",
+          "U+0031",
+          "U+0035",
+          "U+0039",
+          "U+0034",
+          "U+0036",
+          "U+0032",
+          "U+0038",
+          "U+0038",
+          "U+0031",
+          "U+0035",
+          "U+0030",
+          "U+0033",
+          "U+0034",
+          "U+0037",
+          "U+0036",
+          "U+0032",
+          "U+0039"
+        ],
+        "len_codepoints": 20,
+        "len_utf16": 20
+      },
+      "python": {
+        "ok": true,
+        "result": "39197124"
+      },
+      "note": "Python int() accepts Unicode Nd digits"
+    },
+    {
+      "id": "fullwidth_mask",
+      "mask": {
+        "type": "str",
+        "value": "２４６８１３５７",
+        "codepoints": [
+          "U+FF12",
+          "U+FF14",
+          "U+FF16",
+          "U+FF18",
+          "U+FF11",
+          "U+FF13",
+          "U+FF15",
+          "U+FF17"
+        ],
+        "len_codepoints": 8,
+        "len_utf16": 8
+      },
+      "input": {
+        "type": "str",
+        "value": "73015946288150347629",
+        "codepoints": [
+          "U+0037",
+          "U+0033",
+          "U+0030",
+          "U+0031",
+          "U+0035",
+          "U+0039",
+          "U+0034",
+          "U+0036",
+          "U+0032",
+          "U+0038",
+          "U+0038",
+          "U+0031",
+          "U+0035",
+          "U+0030",
+          "U+0033",
+          "U+0034",
+          "U+0037",
+          "U+0036",
+          "U+0032",
+          "U+0039"
+        ],
+        "len_codepoints": 20,
+        "len_utf16": 20
+      },
+      "python": {
+        "ok": true,
+        "result": "39197124"
+      },
+      "note": ""
+    },
+    {
+      "id": "x1c_separated_input",
+      "mask": {
+        "type": "str",
+        "value": "24681357",
+        "codepoints": [
+          "U+0032",
+          "U+0034",
+          "U+0036",
+          "U+0038",
+          "U+0031",
+          "U+0033",
+          "U+0035",
+          "U+0037"
+        ],
+        "len_codepoints": 8,
+        "len_utf16": 8
+      },
+      "input": {
+        "type": "str",
+        "value": "1234\u001c5678\u001c9012\u001c3456\u001c7890",
+        "codepoints": [
+          "U+0031",
+          "U+0032",
+          "U+0033",
+          "U+0034",
+          "U+001C",
+          "U+0035",
+          "U+0036",
+          "U+0037",
+          "U+0038",
+          "U+001C",
+          "U+0039",
+          "U+0030",
+          "U+0031",
+          "U+0032",
+          "U+001C",
+          "U+0033",
+          "U+0034",
+          "U+0035",
+          "U+0036",
+          "U+001C",
+          "U+0037",
+          "U+0038",
+          "U+0039",
+          "U+0030"
+        ],
+        "len_codepoints": 24,
+        "len_utf16": 24
+      },
+      "python": {
+        "ok": true,
+        "result": "26201496"
+      },
+      "note": "Python strips U+001C; Dart \\s does not"
+    }
+  ],
+  "main_flow": [
+    {
+      "id": "ok",
+      "answers": [
+        "24681357",
+        "73015946288150347629"
+      ],
+      "stdout": "=== Генератор PIN-кода ===\n\nСгенерированный PIN-код: 39197124\n",
+      "exit_code": 0
+    },
+    {
+      "id": "ok_mask_padded",
+      "answers": [
+        "  24681357  ",
+        "73015946288150347629"
+      ],
+      "stdout": "=== Генератор PIN-кода ===\n\nСгенерированный PIN-код: 39197124\n",
+      "exit_code": 0
+    },
+    {
+      "id": "mask_letter",
+      "answers": [
+        "1234567a",
+        "73015946288150347629"
+      ],
+      "stdout": "=== Генератор PIN-кода ===\nОшибка: Маска должна содержать только цифры.\n",
+      "exit_code": 1
+    },
+    {
+      "id": "mask_inner_space",
+      "answers": [
+        "2468 1357",
+        "73015946288150347629"
+      ],
+      "stdout": "=== Генератор PIN-кода ===\nОшибка: Маска должна содержать только цифры.\n",
+      "exit_code": 1
+    },
+    {
+      "id": "mask_superscript_passes_isdigit",
+      "answers": [
+        "²2345678",
+        "73015946288150347629"
+      ],
+      "stdout": "=== Генератор PIN-кода ===\nОшибка: Маска должна содержать ровно 8 цифр, например, '24681357'.\n",
+      "exit_code": 1
+    },
+    {
+      "id": "mask_7_digits",
+      "answers": [
+        "1234567",
+        "73015946288150347629"
+      ],
+      "stdout": "=== Генератор PIN-кода ===\nОшибка: Маска должна содержать ровно 8 цифр, например, '24681357'.\n",
+      "exit_code": 1
+    },
+    {
+      "id": "mask_zero",
+      "answers": [
+        "10345678",
+        "73015946288150347629"
+      ],
+      "stdout": "=== Генератор PIN-кода ===\nОшибка: Значение маски на позиции 2 должно быть от 1 до 20.\n",
+      "exit_code": 1
+    },
+    {
+      "id": "input_short",
+      "answers": [
+        "24681357",
+        "7301594628815034762"
+      ],
+      "stdout": "=== Генератор PIN-кода ===\nОшибка: Входная строка должна содержать ровно 20 символов (без пробелов).\n",
+      "exit_code": 1
+    },
+    {
+      "id": "ctrl_c_on_mask",
+      "answers": [
+        "<raise KeyboardInterrupt>"
+      ],
+      "stdout": "=== Генератор PIN-кода ===\n\nВвод прерван пользователем.\n",
+      "exit_code": 1
+    },
+    {
+      "id": "eof_on_mask",
+      "answers": [
+        "<raise EOFError>"
+      ],
+      "stdout": "=== Генератор PIN-кода ===\nОшибка при вводе: stub EOF\n",
+      "exit_code": 1
+    }
+  ]
+}

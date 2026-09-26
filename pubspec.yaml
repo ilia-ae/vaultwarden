@@ -19,6 +19,7 @@ dependencies:
   # Crypto
   pointycastle: ^4.0.0
   cryptography: ^2.9.0
+  unorm_dart: ^0.3.2  # NFKD for BIP39 passphrases (pure Dart, no plugin)
 
   # Networking
   dio: ^5.4.0
