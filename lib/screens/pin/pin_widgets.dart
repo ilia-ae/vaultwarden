@@ -14,6 +14,7 @@ import 'package:flutter/services.dart';
 import '../../glass.dart';
 import '../../l10n/app_localizations.dart';
 import '../../pin_tools/bip39.dart';
+import '../../pin_tools/python_text.dart' show hasLoneSurrogate;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Colours (from the source page, tuned for both themes)
@@ -63,6 +64,10 @@ TextStyle pinMono(BuildContext context, {double size = 14, FontWeight? weight,
 /// * [onPasted] fires after a paste through the Flutter menu. Pastes the
 ///   field cannot see (iOS native menu, keyboard clipboard) are detected by
 ///   the owner from the size of the edit, see [pasteThreshold].
+/// * A visible (not [obscure]) field drops unpaired UTF-16 surrogates, which
+///   the text engine cannot lay out, and reports it via
+///   [onBrokenCharactersRemoved]. Masked fields keep them (they render as
+///   bullets), so the derivation reports them as an error instead.
 class PinSecretField extends StatefulWidget {
   const PinSecretField({
     super.key,
@@ -77,6 +82,7 @@ class PinSecretField extends StatefulWidget {
     this.onChanged,
     this.onPasted,
     this.normalizePaste,
+    this.onBrokenCharactersRemoved,
     this.monospace = false,
   });
 
@@ -95,6 +101,7 @@ class PinSecretField extends StatefulWidget {
 
   /// Applied to clipboard text pasted through the Flutter menu.
   final String Function(String pasted)? normalizePaste;
+  final VoidCallback? onBrokenCharactersRemoved;
   final bool monospace;
 
   /// An insertion this long in one edit is treated as a paste.
@@ -181,6 +188,9 @@ class _PinSecretFieldState extends State<PinSecretField> {
         autofillHints: null,
         stylusHandwritingEnabled: false,
         contextMenuBuilder: widget.obscure ? _pasteOnlyMenu : _defaultMenu,
+        inputFormatters: widget.obscure
+            ? null
+            : [_DropLoneSurrogates(widget.onBrokenCharactersRemoved)],
         onChanged: widget.onChanged,
         style: widget.monospace
             ? pinMono(context, size: 16, weight: FontWeight.w500)
@@ -198,6 +208,52 @@ class _PinSecretFieldState extends State<PinSecretField> {
           fillColor: theme.colorScheme.surfaceContainerHighest
               .withValues(alpha: 0.35),
         ),
+      ),
+    );
+  }
+}
+
+/// Removes unpaired UTF-16 surrogates (they cannot be painted, and no
+/// device could hold them as UTF-8).
+class _DropLoneSurrogates extends TextInputFormatter {
+  _DropLoneSurrogates(this.onRemoved);
+
+  final VoidCallback? onRemoved;
+
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    final text = newValue.text;
+    if (!hasLoneSurrogate(text)) return newValue;
+    final out = StringBuffer();
+    var cursor = newValue.selection.isValid
+        ? newValue.selection.extentOffset
+        : text.length;
+    final originalCursor = cursor;
+    for (var i = 0; i < text.length; i++) {
+      final c = text.codeUnitAt(i);
+      if (c >= 0xD800 && c <= 0xDBFF && i + 1 < text.length) {
+        final next = text.codeUnitAt(i + 1);
+        if (next >= 0xDC00 && next <= 0xDFFF) {
+          out.write(text.substring(i, i + 2));
+          i++;
+          continue;
+        }
+      }
+      if (c >= 0xD800 && c <= 0xDFFF) {
+        if (i < originalCursor) cursor--;
+        continue;
+      }
+      out.writeCharCode(c);
+    }
+    onRemoved?.call();
+    final cleaned = out.toString();
+    return TextEditingValue(
+      text: cleaned,
+      selection: TextSelection.collapsed(
+        offset: cursor.clamp(0, cleaned.length),
       ),
     );
   }

@@ -100,19 +100,11 @@ class _PinSectionState extends ConsumerState<PinSection>
     }
   }
 
-  /// Uses `PrivacyService.isScreenshotsAllowedBuild()` when this build has
-  /// it (test builds made with `-Pallow-screenshots=true`), to tell testers
-  /// that FLAG_SECURE is not in force. Absent method → no hint.
+  /// Test builds made with `-Pallow-screenshots=true` never set FLAG_SECURE;
+  /// say so, so nobody mistakes such a build for a protected one.
   Future<void> _checkScreenshotsAllowedBuild() async {
-    try {
-      final dynamic service = _privacy;
-      final Object? allowed = await service.isScreenshotsAllowedBuild();
-      if (mounted && allowed == true) {
-        setState(() => _screenshotsAllowedBuild = true);
-      }
-    } catch (_) {
-      // Not available in this build.
-    }
+    final allowed = await _privacy.isScreenshotsAllowedBuild();
+    if (mounted && allowed) setState(() => _screenshotsAllowedBuild = true);
   }
 
   void _onPrivacyEvent(PrivacyEvent event) {

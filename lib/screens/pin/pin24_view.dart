@@ -96,6 +96,9 @@ class _Pin24ViewState extends ConsumerState<Pin24View> {
   /// A paste put the phrase on the clipboard, which still holds it.
   bool _clipboardHoldsPaste = false;
 
+  /// Unpaired surrogates were dropped from the nickname.
+  bool _nicknameSanitized = false;
+
   Timer? _debounce;
 
   /// Bumped by every edit and wipe; results of older runs are dropped.
@@ -173,6 +176,7 @@ class _Pin24ViewState extends ConsumerState<Pin24View> {
       _revealPin = false;
       _showFull = false;
       _clipboardHoldsPaste = false;
+      if (event.scope == PinWipeScope.all) _nicknameSanitized = false;
       _busy = false;
       _output = null;
       _checkText = null;
@@ -283,8 +287,9 @@ class _Pin24ViewState extends ConsumerState<Pin24View> {
     _inputsChanged();
   }
 
-  void _onNicknameChanged(String _) {
+  void _onNicknameChanged(String nickname) {
     _session.touch();
+    if (nickname.isEmpty) _nicknameSanitized = false;
     _inputsChanged();
   }
 
@@ -431,19 +436,16 @@ class _Pin24ViewState extends ConsumerState<Pin24View> {
       _checkRunning = true;
       _checkText = null;
     });
-    Pin24EngineCheckResult? result;
+    Pin24EngineCheckResult result;
     try {
       result = await pin24EngineCheck(_runner);
     } catch (_) {
-      result = const Pin24EngineCheckResult(passed: 0, total: 1);
+      result = const Pin24EngineCheckResult(passed: 0, total: 0);
     }
     if (!mounted) return;
     setState(() {
       _checkRunning = false;
-      if (result == null) {
-        _checkKind = PinNoticeKind.info;
-        _checkText = l.pin24SelfTestUnavailable;
-      } else if (result.ok) {
+      if (result.ok) {
         _checkKind = PinNoticeKind.ok;
         _checkText = l.pin24SelfTestOk(result.passed, result.total);
       } else {
@@ -795,13 +797,16 @@ class _Pin24ViewState extends ConsumerState<Pin24View> {
           hintText: 'visa',
           helperText: l.pin24NicknameHelp,
           onChanged: _onNicknameChanged,
+          onBrokenCharactersRemoved: () => _nicknameSanitized = true,
         ),
-        if (warnings.any) ...[
+        if (warnings.any || _nicknameSanitized) ...[
           const SizedBox(height: 8),
           Wrap(
             spacing: 6,
             runSpacing: 6,
             children: [
+              if (_nicknameSanitized)
+                PinWarningChip(l.pin24NicknameBrokenRemoved),
               if (warnings.edgeWhitespace)
                 PinWarningChip(l.pin24NicknameWhitespace),
               if (warnings.nonAscii) PinWarningChip(l.pin24NicknameNonAscii),

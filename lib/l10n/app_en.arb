@@ -197,5 +197,253 @@
   "biometricRequiredTitle": "Biometrics Required",
   "biometricRequiredMessage": "This app requires Face ID, Touch ID, or fingerprint authentication to securely store your encryption keys. Please enable biometrics in your device settings.",
   "biometricUnavailable": "Biometrics unavailable. Enable Face ID or fingerprint in device settings.",
-  "biometricRetry": "Retry"
+  "biometricRetry": "Retry",
+
+  "pinTab": "PIN",
+  "pinTitle": "PIN tools",
+  "pinToolPin24": "PIN 24",
+  "pinToolShift": "PIN Shift",
+  "pinToolYubikey": "YubiKey",
+  "pinToolLegacy": "Legacy mask",
+  "pinShowLegacy": "Show legacy tools",
+  "pinShowLegacyHelp": "Adds the old 8-digit mask tool (kept only to recover values made with it).",
+  "pinOfflineNote": "Everything here works offline, on this phone only. Nothing you type is saved, synced or sent anywhere.",
+  "pinComingSoon": "This tool is coming in this build — it is not ready yet.",
+  "pinUnavailable": "The PIN tools could not start. Close and reopen the app.",
+  "pinScreenshotsAllowedBuild": "Test build: screenshots of this screen are allowed.",
+  "pinSeedInMemory": "A seed from PIN 24 is still in memory ({words} words).",
+  "@pinSeedInMemory": {
+    "placeholders": {
+      "words": { "type": "int" }
+    }
+  },
+  "pinHiddenInactive": "Hidden while the app is not active",
+  "pinHiddenCaptured": "Hidden while the screen is being recorded or mirrored",
+  "pinHiddenCapturedHint": "Stop screen recording, AirPlay or mirroring to continue.",
+  "pinScreenshotWarning": "Screenshot taken. If it shows a seed, PIN or password, delete it — also from Recently Deleted.",
+  "pinWipeAction": "Wipe",
+  "pinWipedSeed": "Seed phrase and passphrase wiped",
+  "pinWipedAll": "Everything on this tab was wiped",
+  "pinWipedBackground": "PIN tools were wiped when the app left the screen",
+  "pinWipedInactivity": "PIN tools were wiped after 2 minutes without activity",
+  "pinCopyHint": "Tap to copy",
+  "pinTapToCopy": "Tap to copy — it clears from the clipboard after 60 seconds.",
+  "pinCopied": "✓ Copied!",
+  "pinCopiedTtl": "Copied — clears from the clipboard in 60 seconds",
+  "pinCopyFailed": "✗ Failed",
+  "pinPastedStillOnClipboard": "The pasted text is still on the clipboard.",
+  "pinClearClipboard": "Clear clipboard",
+  "pinClipboardCleared": "Clipboard cleared",
+  "pinWordCellSemantics": "Word {position}, {state}",
+  "@pinWordCellSemantics": {
+    "placeholders": {
+      "position": { "type": "int" },
+      "state": { "type": "String" }
+    }
+  },
+  "pinWordStateValid": "valid",
+  "pinWordStatePartial": "incomplete",
+  "pinWordStateInvalid": "not in the wordlist",
+  "pinWordStateEmpty": "empty",
+  "pin24Summary": "Recovery-only: derive Ledger-compatible PINs and passwords from a 12, 15, 18, 21 or 24-word BIP39 seed.",
+  "pin24Bullets": "• Bit-for-bit replica of the LedgerHQ app-passwords derivation\n• BIP39 validation (wordlist + checksum) before touching the secret\n• Per-service nickname; first N digits of the device output\n• Use only when the real Ledger is unavailable",
+  "pin24Caption": "Recovery-only software reproduction of the Ledger Passwords app. Type the BIP39 seed + a nickname → get the same numeric PIN the device would type for that nickname with “Use numbers + Use separators” selected. Use the real device whenever possible.",
+  "pin24Banner": "⚠ Recovery-only tool. Use it only when your Ledger device is unavailable. Typing your BIP39 seed phrase into a phone exposes it to the operating system, keyboard apps, the clipboard, screenshots, screen recording and backups. Prefer the real device whenever possible. Close this screen when done, and assume the phone could be compromised — rotate any high-value secrets afterwards if practical.",
+  "pin24Acknowledge": "I understand",
+  "pin24AckRequired": "Read the warning above and tap “I understand” to unlock the seed field.",
+  "pin24SectionSeed": "1 · Seed phrase",
+  "pin24SectionNickname": "2 · Service nickname",
+  "pin24SectionMode": "3 · Mode",
+  "pin24SectionOutput": "4 · Output",
+  "pin24SeedLabel": "BIP39 seed (12 / 15 / 18 / 21 / 24 words; spaces / dashes / commas / newlines all work)",
+  "pin24SeedHelp": "Always masked. The word cells below mirror what you typed — toggle 👁 to reveal those cells. Paste works; copying out does not.",
+  "pin24ShowWords": "👁 Show typed words in the cells below  (off by default)",
+  "pin24ShowWordsHelp": "Off: cells render bullets, only validation colors visible. On: each cell shows the actual word.",
+  "pin24WordsMetric": "Words",
+  "pin24WordsCounter": "{typed} / {target}",
+  "@pin24WordsCounter": {
+    "placeholders": {
+      "typed": { "type": "int" },
+      "target": { "type": "int" }
+    }
+  },
+  "pin24StatusEmpty": "Enter the seed phrase above.",
+  "pin24StatusCount": "Got {count} words; BIP39 requires one of 12, 15, 18, 21, 24.",
+  "@pin24StatusCount": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "pin24StatusWordlist": "Some words are not in the BIP39 English wordlist.",
+  "pin24StatusChecksum": "Phrase is the right length but the BIP39 checksum fails.",
+  "pin24StatusOk": "{count} words, BIP39 checksum valid.",
+  "@pin24StatusOk": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "pin24InvalidMasked": "Not in BIP39 wordlist at position(s): {positions}",
+  "@pin24InvalidMasked": {
+    "placeholders": {
+      "positions": { "type": "String" }
+    }
+  },
+  "pin24InvalidRevealed": "Not in BIP39 wordlist: {items}",
+  "@pin24InvalidRevealed": {
+    "placeholders": {
+      "items": { "type": "String" }
+    }
+  },
+  "pin24PartialMasked": "Partial word(s) at position(s): {positions} (toggle 👁 above to see completions)",
+  "@pin24PartialMasked": {
+    "placeholders": {
+      "positions": { "type": "String" }
+    }
+  },
+  "pin24PartialRevealed": "Partial word(s) — tap a completion to accept it:",
+  "pin24NoCompletions": "(no completions)",
+  "pin24AmbiguousWord": "Word {position} is complete but also starts longer words — confirm it or keep typing.",
+  "@pin24AmbiguousWord": {
+    "placeholders": {
+      "position": { "type": "int" }
+    }
+  },
+  "pin24ConfirmWord": "Confirm word {position}",
+  "@pin24ConfirmWord": {
+    "placeholders": {
+      "position": { "type": "int" }
+    }
+  },
+  "pin24GluedWords": "Word(s) at position(s) {positions} look like several words run together (line breaks are dropped when pasting into a one-line field).",
+  "@pin24GluedWords": {
+    "placeholders": {
+      "positions": { "type": "String" }
+    }
+  },
+  "pin24GluedSplit": "Split into separate words",
+  "pin24NonAscii": "The phrase contains non-ASCII letters (accents, or look-alikes such as Cyrillic “а”). BIP39 English words use only a–z; these characters are treated as separators.",
+  "pin24PassphraseTitle": "BIP39 passphrase (25th word)",
+  "pin24PassphraseLabel": "Passphrase",
+  "pin24PassphraseCaption": "Leave empty unless you explicitly set a passphrase on your Ledger. If you did set one, you MUST enter it here — otherwise the derived PIN will not match the device.",
+  "pin24PassphraseWhitespace": "Starts or ends with a space — it counts as part of the passphrase",
+  "pin24WipeSeed": "🧹 Wipe seed",
+  "pin24WipeSeedHelp": "🧹 clears the seed phrase and passphrase and zeroes the cached seed; nickname and settings stay. 🚨 clears everything on this tab.",
+  "pin24WipeAll": "🚨 Wipe all",
+  "pin24WipeAllTitle": "Wipe everything?",
+  "pin24WipeAllBody": "This clears the seed phrase, passphrase, nickname and results on this tab and zeroes the cached seed.\n\n⚠ The derived PIN will be lost — copy or write it down first.",
+  "pin24WipeAllConfirm": "🚨 Yes, wipe now",
+  "pin24NicknameLabel": "Nickname (exactly as set on the device — case-sensitive!)",
+  "pin24NicknameHelp": "Must match the nickname stored on your Ledger byte-for-byte. If you used 'Visa' on the device, 'visa' here would derive a different PIN.",
+  "pin24NicknameWhitespace": "Starts or ends with a space — it is part of the nickname",
+  "pin24NicknameNonAscii": "Non-ASCII characters — they must match the device byte-for-byte",
+  "pin24NicknameTooLong": "{bytes} bytes in UTF-8 — Ledger nicknames hold at most {max}",
+  "@pin24NicknameTooLong": {
+    "placeholders": {
+      "bytes": { "type": "int" },
+      "max": { "type": "int" }
+    }
+  },
+  "pin24ModePin": "🔢 PIN  (digits only)",
+  "pin24ModePinHelp": "Numeric PIN — first N digits of the device's NUMBERS+SEPARATORS output.",
+  "pin24ModePassword": "🔑 Password  (any charset)",
+  "pin24ModePasswordHelp": "Full 20-char Ledger password — same as choosing charsets on the device.",
+  "pin24Length": "Length",
+  "pin24LengthButton": "Length {length}",
+  "@pin24LengthButton": {
+    "placeholders": {
+      "length": { "type": "int" }
+    }
+  },
+  "pin24LengthCustom": "Custom length (1–12).",
+  "pin24LengthShorter": "Shorter",
+  "pin24LengthLonger": "Longer",
+  "pin24Charsets": "Charsets (match what you'd toggle on the device)",
+  "pin24CharsetSeparators": "- _ space",
+  "pin24CharsetNone": "⚠ Pick at least one charset.",
+  "pin24SpecialsTitle": "Special characters",
+  "pin24SpecialsBody": "The last toggle’s label is shorthand. With special characters on, the device draws from all of these:",
+  "pin24Gate1": "Fill in a valid BIP39 phrase above to enable derivation.",
+  "pin24Gate2": "Enter a nickname above.",
+  "pin24Gate3": "Enable at least one charset above to derive.",
+  "pin24Deriving": "Deriving…",
+  "pin24PinSemantics": "Derived PIN, {length} digits",
+  "@pin24PinSemantics": {
+    "placeholders": {
+      "length": { "type": "int" }
+    }
+  },
+  "pin24PasswordSemantics": "Derived password, {length} characters",
+  "@pin24PasswordSemantics": {
+    "placeholders": {
+      "length": { "type": "int" }
+    }
+  },
+  "pin24RevealPin": "👁 Show the PIN as text",
+  "pin24RevealPinHelp": "Off: only digit boxes. On: also show it as plain text for writing it down.",
+  "pin24PinCaption": "This is what your Ledger would type if you opened app-passwords, selected only “Use numbers” + “Use separators”, picked the nickname “{nickname}”, and read off the first {length} digits (skipping the separators). If it doesn't match the device, re-check the nickname casing, and the BIP39 passphrase if you set one.",
+  "@pin24PinCaption": {
+    "placeholders": {
+      "nickname": { "type": "String" },
+      "length": { "type": "int" }
+    }
+  },
+  "pin24PaddingWarning": "The device output has only {digits} digits; the PIN was padded with {zeros} zero(s) at the end. Compare with the device using the same rule.",
+  "@pin24PaddingWarning": {
+    "placeholders": {
+      "digits": { "type": "int" },
+      "zeros": { "type": "int" }
+    }
+  },
+  "pin24FullToggle": "🔍 Show full derived password (for debug / device cross-check)",
+  "pin24FullHelp": "Shows the entire numbers-and-separators string the Ledger would type (␣ = space). Use it once on first setup: create an entry “pin24-test” on the device and compare character by character, then turn this off.",
+  "pin24FullCaption": "Full derived password. The PIN above is the first {length} digits of this string (separators skipped). Compare it character-for-character with what your Ledger types in the same configuration.",
+  "@pin24FullCaption": {
+    "placeholders": {
+      "length": { "type": "int" }
+    }
+  },
+  "pin24CopyFull": "Copy full password",
+  "pin24PasswordCaption": "Charsets: {charsets}. This is the exact 20-char string the Ledger device would type for nickname “{nickname}” with the same on-device toggles enabled (␣ = space).",
+  "@pin24PasswordCaption": {
+    "placeholders": {
+      "charsets": { "type": "String" },
+      "nickname": { "type": "String" }
+    }
+  },
+  "pin24ErrorBip39": "Seed phrase failed BIP39 validation (wordlist match + checksum). Double-check spelling and word order.",
+  "pin24ErrorPassphraseUtf8": "The passphrase contains a broken character (an unpaired surrogate) that cannot be encoded as UTF-8. Clear the passphrase and type it again.",
+  "pin24ErrorNicknameUtf8": "The nickname contains a broken character (an unpaired surrogate) that cannot be encoded as UTF-8. Clear the nickname and type it again.",
+  "pin24ErrorBip32": "This nickname hits an astronomically rare invalid key; the device cannot derive it either. Use a different nickname.",
+  "pin24ErrorGeneric": "Derivation failed unexpectedly. The seed itself is not echoed in this message on purpose. Re-check the phrase length, wordlist, and BIP39 checksum; if the problem persists, wipe everything and start again.",
+  "pin24ErrorGenericShort": "Derivation failed unexpectedly. The seed itself is not echoed in this message on purpose.",
+  "pin24ThreatTitle": "⚠ Threat model & recovery checklist",
+  "pin24ThreatProtectsTitle": "What this screen does to protect the seed",
+  "pin24ThreatProtectsBody": "• The seed field is always masked and never shown as plain text; you can paste into it, never copy out of it.\n• Keyboard suggestions, autocorrect, keyboard learning and autofill are off for the secret fields.\n• Everything is computed on this phone, offline, in a separate short-lived isolate; nothing is sent to your Vaultwarden server, Firebase or anywhere else.\n• Nothing secret is saved: not in settings, cloud sync, backups or logs.\n• The derived seed stays in memory only to avoid re-deriving it, and is zeroed on 🧹 and 🚨, when the app goes to the background, after 2 minutes without activity, and when the app locks.\n• Android blocks screenshots and recording of this tab; iOS hides it while the screen is recorded or mirrored.\n• Copied results expire from the clipboard after 60 seconds and are not shared with your other devices.",
+  "pin24ThreatCannotTitle": "What it CANNOT protect against",
+  "pin24ThreatCannotBody": "• A compromised phone: malware, a jailbreak or root, or a malicious keyboard app (Android cannot block third-party keyboards; iOS forces the system keyboard in masked fields only).\n• Accessibility services and screen readers that can read the screen.\n• Screenshots on iOS (they cannot be blocked — you only get a warning), cameras and people looking over your shoulder.\n• Dart strings cannot be wiped: the phrase you typed may stay in app memory until it is overwritten. Only the binary seed buffers are zeroed.\n• Your memory: one wrong word gives a completely different PIN, and the checksum catches most mistakes but not all. A forgotten passphrase cannot be recovered.",
+  "pin24ThreatUseTitle": "Use this tool when",
+  "pin24ThreatUseBody": "• Your Ledger is lost, broken or out of reach and you need a PIN or password now.\n• You are about to restore the seed onto a new device anyway.",
+  "pin24ThreatDontTitle": "Do NOT use it when",
+  "pin24ThreatDontBody": "• The Ledger is available — use the device.\n• The phone is not yours, is jailbroken or rooted, or has unknown keyboard or accessibility apps.\n• Someone could be recording or watching the screen.\n• You just want convenience: typing the seed into a phone exposes it far more than the hardware wallet does.",
+  "pin24ThreatStepsTitle": "Steps for a real recovery",
+  "pin24ThreatStepsBody": "1. Use a phone you trust, ideally in airplane mode.\n2. Enter the passphrase too if you set one on the Ledger.\n3. Type the nickname exactly as on the device (case-sensitive).\n4. Derive what you need, copy or write it down, then press 🚨 Wipe all and close the app from the app switcher.\n5. Restore the Ledger onto new hardware, and rotate especially valuable secrets if the phone may be compromised.",
+  "pin24CleanupTitle": "Post-recovery cleanup",
+  "pin24CleanupCaption": "When you are done: copy or write down what you need, press 🚨 Wipe all, then close the app from the app switcher. Dart strings cannot be zeroed, so closing the app is what finally drops them from memory.",
+  "pin24SelfTestCaption": "Check that this build's engine reproduces the official Ledger test vectors (public Speculos seed — nothing you typed is used).",
+  "pin24SelfTest": "Check engine",
+  "pin24SelfTestOk": "Engine OK: {passed} of {total} official vectors match.",
+  "@pin24SelfTestOk": {
+    "placeholders": {
+      "passed": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
+  "pin24SelfTestFailed": "Engine check FAILED: {failed} of {total} vectors differ — do not rely on this build.",
+  "@pin24SelfTestFailed": {
+    "placeholders": {
+      "failed": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
+  "pin24NicknameBrokenRemoved": "An invalid character (unpaired surrogate) was removed — check the nickname"
 }
