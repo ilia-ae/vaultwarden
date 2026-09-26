@@ -48,6 +48,8 @@ import UniformTypeIdentifiers
 /// - `clearClipboard` → Bool: empties the pasteboard unconditionally.
 /// - `setSecureScreen {enabled}` → false: iOS cannot block screenshots.
 /// - `isScreenCaptured` → Bool: recording, AirPlay or mirroring is active.
+/// - `isScreenshotsAllowedBuild` → false: an Android-only build flag
+///   (`-Pallow-screenshots=true`); iOS has no such build.
 ///
 /// Event channel `com.vaultapprover.app/privacy/captured`: the capture state as
 /// a Bool (the current state first, then changes) and the string `"screenshot"`
@@ -140,6 +142,8 @@ final class PrivacyChannel: NSObject, FlutterStreamHandler {
       result(false)
     case "isScreenCaptured":
       result(currentCaptured())
+    case "isScreenshotsAllowedBuild":
+      result(false)
     default:
       result(FlutterMethodNotImplemented)
     }

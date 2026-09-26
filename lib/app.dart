@@ -4,12 +4,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'demo_runtime.dart';
 import 'l10n/app_localizations.dart';
+import 'models/user_session.dart';
 import 'providers/session_provider.dart';
 import 'widgets/unlock_shell.dart';
 import 'screens/requests_screen.dart';
 import 'screens/setup_screen.dart';
 import 'services/settings_service.dart';
 import 'services/settings_sync.dart';
+import 'utils/external_picker.dart';
 import 'widgets/app_background.dart';
 
 /// True once Firebase.initializeApp succeeded (set in main). Gates all cloud
@@ -106,6 +108,11 @@ class App extends ConsumerStatefulWidget {
 class _AppState extends ConsumerState<App> with WidgetsBindingObserver {
   DateTime? _pausedAt;
 
+  /// The app's navigator. `UnlockShell` only covers the home route, so on
+  /// lock every route above it (dialogs, sheets, pickers' callers) is popped
+  /// here — otherwise they would stay visible and usable over the lock.
+  final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
+
   @override
   void initState() {
     super.initState();
@@ -126,6 +133,9 @@ class _AppState extends ConsumerState<App> with WidgetsBindingObserver {
 
     if (state == AppLifecycleState.hidden ||
         state == AppLifecycleState.paused) {
+      // A system file picker backgrounds the app (Android: another
+      // activity). Locking now would pop the route waiting for the file.
+      if (externalPickerActive) return;
       // Lock immediately when leaving foreground.
       // This runs BEFORE iOS captures the app snapshot, so
       // the snapshot (and the first resumed frame) show LockScreen.
@@ -158,8 +168,30 @@ class _AppState extends ConsumerState<App> with WidgetsBindingObserver {
     }
   }
 
+  /// Closes every route above home when the app locks (R6). Only for a real
+  /// signed-in session: the setup screen's dialogs (2FA code) must survive a
+  /// trip to the authenticator app, and demo mode never locks.
+  void _closeRoutesOnLock() {
+    if (demoActive || externalPickerActive) return;
+    if (ref.read(sessionProvider).valueOrNull == null) return;
+    _navigatorKey.currentState?.popUntil((route) => route.isFirst);
+  }
+
   @override
   Widget build(BuildContext context) {
+    ref.listen<bool>(isLockedProvider, (previous, locked) {
+      if (locked && previous == false) _closeRoutesOnLock();
+    });
+    // Logout: back to the initial locked state, so a stale "unlocked" never
+    // carries over to the next session.
+    ref.listen<AsyncValue<UserSession?>>(sessionProvider, (previous, next) {
+      final wasSignedIn = previous?.valueOrNull != null;
+      if (wasSignedIn && next is AsyncData<UserSession?> && next.value == null) {
+        _pausedAt = null;
+        ref.read(isLockedProvider.notifier).state = true;
+      }
+    });
+
     // Persist settings changes locally. ref.listen fires only on change
     // (not for the loaded initial value), so this never clobbers on startup.
     final settings = ref.read(settingsServiceProvider);
@@ -184,6 +216,7 @@ class _AppState extends ConsumerState<App> with WidgetsBindingObserver {
     final isLocked = ref.watch(isLockedProvider);
 
     return MaterialApp(
+      navigatorKey: _navigatorKey,
       title: 'Vault Approver',
       debugShowCheckedModeBanner: false,
       localizationsDelegates: AppLocalizations.localizationsDelegates,

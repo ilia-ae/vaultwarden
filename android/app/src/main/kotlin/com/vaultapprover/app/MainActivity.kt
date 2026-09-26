@@ -25,9 +25,6 @@ class MainActivity : FlutterFragmentActivity() {
     /** Native side of lib/services/privacy_service.dart for the current engine. */
     private var privacy: PrivacyChannel? = null
 
-    /** Set by `setSecureScreen` from the PIN screens; wins over the build default. */
-    private var secureForced = false
-
     /**
      * The registered `Activity.ScreenCaptureCallback` (API 34+) while started.
      * Typed `Any` so older Android versions never load that class.
@@ -41,7 +38,6 @@ class MainActivity : FlutterFragmentActivity() {
         // ON for normal builds; opt-out ONLY when the harness passes
         // -Pallow-screenshots=true while building store screenshots.
         // Gradle wires that property into BuildConfig.ALLOW_SCREENSHOTS.
-        // setSecureScreen(true) forces it back on for secret-bearing screens.
         applySecureFlag()
     }
 
@@ -78,17 +74,26 @@ class MainActivity : FlutterFragmentActivity() {
         SensitiveClipboard.onFocusChanged(this, hasFocus)
     }
 
-    /** Forces FLAG_SECURE on while [enabled]; restores the build default after. */
+    /**
+     * `setSecureScreen` from the secret-bearing (PIN) screens. FLAG_SECURE
+     * depends on the build alone:
+     * - production builds keep it on for the whole app, so forcing it
+     *   changes nothing there;
+     * - screenshot builds (`-Pallow-screenshots=true`, i.e.
+     *   BuildConfig.ALLOW_SCREENSHOTS; store screenshots and Maestro only)
+     *   keep it off even here, so every screen can be captured.
+     * [enabled] is accepted for the channel contract (iOS parity).
+     */
+    @Suppress("UNUSED_PARAMETER")
     fun setSecureScreen(enabled: Boolean) {
-        secureForced = enabled
         applySecureFlag()
     }
 
     private fun applySecureFlag() {
-        if (secureForced || !BuildConfig.ALLOW_SCREENSHOTS) {
-            window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
-        } else {
+        if (BuildConfig.ALLOW_SCREENSHOTS) {
             window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
+        } else {
+            window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
         }
     }
 
@@ -124,9 +129,12 @@ class MainActivity : FlutterFragmentActivity() {
  * - `copySensitive {text, ttlSeconds}`: see [SensitiveClipboard.copy].
  * - `clearClipboardIfOurs` -> Boolean: clears now if the clip is still ours.
  * - `clearClipboard` -> true: clears unconditionally.
- * - `setSecureScreen {enabled}` -> true: see [MainActivity.setSecureScreen].
+ * - `setSecureScreen {enabled}` -> true: see [MainActivity.setSecureScreen]
+ *   (a no-op: FLAG_SECURE follows the build).
  * - `isScreenCaptured` -> false: Android has no capture state to report;
  *   FLAG_SECURE blanks recordings instead.
+ * - `isScreenshotsAllowedBuild` -> Boolean: BuildConfig.ALLOW_SCREENSHOTS,
+ *   true only in `-Pallow-screenshots=true` builds (no FLAG_SECURE at all).
  *
  * Event channel `com.vaultapprover.app/privacy/captured`: `"screenshot"` on
  * Android 14+ when a screenshot is taken (none while FLAG_SECURE blocks it).
@@ -178,6 +186,7 @@ private class PrivacyChannel(
                     result.success(true)
                 }
                 "isScreenCaptured" -> result.success(false)
+                "isScreenshotsAllowedBuild" -> result.success(BuildConfig.ALLOW_SCREENSHOTS)
                 else -> result.notImplemented()
             }
         } catch (e: RuntimeException) {

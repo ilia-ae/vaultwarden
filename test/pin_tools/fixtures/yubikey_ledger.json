@@ -1,0 +1,838 @@
+{
+ "generator": "gen_yk_ledger_vectors.py",
+ "rule": "yubikey-fleet docs/BITWARDEN.md:274-291",
+ "vectors": [
+  {
+   "seed": "abandon12",
+   "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+   "serial": "38715242",
+   "mask_name": "device_default",
+   "set_mask": 7,
+   "pins": {
+    "nickname": "yk-38715242-pins",
+    "full": "0wpHOcA27ATFqc6RAonu",
+    "first4_last4": "0wpHAonu",
+    "printable_ascii_8": true
+   },
+   "puk": {
+    "nickname": "yk-38715242-puk",
+    "full": "Kozzo0fJqBAFKKf9BA71",
+    "first4_last4": "KozzBA71",
+    "printable_ascii_8": true
+   },
+   "admin": {
+    "nickname": "yk-38715242-admin",
+    "full": "Dw8x0CMxWTiFjQttGgFT",
+    "first4_last4": "Dw8xGgFT",
+    "printable_ascii_8": true
+   },
+   "piv_pin_is_substring_of_pins_full": false
+  },
+  {
+   "seed": "abandon12",
+   "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+   "serial": "38715242",
+   "mask_name": "digits",
+   "set_mask": 4,
+   "pins": {
+    "nickname": "yk-38715242-pins",
+    "full": "22154206763168410498",
+    "first4_last4": "22150498",
+    "printable_ascii_8": true
+   },
+   "puk": {
+    "nickname": "yk-38715242-puk",
+    "full": "40570879410164333411",
+    "first4_last4": "40573411",
+    "printable_ascii_8": true
+   },
+   "admin": {
+    "nickname": "yk-38715242-admin",
+    "full": "99729843908519685458",
+    "first4_last4": "99725458",
+    "printable_ascii_8": true
+   },
+   "piv_pin_is_substring_of_pins_full": false
+  },
+  {
+   "seed": "abandon12",
+   "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+   "serial": "38715242",
+   "mask_name": "alnum_sep",
+   "set_mask": 63,
+   "pins": {
+    "nickname": "yk-38715242-pins",
+    "full": " Hi0L74W9cqkOnAANupp",
+    "first4_last4": " Hi0Nupp",
+    "printable_ascii_8": false
+   },
+   "puk": {
+    "nickname": "yk-38715242-puk",
+    "full": "-ootncE_A7E9IJB K4z1",
+    "first4_last4": "-ootK4z1",
+    "printable_ascii_8": true
+   },
+   "admin": {
+    "nickname": "yk-38715242-admin",
+    "full": "h 0F DjnqJ DDRNT7iNx",
+    "first4_last4": "h 0F7iNx",
+    "printable_ascii_8": false
+   },
+   "piv_pin_is_substring_of_pins_full": false
+  },
+  {
+   "seed": "abandon12",
+   "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+   "serial": "38715242",
+   "mask_name": "all",
+   "set_mask": 255,
+   "pins": {
+    "nickname": "yk-38715242-pins",
+    "full": "&pw*50uO(nuA A7YpH;c",
+    "first4_last4": "&pw*pH;c",
+    "printable_ascii_8": true
+   },
+   "puk": {
+    "nickname": "yk-38715242-puk",
+    "full": "on,nB[-JJAK1dz< !o_a",
+    "first4_last4": "on,n!o_a",
+    "printable_ascii_8": true
+   },
+   "admin": {
+    "nickname": "yk-38715242-admin",
+    "full": "%i0F Dj.;. %%RwT7i=x",
+    "first4_last4": "%i0F7i=x",
+    "printable_ascii_8": true
+   },
+   "piv_pin_is_substring_of_pins_full": false
+  },
+  {
+   "seed": "abandon12",
+   "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+   "serial": "17684504",
+   "mask_name": "device_default",
+   "set_mask": 7,
+   "pins": {
+    "nickname": "yk-17684504-pins",
+    "full": "1Ivqf8Er9fOwKsNHsK0f",
+    "first4_last4": "1IvqsK0f",
+    "printable_ascii_8": true
+   },
+   "puk": {
+    "nickname": "yk-17684504-puk",
+    "full": "BOe5M5eBI6jsgmi5QiTQ",
+    "first4_last4": "BOe5QiTQ",
+    "printable_ascii_8": true
+   },
+   "admin": {
+    "nickname": "yk-17684504-admin",
+    "full": "NxIrRO2v3qH0nOdgiqDr",
+    "first4_last4": "NxIriqDr",
+    "printable_ascii_8": true
+   },
+   "piv_pin_is_substring_of_pins_full": false
+  },
+  {
+   "seed": "abandon12",
+   "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+   "serial": "17684504",
+   "mask_name": "digits",
+   "set_mask": 4,
+   "pins": {
+    "nickname": "yk-17684504-pins",
+    "full": "97810344275314080237",
+    "first4_last4": "97810237",
+    "printable_ascii_8": true
+   },
+   "puk": {
+    "nickname": "yk-17684504-puk",
+    "full": "50252325209464878416",
+    "first4_last4": "50258416",
+    "printable_ascii_8": true
+   },
+   "admin": {
+    "nickname": "yk-17684504-admin",
+    "full": "71491427189238548833",
+    "first4_last4": "71498833",
+    "printable_ascii_8": true
+   },
+   "piv_pin_is_substring_of_pins_full": false
+  },
+  {
+   "seed": "abandon12",
+   "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+   "serial": "17684504",
+   "mask_name": "alnum_sep",
+   "set_mask": 63,
+   "pins": {
+    "nickname": "yk-17684504-pins",
+    "full": "18OKqHHstZcX2uB rHm ",
+    "first4_last4": "18OKrHm ",
+    "printable_ascii_8": false
+   },
+   "puk": {
+    "nickname": "yk-17684504-puk",
+    "full": "88MSQNCdcQBs 5iaTb53",
+    "first4_last4": "88MSTb53",
+    "printable_ascii_8": true
+   },
+   "admin": {
+    "nickname": "yk-17684504-admin",
+    "full": "uI DJ0 gErEv2HhROcu6",
+    "first4_last4": "uI DOcu6",
+    "printable_ascii_8": false
+   },
+   "piv_pin_is_substring_of_pins_full": false
+  },
+  {
+   "seed": "abandon12",
+   "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+   "serial": "17684504",
+   "mask_name": "all",
+   "set_mask": 255,
+   "pins": {
+    "nickname": "yk-17684504-pins",
+    "full": "P8kOo<r1 A,qq+sK6@+{",
+    "first4_last4": "P8kO6@+{",
+    "printable_ascii_8": true
+   },
+   "puk": {
+    "nickname": "yk-17684504-puk",
+    "full": "eeM1Q=l _@Bs 5i9`)5Z",
+    "first4_last4": "eeM1`)5Z",
+    "printable_ascii_8": true
+   },
+   "admin": {
+    "nickname": "yk-17684504-admin",
+    "full": "rhqJ n@grvQD_2JOR6&0",
+    "first4_last4": "rhqJR6&0",
+    "printable_ascii_8": true
+   },
+   "piv_pin_is_substring_of_pins_full": false
+  },
+  {
+   "seed": "abandon12",
+   "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+   "serial": "00012345",
+   "mask_name": "device_default",
+   "set_mask": 7,
+   "pins": {
+    "nickname": "yk-00012345-pins",
+    "full": "ngGd5al3YjiH53DXgXWU",
+    "first4_last4": "ngGdgXWU",
+    "printable_ascii_8": true
+   },
+   "puk": {
+    "nickname": "yk-00012345-puk",
+    "full": "gAvkTWERgmmRDpxX5kLG",
+    "first4_last4": "gAvk5kLG",
+    "printable_ascii_8": true
+   },
+   "admin": {
+    "nickname": "yk-00012345-admin",
+    "full": "TfHuoYNocX1pQT6KWHNc",
+    "first4_last4": "TfHuWHNc",
+    "printable_ascii_8": true
+   },
+   "piv_pin_is_substring_of_pins_full": false
+  },
+  {
+   "seed": "abandon12",
+   "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+   "serial": "00012345",
+   "mask_name": "digits",
+   "set_mask": 4,
+   "pins": {
+    "nickname": "yk-00012345-pins",
+    "full": "94891639050393396346",
+    "first4_last4": "94896346",
+    "printable_ascii_8": true
+   },
+   "puk": {
+    "nickname": "yk-00012345-puk",
+    "full": "80763409440175175616",
+    "first4_last4": "80765616",
+    "printable_ascii_8": true
+   },
+   "admin": {
+    "nickname": "yk-00012345-admin",
+    "full": "33706652051525266978",
+    "first4_last4": "33706978",
+    "printable_ascii_8": true
+   },
+   "piv_pin_is_substring_of_pins_full": false
+  },
+  {
+   "seed": "abandon12",
+   "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+   "serial": "00012345",
+   "mask_name": "alnum_sep",
+   "set_mask": 63,
+   "pins": {
+    "nickname": "yk-00012345-pins",
+    "full": "Xna2xTMDd3jz_3 DUoRd",
+    "first4_last4": "Xna2UoRd",
+    "printable_ascii_8": true
+   },
+   "puk": {
+    "nickname": "yk-00012345-puk",
+    "full": "Lj28OLugRGmkNvk-W5 d",
+    "first4_last4": "Lj28W5 d",
+    "printable_ascii_8": false
+   },
+   "admin": {
+    "nickname": "yk-00012345-admin",
+    "full": "IjHwH UoNc1YlfEl0UZK",
+    "first4_last4": "IjHw0UZK",
+    "printable_ascii_8": true
+   },
+   "piv_pin_is_substring_of_pins_full": false
+  },
+  {
+   "seed": "abandon12",
+   "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+   "serial": "00012345",
+   "mask_name": "all",
+   "set_mask": 255,
+   "pins": {
+    "nickname": "yk-00012345-pins",
+    "full": "XU0;a`Yd> `~Do3jY%nZ",
+    "first4_last4": "XU0;Y%nZ",
+    "printable_ascii_8": true
+   },
+   "puk": {
+    "nickname": "yk-00012345-puk",
+    "full": "u'2A?LQg0GmkwvkgW5 >",
+    "first4_last4": "u'2AW5 >",
+    "printable_ascii_8": false
+   },
+   "admin": {
+    "nickname": "yk-00012345-admin",
+    "full": "I'qSH 3/wc1YHf&l[|}/",
+    "first4_last4": "I'qS[|}/",
+    "printable_ascii_8": true
+   },
+   "piv_pin_is_substring_of_pins_full": false
+  },
+  {
+   "seed": "abandon12",
+   "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+   "serial": "12345678",
+   "mask_name": "device_default",
+   "set_mask": 7,
+   "pins": {
+    "nickname": "yk-12345678-pins",
+    "full": "721pS4wUFVDY96v5YgCS",
+    "first4_last4": "721pYgCS",
+    "printable_ascii_8": true
+   },
+   "puk": {
+    "nickname": "yk-12345678-puk",
+    "full": "zMcPm145DfKmucHwUuKG",
+    "first4_last4": "zMcPUuKG",
+    "printable_ascii_8": true
+   },
+   "admin": {
+    "nickname": "yk-12345678-admin",
+    "full": "xuYB0bEMZN5ewhjs7uoK",
+    "first4_last4": "xuYB7uoK",
+    "printable_ascii_8": true
+   },
+   "piv_pin_is_substring_of_pins_full": false
+  },
+  {
+   "seed": "abandon12",
+   "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+   "serial": "12345678",
+   "mask_name": "digits",
+   "set_mask": 4,
+   "pins": {
+    "nickname": "yk-12345678-pins",
+    "full": "49378907942063616160",
+    "first4_last4": "49376160",
+    "printable_ascii_8": true
+   },
+   "puk": {
+    "nickname": "yk-12345678-puk",
+    "full": "74872103954028924826",
+    "first4_last4": "74874826",
+    "printable_ascii_8": true
+   },
+   "admin": {
+    "nickname": "yk-12345678-admin",
+    "full": "52810702739089589042",
+    "first4_last4": "52819042",
+    "printable_ascii_8": true
+   },
+   "piv_pin_is_substring_of_pins_full": false
+  },
+  {
+   "seed": "abandon12",
+   "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+   "serial": "12345678",
+   "mask_name": "alnum_sep",
+   "set_mask": 63,
+   "pins": {
+    "nickname": "yk-12345678-pins",
+    "full": "pV DC3S 21aZ2t76QYWv",
+    "first4_last4": "pV DQYWv",
+    "printable_ascii_8": false
+   },
+   "puk": {
+    "nickname": "yk-12345678-puk",
+    "full": "cZ7HMXOr1Ez GqjEygMr",
+    "first4_last4": "cZ7HygMr",
+    "printable_ascii_8": true
+   },
+   "admin": {
+    "nickname": "yk-12345678-admin",
+    "full": "emMiu2S7s NH8gwWwB0j",
+    "first4_last4": "emMiwB0j",
+    "printable_ascii_8": true
+   },
+   "piv_pin_is_substring_of_pins_full": false
+  },
+  {
+   "seed": "abandon12",
+   "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+   "serial": "12345678",
+   "mask_name": "all",
+   "set_mask": 255,
+   "pins": {
+    "nickname": "yk-12345678-pins",
+    "full": "pV DC}SiY19Z2P76zY5v",
+    "first4_last4": "pV DzY5v",
+    "printable_ascii_8": false
+   },
+   "puk": {
+    "nickname": "yk-12345678-puk",
+    "full": "c8>+;]xr1&z G;Fn|$MN",
+    "first4_last4": "c8>+|$MN",
+    "printable_ascii_8": true
+   },
+   "admin": {
+    "nickname": "yk-12345678-admin",
+    "full": "e,M&uY17O N+A$w[wB0j",
+    "first4_last4": "e,M&wB0j",
+    "printable_ascii_8": true
+   },
+   "piv_pin_is_substring_of_pins_full": false
+  },
+  {
+   "seed": "speculos24",
+   "mnemonic": "glory promote mansion idle axis finger extra february uncover one trip resource lawn turtle enact monster seven myth punch hobby comfort wild raise skin",
+   "serial": "38715242",
+   "mask_name": "device_default",
+   "set_mask": 7,
+   "pins": {
+    "nickname": "yk-38715242-pins",
+    "full": "DnAc4dT2QR3pRuT9Ai3z",
+    "first4_last4": "DnAcAi3z",
+    "printable_ascii_8": true
+   },
+   "puk": {
+    "nickname": "yk-38715242-puk",
+    "full": "BEfU0O37DblJcID5ePk6",
+    "first4_last4": "BEfUePk6",
+    "printable_ascii_8": true
+   },
+   "admin": {
+    "nickname": "yk-38715242-admin",
+    "full": "ZMyRKxDVuaGageRI8mz6",
+    "first4_last4": "ZMyR8mz6",
+    "printable_ascii_8": true
+   },
+   "piv_pin_is_substring_of_pins_full": false
+  },
+  {
+   "seed": "speculos24",
+   "mnemonic": "glory promote mansion idle axis finger extra february uncover one trip resource lawn turtle enact monster seven myth punch hobby comfort wild raise skin",
+   "serial": "38715242",
+   "mask_name": "digits",
+   "set_mask": 4,
+   "pins": {
+    "nickname": "yk-38715242-pins",
+    "full": "79446950015338372437",
+    "first4_last4": "79442437",
+    "printable_ascii_8": true
+   },
+   "puk": {
+    "nickname": "yk-38715242-puk",
+    "full": "55298604031771213101",
+    "first4_last4": "55293101",
+    "printable_ascii_8": true
+   },
+   "admin": {
+    "nickname": "yk-38715242-admin",
+    "full": "27628142062113496203",
+    "first4_last4": "27626203",
+    "printable_ascii_8": true
+   },
+   "piv_pin_is_substring_of_pins_full": false
+  },
+  {
+   "seed": "speculos24",
+   "mnemonic": "glory promote mansion idle axis finger extra february uncover one trip resource lawn turtle enact monster seven myth punch hobby comfort wild raise skin",
+   "serial": "38715242",
+   "mask_name": "alnum_sep",
+   "set_mask": 63,
+   "pins": {
+    "nickname": "yk-38715242-pins",
+    "full": "i3rn-N4P7zK- mzL7RL3",
+    "first4_last4": "i3rn7RL3",
+    "printable_ascii_8": true
+   },
+   "puk": {
+    "nickname": "yk-38715242-puk",
+    "full": "0-5BLc6D4v 0IxkUAEfV",
+    "first4_last4": "0-5BAEfV",
+    "printable_ascii_8": true
+   },
+   "admin": {
+    "nickname": "yk-38715242-admin",
+    "full": "zouL AMuS6-HDgRsV8 a",
+    "first4_last4": "zouLV8 a",
+    "printable_ascii_8": false
+   },
+   "piv_pin_is_substring_of_pins_full": false
+  },
+  {
+   "seed": "speculos24",
+   "mnemonic": "glory promote mansion idle axis finger extra february uncover one trip resource lawn turtle enact monster seven myth punch hobby comfort wild raise skin",
+   "serial": "38715242",
+   "mask_name": "all",
+   "set_mask": 255,
+   "pins": {
+    "nickname": "yk-38715242-pins",
+    "full": "i3Nn-w4!dztg I~u7R:3",
+    "first4_last4": "i3Nn7R:3",
+    "printable_ascii_8": true
+   },
+   "puk": {
+    "nickname": "yk-38715242-puk",
+    "full": "[g5B:<6maR WITkU\"E#4",
+    "first4_last4": "[g5B\"E#4",
+    "printable_ascii_8": true
+   },
+   "admin": {
+    "nickname": "yk-38715242-admin",
+    "full": "R?zD\" V6u($8M/+5Q1@a",
+    "first4_last4": "R?zDQ1@a",
+    "printable_ascii_8": true
+   },
+   "piv_pin_is_substring_of_pins_full": false
+  },
+  {
+   "seed": "speculos24",
+   "mnemonic": "glory promote mansion idle axis finger extra february uncover one trip resource lawn turtle enact monster seven myth punch hobby comfort wild raise skin",
+   "serial": "17684504",
+   "mask_name": "device_default",
+   "set_mask": 7,
+   "pins": {
+    "nickname": "yk-17684504-pins",
+    "full": "Xk88DlXOUI0B8jmJxXcf",
+    "first4_last4": "Xk88xXcf",
+    "printable_ascii_8": true
+   },
+   "puk": {
+    "nickname": "yk-17684504-puk",
+    "full": "3AtwUT2fwIuQ0Y1eGtx0",
+    "first4_last4": "3AtwGtx0",
+    "printable_ascii_8": true
+   },
+   "admin": {
+    "nickname": "yk-17684504-admin",
+    "full": "UU5qZu5pWoF8py29nebm",
+    "first4_last4": "UU5qnebm",
+    "printable_ascii_8": true
+   },
+   "piv_pin_is_substring_of_pins_full": false
+  },
+  {
+   "seed": "speculos24",
+   "mnemonic": "glory promote mansion idle axis finger extra february uncover one trip resource lawn turtle enact monster seven myth punch hobby comfort wild raise skin",
+   "serial": "17684504",
+   "mask_name": "digits",
+   "set_mask": 4,
+   "pins": {
+    "nickname": "yk-17684504-pins",
+    "full": "98023374280549851541",
+    "first4_last4": "98021541",
+    "printable_ascii_8": true
+   },
+   "puk": {
+    "nickname": "yk-17684504-puk",
+    "full": "94580527240268726596",
+    "first4_last4": "94586596",
+    "printable_ascii_8": true
+   },
+   "admin": {
+    "nickname": "yk-17684504-admin",
+    "full": "82721657447410035098",
+    "first4_last4": "82725098",
+    "printable_ascii_8": true
+   },
+   "piv_pin_is_substring_of_pins_full": false
+  },
+  {
+   "seed": "speculos24",
+   "mnemonic": "glory promote mansion idle axis finger extra february uncover one trip resource lawn turtle enact monster seven myth punch hobby comfort wild raise skin",
+   "serial": "17684504",
+   "mask_name": "alnum_sep",
+   "set_mask": 63,
+   "pins": {
+    "nickname": "yk-17684504-pins",
+    "full": "dXtIU5A8Rl8R2fu Dh0O",
+    "first4_last4": "dXtIDh0O",
+    "printable_ascii_8": true
+   },
+   "puk": {
+    "nickname": "yk-17684504-puk",
+    "full": "RqoG2x uWutwUQvbxS7 ",
+    "first4_last4": "RqoGxS7 ",
+    "printable_ascii_8": false
+   },
+   "admin": {
+    "nickname": "yk-17684504-admin",
+    "full": "eTUqppRC5Youpy 6m2V5",
+    "first4_last4": "eTUqm2V5",
+    "printable_ascii_8": true
+   },
+   "piv_pin_is_substring_of_pins_full": false
+  },
+  {
+   "seed": "speculos24",
+   "mnemonic": "glory promote mansion idle axis finger extra february uncover one trip resource lawn turtle enact monster seven myth punch hobby comfort wild raise skin",
+   "serial": "17684504",
+   "mask_name": "all",
+   "set_mask": 255,
+   "pins": {
+    "nickname": "yk-17684504-pins",
+    "full": "fPX 0I|eDDQ8\\Ob{ 0l2",
+    "first4_last4": "fPX  0l2",
+    "printable_ascii_8": false
+   },
+   "puk": {
+    "nickname": "yk-17684504-puk",
+    "full": "G Rw@t1d;QD)2/`[x\\@U",
+    "first4_last4": "G Rwx\\@U",
+    "printable_ascii_8": false
+   },
+   "admin": {
+    "nickname": "yk-17684504-admin",
+    "full": "e`Uqpp\\$5{oupy cm{45",
+    "first4_last4": "e`Uqm{45",
+    "printable_ascii_8": true
+   },
+   "piv_pin_is_substring_of_pins_full": false
+  },
+  {
+   "seed": "speculos24",
+   "mnemonic": "glory promote mansion idle axis finger extra february uncover one trip resource lawn turtle enact monster seven myth punch hobby comfort wild raise skin",
+   "serial": "00012345",
+   "mask_name": "device_default",
+   "set_mask": 7,
+   "pins": {
+    "nickname": "yk-00012345-pins",
+    "full": "qCQKP78f0TzpXpVX7HRx",
+    "first4_last4": "qCQK7HRx",
+    "printable_ascii_8": true
+   },
+   "puk": {
+    "nickname": "yk-00012345-puk",
+    "full": "BvsxPeCPOgU1KZeYIa7c",
+    "first4_last4": "BvsxIa7c",
+    "printable_ascii_8": true
+   },
+   "admin": {
+    "nickname": "yk-00012345-admin",
+    "full": "NrottYeMpkQTaXLOq4B6",
+    "first4_last4": "Nrotq4B6",
+    "printable_ascii_8": true
+   },
+   "piv_pin_is_substring_of_pins_full": false
+  },
+  {
+   "seed": "speculos24",
+   "mnemonic": "glory promote mansion idle axis finger extra february uncover one trip resource lawn turtle enact monster seven myth punch hobby comfort wild raise skin",
+   "serial": "00012345",
+   "mask_name": "digits",
+   "set_mask": 4,
+   "pins": {
+    "nickname": "yk-00012345-pins",
+    "full": "28861763893731535933",
+    "first4_last4": "28865933",
+    "printable_ascii_8": true
+   },
+   "puk": {
+    "nickname": "yk-00012345-puk",
+    "full": "79899429864161024058",
+    "first4_last4": "79894058",
+    "printable_ascii_8": true
+   },
+   "admin": {
+    "nickname": "yk-00012345-admin",
+    "full": "57697006320585386076",
+    "first4_last4": "57696076",
+    "printable_ascii_8": true
+   },
+   "piv_pin_is_substring_of_pins_full": false
+  },
+  {
+   "seed": "speculos24",
+   "mnemonic": "glory promote mansion idle axis finger extra february uncover one trip resource lawn turtle enact monster seven myth punch hobby comfort wild raise skin",
+   "serial": "00012345",
+   "mask_name": "alnum_sep",
+   "set_mask": 63,
+   "pins": {
+    "nickname": "yk-00012345-pins",
+    "full": "qjprP _K6ENCcwXp7XTu",
+    "first4_last4": "qjpr7XTu",
+    "printable_ascii_8": true
+   },
+   "puk": {
+    "nickname": "yk-00012345-puk",
+    "full": "Jxejm5I cYpaUsOY 1sJ",
+    "first4_last4": "Jxej 1sJ",
+    "printable_ascii_8": false
+   },
+   "admin": {
+    "nickname": "yk-00012345-admin",
+    "full": "er6q7iIU5XGynIqmN Kk",
+    "first4_last4": "er6qN Kk",
+    "printable_ascii_8": false
+   },
+   "piv_pin_is_substring_of_pins_full": false
+  },
+  {
+   "seed": "speculos24",
+   "mnemonic": "glory promote mansion idle axis finger extra february uncover one trip resource lawn turtle enact monster seven myth punch hobby comfort wild raise skin",
+   "serial": "00012345",
+   "mask_name": "all",
+   "set_mask": 255,
+   "pins": {
+    "nickname": "yk-00012345-pins",
+    "full": "y<Xp_=uXK<S=qTlj7p& ",
+    "first4_last4": "y<Xp7p& ",
+    "printable_ascii_8": false
+   },
+   "puk": {
+    "nickname": "yk-00012345-puk",
+    "full": "es3O,9rY p'x'7scs1x)",
+    "first4_last4": "es3Os1x)",
+    "printable_ascii_8": true
+   },
+   "admin": {
+    "nickname": "yk-00012345-admin",
+    "full": "er6q>Er|)]p|.,MIN t*",
+    "first4_last4": "er6qN t*",
+    "printable_ascii_8": false
+   },
+   "piv_pin_is_substring_of_pins_full": false
+  },
+  {
+   "seed": "speculos24",
+   "mnemonic": "glory promote mansion idle axis finger extra february uncover one trip resource lawn turtle enact monster seven myth punch hobby comfort wild raise skin",
+   "serial": "12345678",
+   "mask_name": "device_default",
+   "set_mask": 7,
+   "pins": {
+    "nickname": "yk-12345678-pins",
+    "full": "7l3sISRZ4NycfkKeBcFP",
+    "first4_last4": "7l3sBcFP",
+    "printable_ascii_8": true
+   },
+   "puk": {
+    "nickname": "yk-12345678-puk",
+    "full": "bnzWCtM7g7QS2gWYKg9Z",
+    "first4_last4": "bnzWKg9Z",
+    "printable_ascii_8": true
+   },
+   "admin": {
+    "nickname": "yk-12345678-admin",
+    "full": "kjjncZaRp0jpmVXmlJ8f",
+    "first4_last4": "kjjnlJ8f",
+    "printable_ascii_8": true
+   },
+   "piv_pin_is_substring_of_pins_full": false
+  },
+  {
+   "seed": "speculos24",
+   "mnemonic": "glory promote mansion idle axis finger extra february uncover one trip resource lawn turtle enact monster seven myth punch hobby comfort wild raise skin",
+   "serial": "12345678",
+   "mask_name": "digits",
+   "set_mask": 4,
+   "pins": {
+    "nickname": "yk-12345678-pins",
+    "full": "39382071632816267097",
+    "first4_last4": "39387097",
+    "printable_ascii_8": true
+   },
+   "puk": {
+    "nickname": "yk-12345678-puk",
+    "full": "73166947616842244815",
+    "first4_last4": "73164815",
+    "printable_ascii_8": true
+   },
+   "admin": {
+    "nickname": "yk-12345678-admin",
+    "full": "09118127389181927581",
+    "first4_last4": "09117581",
+    "printable_ascii_8": true
+   },
+   "piv_pin_is_substring_of_pins_full": false
+  },
+  {
+   "seed": "speculos24",
+   "mnemonic": "glory promote mansion idle axis finger extra february uncover one trip resource lawn turtle enact monster seven myth punch hobby comfort wild raise skin",
+   "serial": "12345678",
+   "mask_name": "alnum_sep",
+   "set_mask": 63,
+   "pins": {
+    "nickname": "yk-12345678-pins",
+    "full": " M4_PBf1e 3ivmHCckNR",
+    "first4_last4": " M4_ckNR",
+    "printable_ascii_8": false
+   },
+   "puk": {
+    "nickname": "yk-12345678-puk",
+    "full": "zJ9b aQ47SWE2YZQ9nzh",
+    "first4_last4": "zJ9b9nzh",
+    "printable_ascii_8": true
+   },
+   "admin": {
+    "nickname": "yk-12345678-admin",
+    "full": "m gfMRljA8VoZmeApcdk",
+    "first4_last4": "m gfpcdk",
+    "printable_ascii_8": false
+   },
+   "piv_pin_is_substring_of_pins_full": false
+  },
+  {
+   "seed": "speculos24",
+   "mnemonic": "glory promote mansion idle axis finger extra february uncover one trip resource lawn turtle enact monster seven myth punch hobby comfort wild raise skin",
+   "serial": "12345678",
+   "mask_name": "all",
+   "set_mask": 255,
+   "pins": {
+    "nickname": "yk-12345678-pins",
+    "full": "i;4h!Bf]e 3ER,+lckNR",
+    "first4_last4": "i;4hckNR",
+    "printable_ascii_8": true
+   },
+   "puk": {
+    "nickname": "yk-12345678-puk",
+    "full": "~.fb 9za7SWn2YZQ9.z%",
+    "first4_last4": "~.fb9.z%",
+    "printable_ascii_8": true
+   },
+   "admin": {
+    "nickname": "yk-12345678-admin",
+    "full": "jvIRZV\"lGc$8pcfsm o ",
+    "first4_last4": "jvIRm o ",
+    "printable_ascii_8": false
+   },
+   "piv_pin_is_substring_of_pins_full": false
+  }
+ ]
+}

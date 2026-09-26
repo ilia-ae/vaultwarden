@@ -82,7 +82,9 @@ void main() {
         .whereType<File>()
         .where((f) => f.uri.pathSegments.last.startsWith('yubikey'))
         .toList();
-    expect(files, hasLength(3));
+    // yubikey_derived.json, yubikey_edge.json, yubikey_export_sample.csv and
+    // yubikey_ledger.json (Ledger → YubiKey, generated from pin24.py).
+    expect(files, hasLength(4));
     for (final f in files) {
       expect(f.readAsStringSync(),
           isNot(matches(RegExp('/(Users|home|private|tmp)/'))),
@@ -601,33 +603,47 @@ void main() {
           scenarioCsv('S5_unquoted_serials_yaml11_octal'));
     });
 
-    test('S6: random mode export of a --fill-ed manifest', () {
+    test('S6: random-mode export has the script\'s shape (values not compared)',
+        () {
+      // The script's S6 values are secrets.choice output for synthetic
+      // serials, so only the shape is reproducible (critic #1): header, row
+      // order, serial and field columns, value lengths, alphabets; 45/46 are
+      // derived from the serial and therefore comparable.
       final s6 = scenario('S6_random_check_fill_export');
-      final filled = (s6['fill'] as Map)['filled_manifest'] as String;
-      // Minimal reader for the script's own --fill output format.
-      final manual = <String, Map<String, String>>{};
-      Map<String, String>? current;
-      for (final line in const LineSplitter().convert(filled)) {
-        final serial = RegExp(r'^  - serial: "(.*)"$').firstMatch(line);
-        final value = RegExp(r'^      "(\d\d)": "(.*)"$').firstMatch(line);
-        if (serial != null) {
-          current = manual[serial.group(1)!] = {};
-        } else if (value != null) {
-          current![value.group(1)!] = value.group(2)!;
-        }
-      }
-      expect(manual.keys, ['12345678', '99999999', '0012389']);
+      final csvDoc = (s6['bitwarden'] as Map)['csv'] as Map;
+      expect(csvDoc['mode_octal'], '0o600');
+      final rows = [
+        for (final r in csvDoc['rows'] as List) (r as List).cast<String>(),
+      ];
+      final body = rows.sublist(1);
+      expect(body, hasLength(27));
+      final serials = {for (final r in body) r[1]}.toList();
+      expect(serials, ['12345678', '99999999', '0012389']);
+
       final keys = [
-        for (final e in manual.entries)
+        for (final serial in serials)
           ykResolveKey(
-              serial: e.key,
+              serial: serial,
               phases: _allPhases,
               mode: YkMode.random,
-              otpFromSerial: true,
-              manual: e.value,
-              nextIntForTest: _RecordingRandom().nextInt),
+              otpFromSerial: true),
       ];
-      expect(ykBitwardenCsv(keys), scenarioCsv('S6_random_check_fill_export'));
+      final csv = ykBitwardenCsv(keys);
+      expect(csv.endsWith('\n'), isTrue);
+      final lines = const LineSplitter().convert(csv);
+      expect(lines.first, rows.first.join(','));
+      expect(lines, hasLength(rows.length));
+      for (var i = 0; i < body.length; i++) {
+        final want = body[i];
+        final got = lines[i + 1].split(',');
+        expect(got, hasLength(4));
+        expect(got.sublist(0, 3), want.sublist(0, 3));
+        final field = want[2].substring(0, 2);
+        expect(got[3].length, want[3].length, reason: want[2]);
+        expect(ykCheckValue(field, got[3]), isEmpty, reason: want[2]);
+        expect(ykCheckValue(field, want[3]), isEmpty, reason: want[2]);
+        if (field == '45' || field == '46') expect(got[3], want[3]);
+      }
     });
 
     test('S6: unfilled random manifest resolves to max-length values', () {

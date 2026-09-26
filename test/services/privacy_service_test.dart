@@ -155,6 +155,29 @@ void main() {
       expect(await service.isScreenCaptured(), isFalse);
     });
 
+    test('isScreenshotsAllowedBuild relays the native build flag', () async {
+      final calls = _nativeRecording(
+        (call) => call.method == 'isScreenshotsAllowedBuild' ? true : null,
+      );
+      expect(await service.isScreenshotsAllowedBuild(), isTrue);
+      expect(calls.single.method, 'isScreenshotsAllowedBuild');
+      expect(calls.single.arguments, isNull);
+
+      _nativeRecording((_) => false);
+      expect(await service.isScreenshotsAllowedBuild(), isFalse);
+
+      // Production builds and iOS answer false; anything else counts as false.
+      _nativeRecording((_) => null);
+      expect(await service.isScreenshotsAllowedBuild(), isFalse);
+      _nativeRecording((_) => 'yes');
+      expect(await service.isScreenshotsAllowedBuild(), isFalse);
+      _messenger.setMockMethodCallHandler(
+        _privacy,
+        (call) async => throw PlatformException(code: 'privacy_failed'),
+      );
+      expect(await service.isScreenshotsAllowedBuild(), isFalse);
+    });
+
     test('setSecureScreen calls nest', () async {
       final calls = _nativeRecording();
 
@@ -453,6 +476,7 @@ void main() {
     testWidgets('screen methods are harmless no-ops', (tester) async {
       await service.setSecureScreen(true);
       expect(await service.isScreenCaptured(), isFalse);
+      expect(await service.isScreenshotsAllowedBuild(), isFalse);
       expect(clipboard.calls, isEmpty);
     });
 

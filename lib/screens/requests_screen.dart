@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -11,10 +13,12 @@ import '../glass.dart';
 import '../l10n/app_localizations.dart';
 import '../providers/auth_requests_provider.dart';
 import '../providers/session_provider.dart';
+import '../services/privacy_service.dart';
 import '../services/settings_sync.dart';
 import '../utils/error_formatter.dart';
 import '../widgets/auth_request_card.dart';
 import '../widgets/glass_top_bar.dart';
+import 'pin/pin_section.dart';
 
 class RequestsScreen extends ConsumerStatefulWidget {
   const RequestsScreen({super.key});
@@ -27,12 +31,22 @@ class _RequestsScreenState extends ConsumerState<RequestsScreen>
     with WidgetsBindingObserver, TickerProviderStateMixin {
   String? _loadingRequestId;
   late final TabController _tabController =
-      TabController(length: 2, vsync: this);
+      TabController(length: 3, vsync: this);
+
+  /// Index of the PIN tools tab (3rd tab, inside the unlock shell).
+  static const _pinTab = 2;
+  int _tabIndex = 0;
+
+  /// Whether this screen holds a FLAG_SECURE request for the PIN tab.
+  bool _pinSecureHeld = false;
+  late final PrivacyService _privacy = ref.read(privacyServiceProvider);
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _tabController.addListener(_onTabChanged);
+    _tabController.animation!.addListener(_onTabChanged);
     // Start polling + aggressive refresh on unlock.
     ref.read(authRequestsProvider.notifier).resume();
   }
@@ -40,8 +54,24 @@ class _RequestsScreenState extends ConsumerState<RequestsScreen>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _tabController.animation!.removeListener(_onTabChanged);
+    _tabController.removeListener(_onTabChanged);
     _tabController.dispose();
+    if (_pinSecureHeld) unawaited(_privacy.setSecureScreen(false));
     super.dispose();
+  }
+
+  /// Title/actions follow the selected tab; FLAG_SECURE is on while any part
+  /// of the PIN tab is on screen (including mid-swipe).
+  void _onTabChanged() {
+    final index = _tabController.index;
+    final pinVisible = index == _pinTab ||
+        _tabController.animation!.value > _pinTab - 1;
+    if (pinVisible != _pinSecureHeld) {
+      _pinSecureHeld = pinVisible;
+      unawaited(_privacy.setSecureScreen(pinVisible));
+    }
+    if (index != _tabIndex) setState(() => _tabIndex = index);
   }
 
   @override
@@ -158,16 +188,17 @@ class _RequestsScreenState extends ConsumerState<RequestsScreen>
       // Content scrolls UNDER the glass bar — the bar refracts it.
       extendBodyBehindAppBar: true,
       appBar: GlassTopBar(
-        title: l.authRequestsTitle,
+        title: _tabIndex == _pinTab ? l.pinTitle : l.authRequestsTitle,
         controller: _tabController,
-        tabs: [l.pendingTab, l.historyTab],
-        tabIdentifiers: const ['tab_pending', 'tab_history'],
+        tabs: [l.pendingTab, l.historyTab, l.pinTab],
+        tabIdentifiers: const ['tab_pending', 'tab_history', 'tab_pin'],
         actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: () =>
-                ref.read(authRequestsProvider.notifier).refresh(),
-          ),
+          if (_tabIndex != _pinTab)
+            IconButton(
+              icon: const Icon(Icons.refresh),
+              onPressed: () =>
+                  ref.read(authRequestsProvider.notifier).refresh(),
+            ),
           Semantics(
             identifier: 'btn_open_settings',
             child: IconButton(
@@ -178,7 +209,7 @@ class _RequestsScreenState extends ConsumerState<RequestsScreen>
         ],
       ),
       // Demo-only: a '+' to inject fresh incoming requests into the list.
-      floatingActionButton: demoActive
+      floatingActionButton: demoActive && _tabIndex == 0
           ? Semantics(
               identifier: 'btn_add_demo',
               child: FloatingActionButton(
@@ -199,6 +230,7 @@ class _RequestsScreenState extends ConsumerState<RequestsScreen>
             onDeny: _deny,
           ),
           const _HistoryTab(),
+          const PinSection(),
         ],
       ),
     );

@@ -82,7 +82,8 @@ class PrivacyService {
   PrivacyService();
 
   /// Method channel: `copySensitive`, `clearClipboardIfOurs`,
-  /// `clearClipboard`, `setSecureScreen`, `isScreenCaptured`.
+  /// `clearClipboard`, `setSecureScreen`, `isScreenCaptured`,
+  /// `isScreenshotsAllowedBuild`.
   static const channelName = 'com.vaultapprover.app/privacy';
 
   /// Event channel: `bool` capture state, or the string `'screenshot'`.
@@ -177,9 +178,11 @@ class PrivacyService {
         await _setClipboardText('');
       });
 
-  /// Android: forces FLAG_SECURE on while any caller holds it, even in builds
-  /// made with `-Pallow-screenshots=true`, and restores the build default
-  /// once the last one lets go. iOS cannot block screenshots, so this is a
+  /// Marks a secret-bearing screen. On Android FLAG_SECURE follows the build:
+  /// production builds keep it on for the whole app anyway, and builds made
+  /// with `-Pallow-screenshots=true` (store screenshots and Maestro only, see
+  /// [isScreenshotsAllowedBuild]) keep it off even while held, so every
+  /// screen can be captured. iOS cannot block screenshots, so this is a
   /// no-op there; watch [events] instead.
   ///
   /// Calls nest: a screen calls `setSecureScreen(true)` once when it appears
@@ -202,6 +205,16 @@ class PrivacyService {
   /// Always `false` on Android and wherever the channel is missing.
   Future<bool> isScreenCaptured() async {
     final reply = await _invoke<bool>('isScreenCaptured');
+    return reply?.value ?? false;
+  }
+
+  /// Whether this is an Android build made with `-Pallow-screenshots=true`
+  /// (`BuildConfig.ALLOW_SCREENSHOTS`), which exists only for store
+  /// screenshots and Maestro runs and never sets FLAG_SECURE, not even under
+  /// [setSecureScreen]. Always `false` on iOS, in production builds and
+  /// wherever the channel is missing or answers anything but a `bool`.
+  Future<bool> isScreenshotsAllowedBuild() async {
+    final reply = await _invoke<bool>('isScreenshotsAllowedBuild');
     return reply?.value ?? false;
   }
 
