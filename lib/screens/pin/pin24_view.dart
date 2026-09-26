@@ -304,7 +304,8 @@ class _Pin24ViewState extends ConsumerState<Pin24View> {
     if (!mounted) return;
     setState(() => _clipboardHoldsPaste = false);
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(AppLocalizations.of(context)!.pinClipboardCleared)),
+      SnackBar(
+          content: Text(AppLocalizations.of(context)!.pinClipboardCleared)),
     );
   }
 
@@ -524,6 +525,7 @@ class _Pin24ViewState extends ConsumerState<Pin24View> {
           controller: _seedCtrl,
           identifier: 'pin24_seed',
           enabled: _acknowledged,
+          textDirection: TextDirection.ltr,
           hintText: _seedPlaceholder,
           helperText: _acknowledged ? l.pin24SeedHelp : l.pin24AckRequired,
           onChanged: _onSeedChanged,
@@ -770,7 +772,8 @@ class _Pin24ViewState extends ConsumerState<Pin24View> {
           runSpacing: 6,
           crossAxisAlignment: WrapCrossAlignment.center,
           children: [
-            Text('#${index + 1} “$prefix” →', style: pinMono(context, size: 13)),
+            Text('#${index + 1} “$prefix” →',
+                style: pinMono(context, size: 13)),
             if (options.isEmpty) Text(l.pin24NoCompletions),
             for (final word in options)
               ActionChip(
@@ -1160,7 +1163,8 @@ class _Pin24ViewState extends ConsumerState<Pin24View> {
             children: [
               Text(title, style: theme.textTheme.titleSmall),
               const SizedBox(height: 4),
-              Text(body, style: theme.textTheme.bodySmall?.copyWith(height: 1.4)),
+              Text(body,
+                  style: theme.textTheme.bodySmall?.copyWith(height: 1.4)),
             ],
           ),
         );

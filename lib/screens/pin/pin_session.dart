@@ -42,8 +42,7 @@ final pinToolProvider = StateProvider<PinTool>((_) => PinTool.pin24);
 
 /// Runs derivations off the UI isolate. Widget tests override it with an
 /// inline runner, because their fake clock cannot drive a real isolate.
-final pinComputeRunnerProvider =
-    Provider<PinComputeRunner>((_) => _isolateRun);
+final pinComputeRunnerProvider = Provider<PinComputeRunner>((_) => _isolateRun);
 
 Future<R> _isolateRun<R>(FutureOr<R> Function() computation) =>
     Isolate.run(computation);
@@ -144,7 +143,8 @@ class PinSession {
   bool get hasContent => seed.hasSeed || _probes.any((p) => p());
 
   /// Zeroes the cached seed and tells every tool to clear itself.
-  void wipe({PinWipeScope scope = PinWipeScope.all, required PinWipeReason reason}) {
+  void wipe(
+      {PinWipeScope scope = PinWipeScope.all, required PinWipeReason reason}) {
     if (_disposed) return;
     final hadContent = hasContent;
     seed.wipe();

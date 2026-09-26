@@ -133,9 +133,8 @@ class _PinSectionState extends ConsumerState<PinSection>
     if (event == null || !mounted) return;
     final l = AppLocalizations.of(context)!;
     final String? message = switch (event.reason) {
-      PinWipeReason.user => event.scope == PinWipeScope.seed
-          ? l.pinWipedSeed
-          : l.pinWipedAll,
+      PinWipeReason.user =>
+        event.scope == PinWipeScope.seed ? l.pinWipedSeed : l.pinWipedAll,
       PinWipeReason.screenshot => l.pinWipedAll,
       PinWipeReason.background =>
         event.hadContent ? l.pinWipedBackground : null,

@@ -109,8 +109,8 @@ class _AppState extends ConsumerState<App> with WidgetsBindingObserver {
   DateTime? _pausedAt;
 
   /// The app's navigator. `UnlockShell` only covers the home route, so on
-  /// lock every route above it (dialogs, sheets, pickers' callers) is popped
-  /// here — otherwise they would stay visible and usable over the lock.
+  /// lock every route above it (dialogs, sheets) is popped here — otherwise
+  /// they would stay visible and usable over the lock (R6).
   final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
 
   @override
@@ -186,7 +186,9 @@ class _AppState extends ConsumerState<App> with WidgetsBindingObserver {
     // carries over to the next session.
     ref.listen<AsyncValue<UserSession?>>(sessionProvider, (previous, next) {
       final wasSignedIn = previous?.valueOrNull != null;
-      if (wasSignedIn && next is AsyncData<UserSession?> && next.value == null) {
+      if (wasSignedIn &&
+          next is AsyncData<UserSession?> &&
+          next.value == null) {
         _pausedAt = null;
         ref.read(isLockedProvider.notifier).state = true;
       }

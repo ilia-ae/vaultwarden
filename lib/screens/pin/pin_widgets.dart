@@ -36,8 +36,11 @@ class PinColors {
 }
 
 /// Monospace text style used for words, digits and passwords.
-TextStyle pinMono(BuildContext context, {double size = 14, FontWeight? weight,
-    Color? color, double? letterSpacing}) {
+TextStyle pinMono(BuildContext context,
+    {double size = 14,
+    FontWeight? weight,
+    Color? color,
+    double? letterSpacing}) {
   return TextStyle(
     fontFamily: 'monospace',
     fontFamilyFallback: const ['Menlo', 'Courier', 'Roboto Mono'],
@@ -84,6 +87,7 @@ class PinSecretField extends StatefulWidget {
     this.normalizePaste,
     this.onBrokenCharactersRemoved,
     this.monospace = false,
+    this.textDirection,
   });
 
   final TextEditingController controller;
@@ -103,6 +107,9 @@ class PinSecretField extends StatefulWidget {
   final String Function(String pasted)? normalizePaste;
   final VoidCallback? onBrokenCharactersRemoved;
   final bool monospace;
+
+  /// Forces a direction, e.g. LTR for BIP39 words in an RTL locale.
+  final TextDirection? textDirection;
 
   /// An insertion this long in one edit is treated as a paste.
   static const pasteThreshold = 8;
@@ -175,9 +182,9 @@ class _PinSecretFieldState extends State<PinSecretField> {
         obscureText: widget.obscure,
         obscuringCharacter: '•',
         maxLines: 1,
-        keyboardType: widget.obscure
-            ? TextInputType.text
-            : TextInputType.visiblePassword,
+        textDirection: widget.textDirection,
+        keyboardType:
+            widget.obscure ? TextInputType.text : TextInputType.visiblePassword,
         textCapitalization: TextCapitalization.none,
         autocorrect: false,
         enableSuggestions: false,
@@ -205,8 +212,8 @@ class _PinSecretFieldState extends State<PinSecretField> {
             borderRadius: BorderRadius.circular(14),
           ),
           filled: true,
-          fillColor: theme.colorScheme.surfaceContainerHighest
-              .withValues(alpha: 0.35),
+          fillColor:
+              theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
         ),
       ),
     );

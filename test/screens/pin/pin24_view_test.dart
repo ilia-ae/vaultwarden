@@ -50,8 +50,8 @@ void main() {
       expect(displayedPin(tester), '0639');
       await tester.tap(byId('pin24_show_full'));
       await tester.pump();
-      expect(find.text(withVisibleSpaces(' 063_ 937472--6_8-72')),
-          findsOneWidget);
+      expect(
+          find.text(withVisibleSpaces(' 063_ 937472--6_8-72')), findsOneWidget);
     });
 
     testWidgets('BIP39 passphrase "TREZOR" changes the PIN (abandon12/visa)',
@@ -92,7 +92,8 @@ void main() {
       await tester.tap(byId('pin24_output'));
       await tester.pump();
       final copy = channel.named('copySensitive').single;
-      expect(copy.arguments, {'text': 'xNX8IQO4vP0ucO41J6JW', 'ttlSeconds': 60});
+      expect(
+          copy.arguments, {'text': 'xNX8IQO4vP0ucO41J6JW', 'ttlSeconds': 60});
       expect(find.text(l.pinCopied), findsOneWidget);
       await tester.pump(const Duration(milliseconds: 1300));
       expect(find.text(l.pinCopied), findsNothing);
@@ -183,12 +184,12 @@ void main() {
         tester,
         seed: abandon12,
         nickname: 'visa',
-        passphrase: 'pa\uDC00ss',
+        passphrase: 'qzx\uDC00qzx',
       );
       expect(find.text(l.pin24ErrorPassphraseUtf8), findsOneWidget);
       expect(visibleTextContaining('surrogates not allowed'), findsNothing);
       expect(visibleTextContaining('codec'), findsNothing);
-      expect(visibleTextContaining('pa'), findsNothing);
+      expect(visibleTextContaining('qzx'), findsNothing);
       expect(byId('pin24_output'), findsNothing);
     });
 
@@ -222,8 +223,7 @@ void main() {
 
       final handle = tester.ensureSemantics();
       expect(
-        find.bySemanticsLabel(
-            l.pinWordCellSemantics(3, l.pinWordStateInvalid)),
+        find.bySemanticsLabel(l.pinWordCellSemantics(3, l.pinWordStateInvalid)),
         findsOneWidget,
       );
       expect(find.bySemanticsLabel(RegExp('xyzzy')), findsNothing);
@@ -455,8 +455,7 @@ void main() {
   });
 
   group('prefs and acknowledgement', () {
-    testWidgets('seed field stays locked until "I understand"',
-        (tester) async {
+    testWidgets('seed field stays locked until "I understand"', (tester) async {
       SharedPreferences.setMockInitialValues({});
       useTallSurface(tester);
       mockPrivacyChannel(tester);
@@ -505,7 +504,8 @@ void main() {
       await pumpPin(tester);
 
       for (final id in ['pin24_seed', 'pin24_passphrase', 'pin24_nickname']) {
-        if (find.descendant(of: byId(id), matching: find.byType(TextField))
+        if (find
+            .descendant(of: byId(id), matching: find.byType(TextField))
             .evaluate()
             .isEmpty) {
           await tester.tap(byId('pin24_passphrase_section'));
@@ -555,8 +555,13 @@ void main() {
     expect(pin24ErrorKind('NICKNAME_NOT_UTF8'), Pin24ErrorKind.nicknameNotUtf8);
     expect(pin24ErrorKind('NICKNAME_EMPTY'), Pin24ErrorKind.nicknameEmpty);
     expect(pin24ErrorKind('BIP32_INVALID'), Pin24ErrorKind.bip32Invalid);
-    for (final other in ['SEED_LENGTH', 'SIZE_NOT_POSITIVE', 'MODULO_RANGE',
-        pin24UnexpectedError, 'anything']) {
+    for (final other in [
+      'SEED_LENGTH',
+      'SIZE_NOT_POSITIVE',
+      'MODULO_RANGE',
+      pin24UnexpectedError,
+      'anything'
+    ]) {
       expect(pin24ErrorKind(other), Pin24ErrorKind.generic, reason: other);
     }
     final r = pin24Compute(const Pin24Request(
