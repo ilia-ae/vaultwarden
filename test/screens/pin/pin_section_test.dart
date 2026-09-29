@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vault_approver/screens/pin/pin_prefs.dart';
 import 'package:vault_approver/screens/pin/pin_session.dart';
+import 'package:vault_approver/utils/external_picker.dart';
 
 import 'pin_harness.dart';
 
@@ -24,11 +27,12 @@ void main() {
 
     await tester.tap(byId('pin_tool_shift'));
     await tester.pump();
-    expect(find.text(l.pinComingSoon), findsOneWidget);
+    expect(byId('pin_shift_view'), findsOneWidget);
     expect(byId('pin24_seed'), findsNothing);
     await tester.tap(byId('pin_tool_yubikey'));
     await tester.pump();
-    expect(find.text(l.pinComingSoon), findsOneWidget);
+    expect(byId('yk_view'), findsOneWidget);
+    expect(byId('pin_shift_view'), findsNothing);
 
     await tester.tap(byId('pin_show_legacy'));
     await tester.pump();
@@ -38,7 +42,7 @@ void main() {
     await tester.tap(byId('pin_tool_legacy'));
     await tester.pump();
     expect(find.text(l.pinToolLegacy), findsWidgets);
-    expect(find.text(l.pinComingSoon), findsOneWidget);
+    expect(byId('legacy_mask_view'), findsOneWidget);
     final prefs = await SharedPreferences.getInstance();
     expect(prefs.getBool(PinPrefs.kShowLegacy), isTrue);
 
@@ -104,6 +108,38 @@ void main() {
     await tester.pump();
     await tester.pump();
     expect(find.text(l.pin24SelfTestOk(10, 10)), findsOneWidget);
+  });
+
+  // Trace C0.5: a system file picker backgrounds the app on Android; the
+  // PIN tab must not wipe what the user is working on while it is open.
+  testWidgets('a system picker suppresses the background wipe, only while open',
+      (tester) async {
+    useTallSurface(tester);
+    resetLifecycleOnTearDown(tester);
+    mockPrivacyChannel(tester);
+    final container = await pumpPin(tester);
+    await enterPin24(tester, seed: abandon12, nickname: 'visa');
+
+    final picked = Completer<String?>();
+    final picking = runExternalPicker(() => picked.future);
+    expect(externalPickerActive, isTrue);
+    setLifecycle(tester, AppLifecycleState.paused);
+    await tester.pump();
+    setLifecycle(tester, AppLifecycleState.resumed);
+    await tester.pump();
+    expect(fieldText(tester, 'pin24_seed'), abandon12);
+    expect(container.read(pinSeedProvider).hasSeed, isTrue);
+    expect(displayedPin(tester), '0853');
+
+    picked.complete(null);
+    await picking;
+    expect(externalPickerActive, isFalse);
+    setLifecycle(tester, AppLifecycleState.paused);
+    await tester.pump();
+    setLifecycle(tester, AppLifecycleState.resumed);
+    await tester.pump();
+    expect(fieldText(tester, 'pin24_seed'), isEmpty);
+    expect(container.read(pinSeedProvider).hasSeed, isFalse);
   });
 
   test('PinSession: wipe zeroes the seed and reports content', () {

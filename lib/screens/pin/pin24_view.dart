@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../glass.dart' show appSpring;
 import '../../l10n/app_localizations.dart';
 import '../../pin_tools/bip39.dart';
 import '../../pin_tools/ledger_pin24.dart' show kCharsets;
@@ -93,11 +94,17 @@ class _Pin24ViewState extends ConsumerState<Pin24View> {
   bool _revealPin = false;
   bool _showFull = false;
 
-  /// A paste put the phrase on the clipboard, which still holds it.
-  bool _clipboardHoldsPaste = false;
-
   /// Unpaired surrogates were dropped from the nickname.
   bool _nicknameSanitized = false;
+
+  /// Bumped on every wipe: the fields are rebuilt with an empty undo
+  /// history (seed and passphrase on every wipe, nickname on a full one).
+  int _seedFieldGen = 0;
+  int _nickFieldGen = 0;
+
+  /// Opened from the YubiKey tool to enter the seed: show a way back.
+  PinTool? _returnTo;
+  final _seedFieldKey = GlobalKey();
 
   Timer? _debounce;
 
@@ -127,7 +134,28 @@ class _Pin24ViewState extends ConsumerState<Pin24View> {
     _mode = _prefs.pin24Mode;
     _length = _prefs.pin24Length;
     _charsets = _prefs.pin24Charsets;
+    _session.seed.addListener(_onCachedSeedChanged);
+    _returnTo = _session.returnTo;
+    if (_returnTo != null) {
+      // Sent here to enter the seed: bring the seed field into view.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final target = _seedFieldKey.currentContext;
+        if (!mounted || target == null) return;
+        unawaited(Scrollable.ensureVisible(
+          target,
+          alignment: 0.15,
+          duration: MediaQuery.disableAnimationsOf(context)
+              ? Duration.zero
+              : const Duration(milliseconds: 400),
+          curve: appSpring,
+        ));
+      });
+    }
     _session.touch();
+  }
+
+  void _onCachedSeedChanged() {
+    if (mounted) setState(() {});
   }
 
   @override
@@ -136,6 +164,7 @@ class _Pin24ViewState extends ConsumerState<Pin24View> {
     _generation++;
     _wipeEpoch++;
     _session.wipes.removeListener(_onWipe);
+    _session.seed.removeListener(_onCachedSeedChanged);
     _unregisterProbe?.call();
     _sessionSub.close();
     _output = null;
@@ -171,12 +200,16 @@ class _Pin24ViewState extends ConsumerState<Pin24View> {
     if (event.scope == PinWipeScope.all) _nickCtrl.clear();
     TextInput.finishAutofillContext(shouldSave: false);
     setState(() {
+      _seedFieldGen++;
+      if (event.scope == PinWipeScope.all) {
+        _nickFieldGen++;
+        _nicknameSanitized = false;
+        _returnTo = null;
+      }
       _analysis = analyzeSeedText('');
       _showWords = false;
       _revealPin = false;
       _showFull = false;
-      _clipboardHoldsPaste = false;
-      if (event.scope == PinWipeScope.all) _nicknameSanitized = false;
       _busy = false;
       _output = null;
       _checkText = null;
@@ -185,32 +218,17 @@ class _Pin24ViewState extends ConsumerState<Pin24View> {
 
   Future<void> _confirmWipeAll() async {
     final l = AppLocalizations.of(context)!;
-    final confirmed = await showDialog<bool>(
+    final confirmed = await confirmPinAction(
       context: context,
-      builder: (context) {
-        final cs = Theme.of(context).colorScheme;
-        return AlertDialog(
-          icon: Icon(Icons.delete_forever_outlined, color: cs.error),
-          title: Text(l.pin24WipeAllTitle),
-          content: Text(l.pin24WipeAllBody),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: Text(l.cancel),
-            ),
-            Semantics(
-              identifier: 'pin24_wipe_all_confirm',
-              child: FilledButton(
-                style: FilledButton.styleFrom(backgroundColor: cs.error),
-                onPressed: () => Navigator.pop(context, true),
-                child: Text(l.pin24WipeAllConfirm),
-              ),
-            ),
-          ],
-        );
-      },
+      session: _session,
+      tone: PinDialogTone.destructive,
+      title: l.pin24WipeAllTitle,
+      body: l.pin24WipeAllBody,
+      confirmLabel: l.pin24WipeAllConfirm,
+      confirmId: 'pin24_wipe_all_confirm',
+      cancelId: 'pin24_wipe_all_cancel',
     );
-    if (confirmed == true) {
+    if (confirmed && mounted) {
       HapticFeedback.mediumImpact();
       _session.wipe(reason: PinWipeReason.user);
     }
@@ -226,7 +244,7 @@ class _Pin24ViewState extends ConsumerState<Pin24View> {
   void _onSeedChanged(String text) {
     _session.touch();
     if (text.length - _lastSeedText.length >= PinSecretField.pasteThreshold) {
-      _clipboardHoldsPaste = true;
+      _session.markPasted();
     }
     final completed = autoAcceptSeedEdit(_lastSeedText, text);
     if (completed != null) {
@@ -281,7 +299,7 @@ class _Pin24ViewState extends ConsumerState<Pin24View> {
   void _onPassphraseChanged(String text) {
     _session.touch();
     if (text.length - _lastPpText.length >= PinSecretField.pasteThreshold) {
-      _clipboardHoldsPaste = true;
+      _session.markPasted();
     }
     _lastPpText = text;
     _inputsChanged();
@@ -294,19 +312,16 @@ class _Pin24ViewState extends ConsumerState<Pin24View> {
   }
 
   void _onMenuPaste() {
-    if (!mounted) return;
-    setState(() => _clipboardHoldsPaste = true);
+    if (mounted) _session.markPasted();
   }
 
-  Future<void> _clearClipboard() async {
+  void _backToReturnTool() {
+    final to = _returnTo;
+    if (to == null) return;
     _session.touch();
-    await _privacy.clearClipboard();
-    if (!mounted) return;
-    setState(() => _clipboardHoldsPaste = false);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-          content: Text(AppLocalizations.of(context)!.pinClipboardCleared)),
-    );
+    HapticFeedback.selectionClick();
+    _session.returnTo = null;
+    ref.read(pinToolProvider.notifier).state = to;
   }
 
   void _setMode(Pin24Mode mode) {
@@ -358,14 +373,67 @@ class _Pin24ViewState extends ConsumerState<Pin24View> {
   void _inputsChanged() {
     _debounce?.cancel();
     _generation++;
-    final ready = _gate == 0;
+    final gate = _gate;
+    final ready = gate == 0;
     setState(() {
       _output = null;
       _busy = ready;
     });
-    if (!ready) return;
     final generation = _generation;
-    _debounce = Timer(_debounceDelay, () => _derive(generation));
+    if (ready) {
+      _debounce = Timer(_debounceDelay, () => _derive(generation));
+    } else if (gate != 1) {
+      // The phrase is valid but no nickname (or charset) yet: derive and
+      // cache the seed now, so the YubiKey tool can use it at once.
+      _debounce = Timer(_debounceDelay, () => _cacheSeed(generation));
+    }
+  }
+
+  /// Whether [key] still describes the phrase and passphrase in the fields.
+  bool _keyIsCurrent(Uint8List key) {
+    if (!_analysis.validation.isValid) return false;
+    final current =
+        PinSeedCache.keyFor(_analysis.parsed.canonical, _ppCtrl.text);
+    var diff = key.length ^ current.length;
+    for (var i = 0; i < key.length && i < current.length; i++) {
+      diff |= key[i] ^ current[i];
+    }
+    return diff == 0;
+  }
+
+  /// Derives the seed alone (no nickname needed) and caches it for the
+  /// section, unless it is cached already.
+  Future<void> _cacheSeed(int generation) async {
+    if (!mounted || generation != _generation) return;
+    if (!_analysis.validation.isValid) return;
+    final epoch = _wipeEpoch;
+    final wordCount = _analysis.words.length;
+    final canonical = _analysis.parsed.canonical;
+    final passphrase = _ppCtrl.text;
+    final key = PinSeedCache.keyFor(canonical, passphrase);
+    final cached = _session.seed.lookup(key);
+    if (cached != null) {
+      cached.fillRange(0, cached.length, 0);
+      key.fillRange(0, key.length, 0);
+      return;
+    }
+    Pin24Response response;
+    try {
+      response = await runPin24Seed(
+        _runner,
+        Pin24SeedRequest(canonicalPhrase: canonical, passphrase: passphrase),
+      );
+    } catch (_) {
+      // Deliberately not logged or rethrown: the error could carry input.
+      response = const Pin24Response(errorCode: pin24UnexpectedError);
+    }
+    final fresh = response.freshSeed;
+    if (fresh != null && mounted && epoch == _wipeEpoch && _keyIsCurrent(key)) {
+      _session.seed.store(key, fresh, wordCount: wordCount);
+    } else {
+      fresh?.fillRange(0, fresh.length, 0);
+      key.fillRange(0, key.length, 0);
+    }
   }
 
   Future<void> _derive(int generation) async {
@@ -399,9 +467,9 @@ class _Pin24ViewState extends ConsumerState<Pin24View> {
       cached?.fillRange(0, cached.length, 0);
     }
     final fresh = response.freshSeed;
-    if (fresh != null && mounted && epoch == _wipeEpoch) {
+    if (fresh != null && mounted && epoch == _wipeEpoch && _keyIsCurrent(key)) {
       // Keyed by phrase + passphrase, so it is valid even if the nickname
-      // or mode changed meanwhile.
+      // or mode changed meanwhile (but not if the phrase did).
       _session.seed.store(key, fresh, wordCount: wordCount);
     } else {
       fresh?.fillRange(0, fresh.length, 0);
@@ -439,7 +507,10 @@ class _Pin24ViewState extends ConsumerState<Pin24View> {
     });
     Pin24EngineCheckResult result;
     try {
-      result = await pin24EngineCheck(_runner);
+      result = await pin24EngineCheck(
+        _runner,
+        vectors: ref.read(pin24SelfTestVectorsProvider),
+      );
     } catch (_) {
       result = const Pin24EngineCheckResult(passed: 0, total: 0);
     }
@@ -478,6 +549,13 @@ class _Pin24ViewState extends ConsumerState<Pin24View> {
 
   Widget _introCard(AppLocalizations l) {
     final theme = Theme.of(context);
+    final about = [
+      Text(l.pin24Summary, style: theme.textTheme.bodyMedium),
+      const SizedBox(height: 6),
+      PinCaption(l.pin24Bullets),
+      const SizedBox(height: 10),
+      PinCaption(l.pin24Caption),
+    ];
     return PinCard(
       children: [
         Row(
@@ -490,14 +568,21 @@ class _Pin24ViewState extends ConsumerState<Pin24View> {
           ],
         ),
         const SizedBox(height: 8),
-        Text(l.pin24Summary, style: theme.textTheme.bodyMedium),
-        const SizedBox(height: 6),
-        PinCaption(l.pin24Bullets),
-        const SizedBox(height: 10),
-        PinCaption(l.pin24Caption),
-        const SizedBox(height: 12),
-        PinBanner(child: Text(l.pin24Banner)),
+        // Before "I understand": everything. After: the banner stays (it is
+        // shown every time), the description folds away so the seed field
+        // is close to the top.
         if (!_acknowledged) ...[
+          ...about,
+          const SizedBox(height: 12),
+        ],
+        PinBanner(child: Text(l.pin24Banner)),
+        if (_acknowledged)
+          PinDisclosure(
+            title: l.pin24AboutTitle,
+            identifier: 'pin24_about',
+            children: about,
+          )
+        else ...[
           const SizedBox(height: 12),
           Semantics(
             identifier: 'pin24_ack',
@@ -519,42 +604,60 @@ class _Pin24ViewState extends ConsumerState<Pin24View> {
     return PinCard(
       title: l.pin24SectionSeed,
       children: [
-        PinCaption(l.pin24SeedLabel),
-        const SizedBox(height: 8),
-        PinSecretField(
-          controller: _seedCtrl,
-          identifier: 'pin24_seed',
-          enabled: _acknowledged,
-          textDirection: TextDirection.ltr,
-          hintText: _seedPlaceholder,
-          helperText: _acknowledged ? l.pin24SeedHelp : l.pin24AckRequired,
-          onChanged: _onSeedChanged,
-          onPasted: _onMenuPaste,
-          normalizePaste: normalizePastedSeed,
-        ),
-        if (_clipboardHoldsPaste) ...[
+        if (_returnTo == PinTool.yubikey) ...[
+          Semantics(
+            identifier: 'pin24_from_yk',
+            child: PinNotice(
+              l.pin24FromYubikey,
+              action: Semantics(
+                identifier: 'pin24_back_to_yk',
+                child: FilledButton.tonalIcon(
+                  onPressed: _backToReturnTool,
+                  icon: const Icon(Icons.vpn_key_outlined, size: 18),
+                  label: Text(l.pin24BackToYubikey),
+                ),
+              ),
+            ),
+          ),
           const SizedBox(height: 6),
-          Row(
-            children: [
-              Expanded(
-                child: PinNotice(
-                  l.pinPastedStillOnClipboard,
-                  kind: PinNoticeKind.warning,
-                ),
-              ),
-              Semantics(
-                identifier: 'pin24_clear_clipboard',
-                child: TextButton(
-                  onPressed: _clearClipboard,
-                  child: Text(l.pinClearClipboard),
-                ),
-              ),
-            ],
+        ],
+        PinCaption(l.pin24SeedLabel),
+        if (!_acknowledged) ...[
+          const SizedBox(height: 6),
+          Semantics(
+            identifier: 'pin24_ack_required',
+            child: PinNotice(l.pin24AckRequired),
           ),
         ],
+        const SizedBox(height: 8),
+        KeyedSubtree(
+          key: _seedFieldKey,
+          child: PinSecretField(
+            controller: _seedCtrl,
+            identifier: 'pin24_seed',
+            wipeGeneration: _seedFieldGen,
+            enabled: _acknowledged,
+            textDirection: TextDirection.ltr,
+            hintText: _seedPlaceholder,
+            helperText: l.pin24SeedHelp,
+            onChanged: _onSeedChanged,
+            onPasted: _onMenuPaste,
+            normalizePaste: normalizePastedSeed,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Semantics(
+          identifier: 'pin24_autocomplete_hint',
+          child: PinCaption(l.pin24AutoCompleteHint),
+        ),
+        PinClipboardReminder(
+          session: _session,
+          identifier: 'pin24_clear_clipboard',
+        ),
         const SizedBox(height: 4),
         PinSwitchRow(
           identifier: 'pin24_show_words',
+          icon: Icons.visibility_outlined,
           label: l.pin24ShowWords,
           caption: l.pin24ShowWordsHelp,
           value: _showWords,
@@ -571,10 +674,11 @@ class _Pin24ViewState extends ConsumerState<Pin24View> {
           reveal: _showWords,
         ),
         const SizedBox(height: 10),
-        Row(
+        Wrap(
+          spacing: 8,
+          crossAxisAlignment: WrapCrossAlignment.center,
           children: [
             Text(l.pin24WordsMetric, style: theme.textTheme.labelLarge),
-            const SizedBox(width: 8),
             Directionality(
               textDirection: TextDirection.ltr,
               child: Text(
@@ -591,10 +695,13 @@ class _Pin24ViewState extends ConsumerState<Pin24View> {
           title: l.pin24PassphraseTitle,
           identifier: 'pin24_passphrase_section',
           initiallyExpanded: _ppCtrl.text.isNotEmpty,
+          // A passphrase changes every result: say so while folded away.
+          badge: _ppCtrl.text.isNotEmpty ? l.pin24PassphraseSet : null,
           children: [
             PinSecretField(
               controller: _ppCtrl,
               identifier: 'pin24_passphrase',
+              wipeGeneration: _seedFieldGen,
               enabled: _acknowledged,
               labelText: l.pin24PassphraseLabel,
               onChanged: _onPassphraseChanged,
@@ -606,11 +713,15 @@ class _Pin24ViewState extends ConsumerState<Pin24View> {
               const SizedBox(height: 8),
               Align(
                 alignment: AlignmentDirectional.centerStart,
-                child: PinWarningChip(l.pin24PassphraseWhitespace),
+                child: Semantics(
+                  identifier: 'pin24_passphrase_whitespace',
+                  child: PinWarningChip(l.pin24PassphraseWhitespace),
+                ),
               ),
             ],
           ],
         ),
+        ..._seedKeptHint(l),
         const SizedBox(height: 8),
         Wrap(
           spacing: 8,
@@ -618,10 +729,11 @@ class _Pin24ViewState extends ConsumerState<Pin24View> {
           children: [
             Semantics(
               identifier: 'pin24_wipe_seed',
-              child: OutlinedButton(
+              child: OutlinedButton.icon(
                 style: OutlinedButton.styleFrom(minimumSize: const Size(0, 48)),
                 onPressed: _wipeSeed,
-                child: Text(l.pin24WipeSeed),
+                icon: const Icon(Icons.cleaning_services_outlined, size: 18),
+                label: Text(l.pin24WipeSeed),
               ),
             ),
             Semantics(
@@ -636,16 +748,51 @@ class _Pin24ViewState extends ConsumerState<Pin24View> {
     );
   }
 
+  /// The seed cached for the section (the YubiKey tool may use it): a note
+  /// while it matches the field, a Wipe action once the field no longer
+  /// holds it (e.g. back from another tool).
+  List<Widget> _seedKeptHint(AppLocalizations l) {
+    final cache = _session.seed;
+    if (!cache.hasSeed) return const [];
+    if (_analysis.validation.isValid) {
+      return [
+        const SizedBox(height: 6),
+        Semantics(
+          identifier: 'pin24_seed_kept',
+          child: PinCaption(l.pin24SeedKept),
+        ),
+      ];
+    }
+    return [
+      const SizedBox(height: 6),
+      Semantics(
+        identifier: 'pin24_seed_in_memory',
+        child: PinNotice(
+          l.pinSeedInMemory(cache.wordCount),
+          action: Semantics(
+            identifier: 'pin_wipe_cached_seed',
+            child: TextButton.icon(
+              onPressed: _wipeSeed,
+              icon: const Icon(Icons.cleaning_services_outlined, size: 18),
+              label: Text(l.pin24WipeSeed),
+            ),
+          ),
+        ),
+      ),
+    ];
+  }
+
   Widget _wipeAllButton(AppLocalizations l) {
     final cs = Theme.of(context).colorScheme;
-    return OutlinedButton(
+    return OutlinedButton.icon(
       style: OutlinedButton.styleFrom(
         minimumSize: const Size(0, 48),
         foregroundColor: cs.error,
         side: BorderSide(color: cs.error.withAlpha(128)),
       ),
       onPressed: _confirmWipeAll,
-      child: Text(l.pin24WipeAll),
+      icon: const Icon(Icons.delete_forever_outlined, size: 18),
+      label: Text(l.pin24WipeAll),
     );
   }
 
@@ -668,7 +815,7 @@ class _Pin24ViewState extends ConsumerState<Pin24View> {
     }
 
     String positions(Iterable<int> zeroBased) =>
-        zeroBased.map((i) => '${i + 1}').join(', ');
+        ltrIsolate(zeroBased.map((i) => '${i + 1}').join(', '));
 
     // Invalid words (glued ones get their own, more helpful note).
     final invalid = [
@@ -678,8 +825,8 @@ class _Pin24ViewState extends ConsumerState<Pin24View> {
     if (invalid.isNotEmpty) {
       out.add(PinNotice(
         _showWords
-            ? l.pin24InvalidRevealed(
-                invalid.map((i) => '“${a.words[i]}” (#${i + 1})').join(', '))
+            ? l.pin24InvalidRevealed(ltrIsolate(
+                invalid.map((i) => '“${a.words[i]}” (#${i + 1})').join(', ')))
             : l.pin24InvalidMasked(positions(invalid)),
         kind: PinNoticeKind.error,
       ));
@@ -776,10 +923,13 @@ class _Pin24ViewState extends ConsumerState<Pin24View> {
                 style: pinMono(context, size: 13)),
             if (options.isEmpty) Text(l.pin24NoCompletions),
             for (final word in options)
-              ActionChip(
-                label: Text(word, style: pinMono(context, size: 13)),
-                visualDensity: VisualDensity.compact,
-                onPressed: () => _acceptWord(index, word),
+              Semantics(
+                identifier: 'pin24_suggest_${index + 1}_$word',
+                child: ActionChip(
+                  label: Text(word, style: pinMono(context, size: 13)),
+                  visualDensity: VisualDensity.compact,
+                  onPressed: () => _acceptWord(index, word),
+                ),
               ),
           ],
         ),
@@ -795,6 +945,7 @@ class _Pin24ViewState extends ConsumerState<Pin24View> {
         PinSecretField(
           controller: _nickCtrl,
           identifier: 'pin24_nickname',
+          wipeGeneration: _nickFieldGen,
           obscure: false,
           labelText: l.pin24NicknameLabel,
           hintText: 'visa',
@@ -856,9 +1007,12 @@ class _Pin24ViewState extends ConsumerState<Pin24View> {
             onSelected: _setLength,
           ),
           const SizedBox(height: 8),
-          Row(
+          Wrap(
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 4,
+            runSpacing: 4,
             children: [
-              Expanded(child: PinCaption(l.pin24LengthCustom)),
+              PinCaption(l.pin24LengthCustom),
               Semantics(
                 identifier: 'pin24_len_dec',
                 child: IconButton.outlined(
@@ -869,8 +1023,8 @@ class _Pin24ViewState extends ConsumerState<Pin24View> {
                   icon: const Icon(Icons.remove),
                 ),
               ),
-              SizedBox(
-                width: 44,
+              ConstrainedBox(
+                constraints: const BoxConstraints(minWidth: 44),
                 child: Text(
                   '$_length',
                   textAlign: TextAlign.center,
@@ -937,9 +1091,11 @@ class _Pin24ViewState extends ConsumerState<Pin24View> {
   Future<void> _showSpecialsHelp() async {
     final l = AppLocalizations.of(context)!;
     _session.touch();
-    await showDialog<void>(
+    await showPinDialog<void>(
       context: context,
+      session: _session,
       builder: (context) => AlertDialog(
+        scrollable: true,
         title: Text(l.pin24SpecialsTitle),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -947,21 +1103,30 @@ class _Pin24ViewState extends ConsumerState<Pin24View> {
           children: [
             Text(l.pin24SpecialsBody),
             const SizedBox(height: 12),
-            Directionality(
-              textDirection: TextDirection.ltr,
-              child: Text(kCharsets[6], style: pinMono(context, size: 16)),
+            Semantics(
+              identifier: 'pin24_specials_set6',
+              child: Directionality(
+                textDirection: TextDirection.ltr,
+                child: Text(kCharsets[6], style: pinMono(context, size: 16)),
+              ),
             ),
             const SizedBox(height: 4),
-            Directionality(
-              textDirection: TextDirection.ltr,
-              child: Text(kCharsets[7], style: pinMono(context, size: 16)),
+            Semantics(
+              identifier: 'pin24_specials_set7',
+              child: Directionality(
+                textDirection: TextDirection.ltr,
+                child: Text(kCharsets[7], style: pinMono(context, size: 16)),
+              ),
             ),
           ],
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(MaterialLocalizations.of(context).okButtonLabel),
+          Semantics(
+            identifier: 'pin24_specials_ok',
+            child: TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(MaterialLocalizations.of(context).okButtonLabel),
+            ),
           ),
         ],
       ),
@@ -1026,6 +1191,7 @@ class _Pin24ViewState extends ConsumerState<Pin24View> {
       const SizedBox(height: 6),
       PinSwitchRow(
         identifier: 'pin24_reveal_pin',
+        icon: Icons.visibility_outlined,
         label: l.pin24RevealPin,
         caption: l.pin24RevealPinHelp,
         value: _revealPin,
@@ -1046,7 +1212,15 @@ class _Pin24ViewState extends ConsumerState<Pin24View> {
                   .withValues(alpha: 0.5),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: Text(pin, style: pinMono(context, size: 20)),
+            child: Semantics(
+              identifier: 'pin24_pin_text',
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: AlignmentDirectional.centerStart,
+                child: Text(pin,
+                    softWrap: false, style: pinMono(context, size: 20)),
+              ),
+            ),
           ),
         ),
       if (out.paddedZeros > 0) ...[
@@ -1061,6 +1235,7 @@ class _Pin24ViewState extends ConsumerState<Pin24View> {
       const SizedBox(height: 6),
       PinSwitchRow(
         identifier: 'pin24_show_full',
+        icon: Icons.manage_search_outlined,
         label: l.pin24FullToggle,
         caption: l.pin24FullHelp,
         value: _showFull,
@@ -1084,8 +1259,12 @@ class _Pin24ViewState extends ConsumerState<Pin24View> {
             ),
             child: Semantics(
               identifier: 'pin24_full_password',
-              child: Text(withVisibleSpaces(full),
-                  style: pinMono(context, size: 17)),
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Text(withVisibleSpaces(full),
+                    softWrap: false, style: pinMono(context, size: 17)),
+              ),
             ),
           ),
         ),
@@ -1134,11 +1313,12 @@ class _Pin24ViewState extends ConsumerState<Pin24View> {
                 for (final chunk in chunked(password, 4))
                   Text(
                     withVisibleSpaces(chunk),
+                    softWrap: false,
                     style: pinMono(
                       context,
                       size: 22,
                       weight: FontWeight.w700,
-                      color: PinColors.valid,
+                      color: PinColors.okText(Theme.of(context).brightness),
                       letterSpacing: 2,
                     ),
                   ),
@@ -1150,7 +1330,7 @@ class _Pin24ViewState extends ConsumerState<Pin24View> {
       const SizedBox(height: 6),
       Center(child: PinCaption(l.pinTapToCopy)),
       const SizedBox(height: 8),
-      PinCaption(l.pin24PasswordCaption(sets, out.nickname)),
+      PinCaption(l.pin24PasswordCaption(ltrIsolate(sets), out.nickname)),
     ];
   }
 
@@ -1174,7 +1354,8 @@ class _Pin24ViewState extends ConsumerState<Pin24View> {
           title: l.pin24ThreatTitle,
           identifier: 'pin24_threat_model',
           children: [
-            section(l.pin24ThreatProtectsTitle, l.pin24ThreatProtectsBody),
+            section(l.pin24ThreatProtectsTitle,
+                '${l.pin24ThreatProtectsBody}\n• ${pinClipboardPrivacyNote(l)}'),
             section(l.pin24ThreatCannotTitle, l.pin24ThreatCannotBody),
             section(l.pin24ThreatUseTitle, l.pin24ThreatUseBody),
             section(l.pin24ThreatDontTitle, l.pin24ThreatDontBody),

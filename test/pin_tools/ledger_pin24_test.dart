@@ -1129,4 +1129,80 @@ void main() {
       expect(diverging, isNotEmpty);
     });
   });
+
+  // Trace A9.2: where the Dart-only PASSPHRASE_NOT_UTF8 and the
+  // MIN_FROM_SET_LENGTH checks sit in the check order.
+  group('check order (Dart additions)', () {
+    const good = 'abandon abandon abandon abandon abandon abandon abandon '
+        'abandon abandon abandon abandon about';
+    const bad = 'abandon abandon abandon abandon abandon abandon abandon '
+        'abandon abandon abandon abandon abandon';
+    final surrogate = String.fromCharCode(0xD800);
+
+    String code(void Function() f) {
+      try {
+        f();
+      } on Pin24Exception catch (e) {
+        return e.code;
+      }
+      return 'ok';
+    }
+
+    test('BIP39_INVALID before PASSPHRASE_NOT_UTF8', () {
+      expect(
+        code(() => derivePassword(
+            seedPhrase: bad, nickname: 'x', bip39Passphrase: surrogate)),
+        Pin24Exception.bip39Invalid,
+      );
+    });
+
+    test('PASSPHRASE_NOT_UTF8 before NICKNAME_EMPTY and SIZE_NOT_POSITIVE', () {
+      expect(
+        code(() => derivePassword(
+            seedPhrase: good, nickname: '', bip39Passphrase: surrogate)),
+        Pin24Exception.passphraseNotUtf8,
+      );
+      expect(
+        code(() => derivePassword(
+            seedPhrase: good,
+            nickname: 'x',
+            bip39Passphrase: surrogate,
+            size: 0)),
+        Pin24Exception.passphraseNotUtf8,
+      );
+    });
+
+    test('PIN_LENGTH_NOT_POSITIVE before the passphrase is looked at', () {
+      expect(
+        code(() => derivePin(
+            seedPhrase: good,
+            nickname: 'x',
+            bip39Passphrase: surrogate,
+            length: 0)),
+        Pin24Exception.pinLengthNotPositive,
+      );
+    });
+
+    test('MIN_FROM_SET_LENGTH before MIN_EXCEEDS_SIZE', () {
+      expect(
+        code(() => derivePassword(
+            bip39Seed: Uint8List(64),
+            nickname: 'x',
+            setMask: 0xFF,
+            minFromSet: const [99, 0, 0, 0, 0, 0, 0],
+            size: 20)),
+        Pin24Exception.minFromSetLength,
+      );
+      // With the right length the size check is what fails.
+      expect(
+        code(() => derivePassword(
+            bip39Seed: Uint8List(64),
+            nickname: 'x',
+            setMask: 0xFF,
+            minFromSet: const [99, 0, 0, 0, 0, 0, 0, 0],
+            size: 20)),
+        Pin24Exception.minExceedsSize,
+      );
+    });
+  });
 }

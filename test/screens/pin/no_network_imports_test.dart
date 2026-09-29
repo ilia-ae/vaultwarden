@@ -85,11 +85,15 @@ void main() {
     expect(violations, isEmpty);
   });
 
-  test('PIN screens never print, log, share or restore secrets', () {
-    final sources = Directory('lib/screens/pin')
-        .listSync(recursive: true)
-        .whereType<File>()
-        .where((f) => f.path.endsWith('.dart'));
+  test('PIN screens and cores never print, log, share or restore secrets', () {
+    final sources = [
+      for (final root in _roots)
+        ...Directory(root)
+            .listSync(recursive: true)
+            .whereType<File>()
+            .where((f) => f.path.endsWith('.dart')),
+    ];
+    expect(sources.where((f) => f.path.contains('pin_tools')), isNotEmpty);
     for (final f in sources) {
       final code = f
           .readAsLinesSync()

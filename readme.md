@@ -172,6 +172,28 @@ lib/
 | Biometric change | Key invalidated → re-setup required |
 | Server compromise | Does not reveal UserKey |
 
+## PIN tools
+
+A third tab, **PIN**, sits behind the same biometric lock. Every tool runs **fully offline on the phone**: nothing typed there is saved, synced, logged or sent anywhere (a test guards that no PIN code imports anything that can reach the network).
+
+| Tool | What it does |
+|:--|:--|
+| **PIN 24** — Ledger recovery | Recovery-only reimplementation of the Ledger Passwords app: BIP39 seed (12/15/18/21/24 words, optional passphrase) + nickname → the PIN or 20-character password the device would type. Typing the first 4 letters of a word and a space completes it (nothing is completed while you are still typing a word). Matches the official LedgerHQ vectors bit for bit; **Check engine** replays them on the phone. |
+| **PIN Shift** | Per-position modulo-10 shift, `new = base + vector (mod 10)` without carry: encode/decode, lengths 1–16, per-digit breakdown, a paper walkthrough and the threat model. Mnemonic obfuscation, **not a cipher**; no copy button by design. |
+| **YubiKey** | PIV PIN/PUK, OpenPGP, FIDO2, OATH and OTP access codes for one or more serials, identical to yubikey-fleet `yk-batch-secrets.py`: from Ledger Passwords entries, from a master key (derived mode) or at random. The Ledger source uses the seed entered in PIN 24: as soon as the phrase there is valid it stays in memory for the tab (no nickname needed), and **Back to YubiKey** returns with the serials and settings kept. PINs still set by hand during the move to Ledger (00, 23, 34) can be excluded. Values are hidden per row with a `sha256_6` checksum; copy one value, or copy a `folder,name,field,value` CSV for a password manager (not directly importable by Bitwarden). Random values exist nowhere else: Clear and switching tools ask first. YAML manifests and `ykman` provisioning stay on the desktop. |
+| **Legacy mask** | The archived `pass_pin` generator (an 8-digit mask walked over a 20-character string), shown only with **Show legacy tools**, to recover PINs made with it. Superseded by PIN Shift. |
+
+**Ledger → YubiKey: the 4 + 4 rule.** The card holds at most 8 bytes of PIV PIN/PUK, so they are the **first 4 + last 4 characters** of what the Ledger types for the entries `yk-<serial>-pins` and `yk-<serial>-puk`; the OpenPGP User/Admin and FIDO2 PINs take the whole 20-character output (Admin optionally from `yk-<serial>-admin`). Fields 25 (Reset Code) and 41 (OATH) never come from Ledger; 45/46 are the serial padded to 12 digits. The app warns when the PIV PIN is part of another secret of the same entry and when the Admin PIN shares the `-pins` entry, and blocks values that do not fit the card (non-printable characters, spaces in the 8-character pick).
+
+**Security notes**
+
+- Secrets live only in widget state and an auto-disposed session. Everything — including the 64-byte seed shared by PIN 24 and YubiKey — is wiped by **Wipe seed** / **Wipe all**, when you leave the PIN tab, when the app leaves the screen, after 2 minutes without activity and on lock; switching tools clears that tool's inputs. A wipe cannot be undone (no undo history survives it) and closes any open PIN dialog. Dart strings cannot be zeroed — closing the app is the final wipe.
+- Secret fields turn off suggestions, autocorrect, keyboard learning and autofill, offer only Paste and ignore the copy/cut/undo shortcuts; the seed field has no reveal. Error messages never quote secret input unless you turn on **Show typed words** (then invalid words and completions are shown); invalid serial numbers are quoted, since serials are not secret.
+- After a paste the app reminds you that the secret is still on the clipboard; **Wipe seed**, **Wipe all**, **Clear** and leaving the tab also clear it (and a copied result that is still ours).
+- Android sets `FLAG_SECURE` on the PIN tab (test builds made with `-Pallow-screenshots=true` say so); iOS hides the tab while the screen is recorded or mirrored and warns after a screenshot.
+- Copies use a native channel: local-only (no Universal Clipboard) with an expiry on iOS; on Android the clip is flagged `IS_SENSITIVE` and cleared after 60 seconds, which clipboard-sync apps can still copy. Derivations run in a background isolate.
+- PIN 24 is for recovery only: a seed typed into a phone is exposed to the OS, keyboards and backups — use the real Ledger whenever possible.
+
 ## Crypto Chain
 
 <details>

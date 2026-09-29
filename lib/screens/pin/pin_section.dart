@@ -29,6 +29,13 @@ enum PinVeil {
   captured,
 }
 
+/// Whether any part of the PIN tab is on screen, set by the screen that
+/// hosts the tab (`RequestsScreen`, from its tab controller). When it turns
+/// `false` the mounted [PinSection] unfocuses and wipes everything, so a
+/// focused field (which keeps its page alive offscreen) cannot keep secrets
+/// around once the user has left the tab.
+final ValueNotifier<bool> pinTabVisible = ValueNotifier<bool>(false);
+
 /// The PIN tab: tool picker plus the selected tool.
 ///
 /// Owns the section's safety rules, independent of the app lock timeout
@@ -36,10 +43,17 @@ enum PinVeil {
 /// * `hidden`/`paused` wipes everything (unless a system file picker is
 ///   open, see [externalPickerActive]); `inactive` only covers the content;
 /// * 120 s without interaction wipes everything ([PinSession.touch]);
+/// * leaving the tab ([pinTabVisible] turns `false`) unfocuses and wipes
+///   everything; the section is never kept alive offscreen;
 /// * iOS screen capture covers the content; a screenshot shows a warning with
-///   a Wipe action.
+///   a Wipe action;
+/// * a user-initiated wipe (🧹, 🚨, the screenshot Wipe, leaving the tab)
+///   also clears the clipboard: our own copy if it is still there, and a
+///   pasted secret the user was reminded about.
 ///
-/// FLAG_SECURE (Android) is switched by `RequestsScreen` from the tab index.
+/// FLAG_SECURE (Android) is switched by `RequestsScreen` from the tab index;
+/// the section holds it as well until it is disposed, so it stays on while
+/// the page is still alive after the tab changed.
 class PinSection extends ConsumerStatefulWidget {
   const PinSection({super.key});
 
@@ -58,6 +72,8 @@ class _PinSectionState extends ConsumerState<PinSection>
   bool _captured = false;
   bool? _showLegacy;
   bool _screenshotsAllowedBuild = false;
+  bool _tabVisible = pinTabVisible.value;
+  ScaffoldMessengerState? _messenger;
 
   @override
   void initState() {
@@ -66,19 +82,77 @@ class _PinSectionState extends ConsumerState<PinSection>
     _sessionSub = ref.listenManual(pinSessionProvider, (_, __) {});
     _session = _sessionSub.read();
     _session.wipes.addListener(_onWipe);
+    _session.onUserCleanup = _userCleanup;
     _privacy = ref.read(privacyServiceProvider);
     _events = _privacy.events.listen(_onPrivacyEvent);
+    pinTabVisible.addListener(_onTabVisibility);
+    // Nested with RequestsScreen's own hold: FLAG_SECURE stays on until this
+    // section is gone, even if the tab index changed first.
+    unawaited(_privacy.setSecureScreen(true));
     _session.touch();
     unawaited(_checkScreenshotsAllowedBuild());
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _messenger = ScaffoldMessenger.maybeOf(context);
+  }
+
+  @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    pinTabVisible.removeListener(_onTabVisibility);
     unawaited(_events?.cancel());
     _session.wipes.removeListener(_onWipe);
+    if (_session.onUserCleanup == _userCleanup) _session.onUserCleanup = null;
     _sessionSub.close();
+    unawaited(_privacy.setSecureScreen(false));
     super.dispose();
+  }
+
+  /// The tab was left: nothing of the section may stay alive or focused.
+  void _onTabVisibility() {
+    final visible = pinTabVisible.value;
+    final left = _tabVisible && !visible;
+    _tabVisible = visible;
+    if (!left || !mounted) return;
+    final hadUnsaved = _session.hasUnsavedValues;
+    _session.wipe(reason: PinWipeReason.left);
+    if (hadUnsaved) {
+      final l = AppLocalizations.of(context)!;
+      _messenger
+        ?..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text(l.pinYkRandomErasedLeft)));
+    }
+  }
+
+  /// Clipboard cleanup of a user-initiated wipe or Clear: our own copy if it
+  /// is still on the clipboard, and a secret the user pasted.
+  Future<void> _userCleanup() async {
+    final pasted = _session.clipboardHoldsPaste.value;
+    await _privacy.clearClipboardIfOurs();
+    if (pasted) {
+      await _privacy.clearClipboard();
+      if (mounted) _session.clipboardHoldsPaste.value = false;
+    }
+  }
+
+  /// Unfocuses the field that has focus inside this section (its keyboard
+  /// and its keep-alive go with it).
+  void _unfocusInside() {
+    final focus = FocusManager.instance.primaryFocus;
+    final focusContext = focus?.context;
+    if (focus == null || focusContext == null || !mounted) return;
+    var inside = false;
+    focusContext.visitAncestorElements((e) {
+      if (e == context) {
+        inside = true;
+        return false;
+      }
+      return true;
+    });
+    if (inside) focus.unfocus();
   }
 
   @override
@@ -131,6 +205,24 @@ class _PinSectionState extends ConsumerState<PinSection>
   void _onWipe() {
     final event = _session.wipes.value;
     if (event == null || !mounted) return;
+    // Wiped fields must not keep focus (nor the keyboard, nor an undo client).
+    _unfocusInside();
+    final pasted = _session.clipboardHoldsPaste.value;
+    switch (event.reason) {
+      case PinWipeReason.user:
+      case PinWipeReason.screenshot:
+      case PinWipeReason.left:
+        // The user asked for it: take our copy back, and the pasted secret.
+        unawaited(_userCleanup());
+      case PinWipeReason.inactivity:
+        // Our own copy only; a pasted secret keeps its reminder.
+        unawaited(_privacy.clearClipboardIfOurs());
+      case PinWipeReason.background:
+        // The user may be pasting the result into another app right now;
+        // the reminder about a pasted secret is back on return.
+        break;
+    }
+    if (event.reason == PinWipeReason.left) return;
     final l = AppLocalizations.of(context)!;
     final String? message = switch (event.reason) {
       PinWipeReason.user =>
@@ -140,15 +232,38 @@ class _PinSectionState extends ConsumerState<PinSection>
         event.hadContent ? l.pinWipedBackground : null,
       PinWipeReason.inactivity =>
         event.hadContent ? l.pinWipedInactivity : null,
+      PinWipeReason.left => null,
     };
     if (message == null) return;
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(message)));
+    final withClipboard = pasted &&
+            (event.reason == PinWipeReason.user ||
+                event.reason == PinWipeReason.screenshot)
+        ? l.pinWipedClipboardToo(message)
+        : message;
+    _messenger
+      ?..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(withClipboard)));
   }
 
-  void _selectTool(PinTool tool) {
+  Future<void> _selectTool(PinTool tool) async {
     _session.touch();
+    final current = ref.read(pinToolProvider);
+    if (tool == current) return;
+    if (_session.hasUnsavedValues) {
+      final l = AppLocalizations.of(context)!;
+      final ok = await confirmPinAction(
+        context: context,
+        session: _session,
+        tone: PinDialogTone.destructive,
+        title: l.pinYkRandomLoseTitle,
+        body: l.pinYkRandomLoseBody,
+        confirmLabel: l.pinYkRandomLoseConfirm,
+        confirmId: 'pin_tool_switch_confirm',
+        cancelId: 'pin_tool_switch_cancel',
+      );
+      if (!ok || !mounted) return;
+    }
+    _session.returnTo = null;
     ref.read(pinToolProvider.notifier).state = tool;
   }
 
@@ -217,23 +332,26 @@ class _PinSectionState extends ConsumerState<PinSection>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const SizedBox(height: 4),
-                  PinSwitchRow(
-                    identifier: 'pin_show_legacy',
-                    label: l.pinShowLegacy,
-                    caption: l.pinShowLegacyHelp,
-                    value: showLegacy,
-                    onChanged: (v) => _setShowLegacy(prefs, v),
-                  ),
+                  const SizedBox(height: 8),
                   PinCaption(l.pinOfflineNote),
                   if (_screenshotsAllowedBuild) ...[
                     const SizedBox(height: 8),
                     Align(
                       alignment: AlignmentDirectional.centerStart,
-                      child: PinWarningChip(l.pinScreenshotsAllowedBuild),
+                      child: Semantics(
+                        identifier: 'pin_screenshots_allowed',
+                        child: PinWarningChip(l.pinScreenshotsAllowedBuild),
+                      ),
                     ),
                   ],
+                  // PIN 24 shows its own hint next to the seed field.
                   if (tool != PinTool.pin24) _SeedInMemoryRow(_session),
+                  // PIN 24 and YubiKey show the reminder next to their field.
+                  if (tool == PinTool.pinShift || tool == PinTool.legacyMask)
+                    PinClipboardReminder(
+                      session: _session,
+                      identifier: 'pin_clear_clipboard',
+                    ),
                   const SizedBox(height: 6),
                 ],
               ),
@@ -244,23 +362,38 @@ class _PinSectionState extends ConsumerState<PinSection>
               PinTool.yubikey => const YubikeyView(),
               PinTool.legacyMask => const LegacyMaskView(),
             },
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+              child: PinSwitchRow(
+                identifier: 'pin_show_legacy',
+                label: l.pinShowLegacy,
+                caption: l.pinShowLegacyHelp,
+                value: showLegacy,
+                onChanged: (v) => _setShowLegacy(prefs, v),
+              ),
+            ),
           ],
         ),
       ),
     );
 
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        // Offstage keeps the tools mounted (their input survives a brief
-        // `inactive`), but nothing is painted, so the app-switcher snapshot
-        // and a recording show only the cover.
-        Offstage(
-          offstage: veil != PinVeil.none,
-          child: TickerMode(enabled: veil == PinVeil.none, child: content),
-        ),
-        if (veil != PinVeil.none) _PrivacyCover(veil: veil),
-      ],
+    // A focused field asks its page to stay alive offscreen; the PIN tab
+    // never is (leaving it wipes, and the section must really go away).
+    return NotificationListener<KeepAliveNotification>(
+      onNotification: (_) => true,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          // Offstage keeps the tools mounted (their input survives a brief
+          // `inactive`), but nothing is painted, so the app-switcher snapshot
+          // and a recording show only the cover.
+          Offstage(
+            offstage: veil != PinVeil.none,
+            child: TickerMode(enabled: veil == PinVeil.none, child: content),
+          ),
+          if (veil != PinVeil.none) _PrivacyCover(veil: veil),
+        ],
+      ),
     );
   }
 }
@@ -281,24 +414,19 @@ class _SeedInMemoryRow extends StatelessWidget {
         if (!session.seed.hasSeed) return const SizedBox.shrink();
         return Padding(
           padding: const EdgeInsets.only(top: 8),
-          child: Row(
-            children: [
-              const Icon(Icons.key_outlined, size: 18),
-              const SizedBox(width: 8),
-              Expanded(
-                child: PinCaption(l.pinSeedInMemory(session.seed.wordCount)),
-              ),
-              Semantics(
-                identifier: 'pin_wipe_cached_seed',
-                child: TextButton(
-                  onPressed: () => session.wipe(
-                    scope: PinWipeScope.seed,
-                    reason: PinWipeReason.user,
-                  ),
-                  child: Text(l.pin24WipeSeed),
+          child: PinNotice(
+            l.pinSeedInMemory(session.seed.wordCount),
+            action: Semantics(
+              identifier: 'pin_wipe_cached_seed',
+              child: TextButton.icon(
+                onPressed: () => session.wipe(
+                  scope: PinWipeScope.seed,
+                  reason: PinWipeReason.user,
                 ),
+                icon: const Icon(Icons.cleaning_services_outlined, size: 18),
+                label: Text(l.pin24WipeSeed),
               ),
-            ],
+            ),
           ),
         );
       },

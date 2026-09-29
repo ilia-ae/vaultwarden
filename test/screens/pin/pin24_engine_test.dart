@@ -6,26 +6,66 @@ import 'package:vault_approver/screens/pin/pin24_engine.dart';
 import 'package:vault_approver/screens/pin/pin_session.dart';
 
 void main() {
-  group('auto-accept', () {
-    test('completes a unique 4-letter prefix typed at the end', () {
-      expect(autoAcceptSeedEdit('abandon aba', 'abandon aban'),
+  group('auto-complete on a separator', () {
+    test('completes a unique ≥4-letter prefix when a separator is typed', () {
+      expect(autoAcceptSeedEdit('abandon aban', 'abandon aban '),
           'abandon abandon ');
-      expect(autoAcceptSeedEdit('zo', 'zoo'), isNull, reason: '< 4 letters');
-      expect(autoAcceptSeedEdit('abl', 'able'), 'able ');
-      expect(autoAcceptSeedEdit('ACTI'.substring(0, 3), 'ACTI'), 'action ');
+      expect(autoAcceptSeedEdit('abl', 'abl '), isNull, reason: '< 4 letters');
+      expect(autoAcceptSeedEdit('ACTI', 'ACTI '), 'action ');
+      // The typed separator is kept.
+      expect(autoAcceptSeedEdit('aban', 'aban,'), 'abandon,');
+      expect(autoAcceptSeedEdit('aban', 'aban-'), 'abandon-');
+      expect(autoAcceptSeedEdit('aban', 'aban\n'), 'abandon\n');
     });
 
-    test('never fires on pastes, edits in the middle, or no match', () {
-      expect(autoAcceptSeedEdit('', 'aban'), isNull);
-      expect(autoAcceptSeedEdit('aban x', 'abanx x'), isNull);
-      expect(autoAcceptSeedEdit('xyz', 'xyzz'), isNull);
+    test('never completes while a word is still being typed', () {
+      // The old behaviour completed here and the next keystrokes became a
+      // junk word ("abandon don").
+      expect(autoAcceptSeedEdit('aba', 'aban'), isNull);
+      expect(autoAcceptSeedEdit('abandon aba', 'abandon aban'), isNull);
+      expect(autoAcceptSeedEdit('aband', 'abando'), isNull);
     });
 
-    test('the 49 prefix words are never auto-accepted', () {
+    test('never fires on pastes, edits in the middle, full words or no match',
+        () {
+      expect(autoAcceptSeedEdit('', 'aban '), isNull, reason: 'paste');
+      expect(autoAcceptSeedEdit('aban x', 'aban  x'), isNull, reason: 'middle');
+      expect(autoAcceptSeedEdit('xyzz', 'xyzz '), isNull, reason: 'no match');
+      expect(autoAcceptSeedEdit('abandon', 'abandon '), isNull,
+          reason: 'already a word');
+      expect(autoAcceptSeedEdit('abou', 'aboué'), isNull,
+          reason: 'not an ASCII separator');
+    });
+
+    test('the 49 prefix words are never extended', () {
       for (final w in ['act', 'art', 'you', 'win']) {
         expect(isAmbiguousPrefixWord(w), isTrue);
-        expect(autoAcceptSeedEdit(w.substring(0, 2), w), isNull);
+        expect(autoAcceptSeedEdit(w, '$w '), isNull);
       }
+    });
+
+    /// Types [phrase] one key at a time the way a keyboard does: each key is
+    /// appended to whatever the field holds after the previous one.
+    String typeKeyByKey(String phrase) {
+      var field = '';
+      for (final ch in phrase.split('')) {
+        final next = '$field$ch';
+        field = autoAcceptSeedEdit(field, next) ?? next;
+      }
+      return field;
+    }
+
+    test('typing whole words key by key ends with exactly what was typed', () {
+      const abandon = 'abandon abandon abandon abandon abandon abandon '
+          'abandon abandon abandon abandon abandon about';
+      const speculos = 'glory promote mansion idle axis finger extra february '
+          'uncover one trip resource lawn turtle enact monster seven myth '
+          'punch hobby comfort wild raise skin';
+      expect(typeKeyByKey(abandon), abandon);
+      expect(typeKeyByKey(speculos), speculos);
+      // Four letters and a space per word are enough.
+      expect(typeKeyByKey('aban aban abou '), 'abandon abandon about ');
+      expect(typeKeyByKey('glor prom mans '), 'glory promote mansion ');
     });
   });
 

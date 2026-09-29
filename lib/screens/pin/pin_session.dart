@@ -9,6 +9,11 @@
 /// * [pinToolProvider]: which tool is shown (not sensitive).
 /// * [pinComputeRunnerProvider]: where derivations run (`Isolate.run`).
 ///
+/// The session also keeps what must outlive a single tool: the "a pasted
+/// secret is still on the clipboard" flag (it survives wipes, so the reminder
+/// is back after a background wipe), the YubiKey tool's non-secret settings,
+/// and the open PIN dialogs (a full wipe closes them).
+///
 /// Nothing here is persisted. Provider values never render their secrets in
 /// `toString`, so a `ProviderObserver` cannot log them.
 library;
@@ -21,6 +26,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pointycastle/digests/sha256.dart';
 
 import 'pin24_engine.dart';
+import 'yubikey_engine.dart';
 
 /// The tools of the PIN tab, in picker order. [legacyMask] only appears
 /// with "Show legacy tools" on.
@@ -68,8 +74,24 @@ enum PinWipeScope {
   all,
 }
 
-/// Why a wipe happened (drives the SnackBar that explains it).
-enum PinWipeReason { user, background, inactivity, screenshot }
+/// Why a wipe happened (drives the SnackBar that explains it and whether the
+/// clipboard is cleaned up).
+enum PinWipeReason {
+  /// 🧹 / 🚨 buttons.
+  user,
+
+  /// The app went to the background.
+  background,
+
+  /// 120 s without interaction.
+  inactivity,
+
+  /// "Wipe" on the screenshot warning.
+  screenshot,
+
+  /// The PIN tab was left (swipe or tab bar).
+  left,
+}
 
 /// One wipe, delivered to every listener of [PinSession.wipes].
 @immutable
@@ -115,9 +137,27 @@ class PinSession {
     null,
   );
   final List<bool Function()> _probes = [];
+  final List<bool Function()> _unsavedProbes = [];
+  final List<VoidCallback> _dialogClosers = [];
   Timer? _idle;
   int _serial = 0;
   bool _disposed = false;
+
+  /// A paste put a secret (seed phrase, passphrase, master key) on the
+  /// system clipboard, which still holds it. Survives wipes: only clearing
+  /// the clipboard resets it.
+  final ValueNotifier<bool> clipboardHoldsPaste = ValueNotifier<bool>(false);
+
+  /// The YubiKey tool's settings (no secrets), kept across tool switches.
+  final YkSettings yk = YkSettings();
+
+  /// Set when a tool sent the user to PIN 24 to enter the seed; PIN 24 then
+  /// scrolls to the seed field and offers a way back.
+  PinTool? returnTo;
+
+  /// Clipboard cleanup for a user-initiated wipe or Clear, installed by the
+  /// section (which owns the privacy channel).
+  Future<void> Function()? onUserCleanup;
 
   /// The last wipe; listeners are notified on every new one.
   ValueListenable<PinWipeEvent?> get wipes => _wipes;
@@ -142,12 +182,50 @@ class PinSession {
   /// Whether any tool holds input/output or a seed is cached.
   bool get hasContent => seed.hasSeed || _probes.any((p) => p());
 
+  /// Registers a callback telling whether a tool holds values that exist
+  /// nowhere else (YubiKey random values), so leaving it asks first.
+  VoidCallback registerUnsavedProbe(bool Function() hasUnsaved) {
+    _unsavedProbes.add(hasUnsaved);
+    return () => _unsavedProbes.remove(hasUnsaved);
+  }
+
+  /// Whether leaving the current tool would lose values that exist nowhere
+  /// else.
+  bool get hasUnsavedValues => _unsavedProbes.any((p) => p());
+
+  /// Registers [close], which dismisses an open PIN dialog; every
+  /// [PinWipeScope.all] wipe calls it, so no dialog outlives the values it
+  /// is about. Returns the function that unregisters it.
+  VoidCallback registerDialog(VoidCallback close) {
+    _dialogClosers.add(close);
+    return () => _dialogClosers.remove(close);
+  }
+
+  /// Marks that a paste put a secret on the clipboard.
+  void markPasted() {
+    if (!_disposed) clipboardHoldsPaste.value = true;
+  }
+
+  /// Runs the clipboard cleanup of a user-initiated Clear (not awaited).
+  void userCleared() {
+    if (_disposed) return;
+    final cleanup = onUserCleanup;
+    if (cleanup != null) unawaited(cleanup());
+  }
+
   /// Zeroes the cached seed and tells every tool to clear itself.
   void wipe(
       {PinWipeScope scope = PinWipeScope.all, required PinWipeReason reason}) {
     if (_disposed) return;
     final hadContent = hasContent;
     seed.wipe();
+    if (scope == PinWipeScope.all) {
+      yk.serials = '';
+      returnTo = null;
+      for (final close in List.of(_dialogClosers)) {
+        close();
+      }
+    }
     _wipes.value = PinWipeEvent(
       serial: ++_serial,
       scope: scope,
@@ -162,9 +240,13 @@ class PinSession {
     _idle?.cancel();
     _idle = null;
     _probes.clear();
+    _unsavedProbes.clear();
+    _dialogClosers.clear();
+    onUserCleanup = null;
     seed.wipe();
     seed.dispose();
     _wipes.dispose();
+    clipboardHoldsPaste.dispose();
   }
 
   @override

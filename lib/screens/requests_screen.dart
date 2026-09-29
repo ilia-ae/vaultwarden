@@ -70,6 +70,7 @@ class _RequestsScreenState extends ConsumerState<RequestsScreen>
     if (pinVisible != _pinSecureHeld) {
       _pinSecureHeld = pinVisible;
       unawaited(_privacy.setSecureScreen(pinVisible));
+      pinTabVisible.value = pinVisible; // leaving the tab wipes it
     }
     if (index != _tabIndex) setState(() => _tabIndex = index);
   }

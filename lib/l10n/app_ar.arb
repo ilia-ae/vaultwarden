@@ -220,7 +220,6 @@
   "pinShowLegacy": "إظهار الأدوات القديمة",
   "pinShowLegacyHelp": "يضيف أداة القناع القديمة ذات 8 أرقام (للاسترداد فقط للقيم التي أُنشئت بها).",
   "pinOfflineNote": "كل ما هنا يعمل دون اتصال وعلى هذا الهاتف فقط. لا يُحفظ أي شيء تكتبه ولا يُزامَن ولا يُرسَل إلى أي مكان.",
-  "pinComingSoon": "هذه الأداة قادمة في هذا الإصدار — لم تجهز بعد.",
   "pinUnavailable": "تعذّر تشغيل أدوات PIN. أغلق التطبيق ثم افتحه من جديد.",
   "pinScreenshotsAllowedBuild": "إصدار تجريبي: لقطات الشاشة لهذه الشاشة مسموح بها.",
   "pinSeedInMemory": "ما زالت بذرة من PIN 24 في الذاكرة (عدد الكلمات: {words}).",
@@ -240,9 +239,9 @@
   "pinWipedInactivity": "تم مسح أدوات PIN بعد دقيقتين دون نشاط",
   "pinCopyHint": "انقر للنسخ",
   "pinTapToCopy": "انقر للنسخ — يُمسح من الحافظة بعد 60 ثانية.",
-  "pinCopied": "✓ تم النسخ!",
+  "pinCopied": "تم النسخ!",
   "pinCopiedTtl": "تم النسخ — يُمسح من الحافظة خلال 60 ثانية",
-  "pinCopyFailed": "✗ فشل",
+  "pinCopyFailed": "فشل",
   "pinPastedStillOnClipboard": "النص الملصق ما زال في الحافظة.",
   "pinClearClipboard": "مسح الحافظة",
   "pinClipboardCleared": "تم مسح الحافظة",
@@ -260,7 +259,7 @@
   "pin24Summary": "للاسترداد فقط: استخرج رموز PIN وكلمات مرور متوافقة مع Ledger من عبارة بذرة BIP39 من 12 أو 15 أو 18 أو 21 أو 24 كلمة.",
   "pin24Bullets": "• نسخة مطابقة بتًا ببت لاشتقاق LedgerHQ app-passwords\n• التحقق من BIP39 (قائمة الكلمات + المجموع الاختباري) قبل لمس السر\n• اسم مستعار لكل خدمة؛ أول N رقمًا من مخرجات الجهاز\n• استخدمها فقط عندما لا يتوفر جهاز Ledger الحقيقي",
   "pin24Caption": "محاكاة برمجية لتطبيق Ledger Passwords للاسترداد فقط. أدخل بذرة BIP39 واسمًا مستعارًا (nickname) لتحصل على رمز PIN الرقمي نفسه الذي سيكتبه الجهاز لهذا الاسم عند اختيار «Use numbers + Use separators». استخدم الجهاز الحقيقي كلما أمكن.",
-  "pin24Banner": "⚠ أداة للاسترداد فقط. استخدمها فقط عندما لا يتوفر جهاز Ledger. كتابة عبارة بذرة BIP39 على الهاتف تكشفها لنظام التشغيل وتطبيقات لوحة المفاتيح والحافظة ولقطات الشاشة وتسجيل الشاشة والنسخ الاحتياطية. فضّل الجهاز الحقيقي كلما أمكن. أغلق هذه الشاشة عند الانتهاء، وافترض أن الهاتف قد يكون مخترقًا — وغيّر الأسرار المهمة بعد ذلك إن أمكن.",
+  "pin24Banner": "أداة للاسترداد فقط. استخدمها فقط عندما لا يتوفر جهاز Ledger. كتابة عبارة بذرة BIP39 على الهاتف تكشفها لنظام التشغيل وتطبيقات لوحة المفاتيح والحافظة ولقطات الشاشة وتسجيل الشاشة والنسخ الاحتياطية. فضّل الجهاز الحقيقي كلما أمكن. أغلق هذه الشاشة عند الانتهاء، وافترض أن الهاتف قد يكون مخترقًا — وغيّر الأسرار المهمة بعد ذلك إن أمكن.",
   "pin24Acknowledge": "أفهم ذلك",
   "pin24AckRequired": "اقرأ التحذير أعلاه وانقر «أفهم ذلك» لفتح حقل عبارة البذرة.",
   "pin24SectionSeed": "1 · عبارة البذرة",
@@ -268,8 +267,8 @@
   "pin24SectionMode": "3 · الوضع",
   "pin24SectionOutput": "4 · النتيجة",
   "pin24SeedLabel": "بذرة BIP39 (‏12 / 15 / 18 / 21 / 24 كلمة؛ تعمل المسافات والشرطات والفواصل وفواصل الأسطر)",
-  "pin24SeedHelp": "الحقل مخفي دائمًا. تعكس الخانات أدناه ما كتبته — فعّل 👁 لإظهار الكلمات فيها. اللصق متاح، أما النسخ منه فغير متاح.",
-  "pin24ShowWords": "👁 إظهار الكلمات المكتوبة في الخانات أدناه  (معطّل افتراضيًا)",
+  "pin24SeedHelp": "الحقل مخفي دائمًا. تعكس الخانات أدناه ما كتبته — فعّل «إظهار الكلمات المكتوبة» لرؤية الكلمات فيها. اللصق متاح، أما النسخ منه فغير متاح.",
+  "pin24ShowWords": "إظهار الكلمات المكتوبة في الخانات أدناه (معطّل افتراضيًا)",
   "pin24ShowWordsHelp": "معطّل: نقاط وألوان التحقق فقط. مفعّل: تظهر الكلمة نفسها في كل خانة.",
   "pin24WordsMetric": "الكلمات",
   "pin24WordsCounter": "{typed} / {target}",
@@ -306,7 +305,7 @@
       "items": { "type": "String" }
     }
   },
-  "pin24PartialMasked": "كلمات غير مكتملة في المواضع: {positions} (فعّل 👁 أعلاه لرؤية الاقتراحات)",
+  "pin24PartialMasked": "كلمات غير مكتملة في المواضع: {positions} (فعّل «إظهار الكلمات المكتوبة» لرؤية الاقتراحات)",
   "@pin24PartialMasked": {
     "placeholders": {
       "positions": { "type": "String" }
@@ -338,14 +337,14 @@
   "pin24PassphraseLabel": "عبارة المرور",
   "pin24PassphraseCaption": "اتركها فارغة ما لم تكن قد عيّنت عبارة مرور على Ledger. إن كنت عيّنتها فيجب إدخالها هنا — وإلا فلن يطابق رمز PIN الجهاز.",
   "pin24PassphraseWhitespace": "تبدأ أو تنتهي بمسافة — وهي جزء من عبارة المرور",
-  "pin24WipeSeed": "🧹 مسح البذرة",
-  "pin24WipeSeedHelp": "🧹 يمسح عبارة البذرة وعبارة المرور ويصفّر البذرة المخزنة مؤقتًا، ويبقى الاسم المستعار والإعدادات. 🚨 يمسح كل شيء في هذا التبويب.",
-  "pin24WipeAll": "🚨 مسح الكل",
+  "pin24WipeSeed": "مسح البذرة",
+  "pin24WipeSeedHelp": "«مسح البذرة» يمسح عبارة البذرة وعبارة المرور ويصفّر البذرة المخزنة مؤقتًا، ويبقى الاسم المستعار والإعدادات. «مسح الكل» يمسح كل شيء في هذا التبويب.",
+  "pin24WipeAll": "مسح الكل",
   "pin24WipeAllTitle": "مسح كل شيء؟",
-  "pin24WipeAllBody": "سيُمسح عبارة البذرة وعبارة المرور والاسم المستعار والنتائج في هذا التبويب، وتُصفَّر البذرة المخزنة مؤقتًا.\n\n⚠ سيضيع رمز PIN المستخرج — انسخه أو دوّنه أولًا.",
-  "pin24WipeAllConfirm": "🚨 نعم، امسح الآن",
-  "pin24NicknameLabel": "الاسم المستعار (تمامًا كما على الجهاز — حساس لحالة الأحرف!)",
-  "pin24NicknameHelp": "يجب أن يطابق الاسم المستعار المخزّن على Ledger بايتًا ببايت. إذا استخدمت 'Visa' على الجهاز فإن 'visa' هنا سيعطي رمز PIN مختلفًا.",
+  "pin24WipeAllBody": "سيُمسح عبارة البذرة وعبارة المرور والاسم المستعار والنتائج في هذا التبويب، وتُصفَّر البذرة المخزنة مؤقتًا.\n\nسيضيع رمز PIN المستخرج — انسخه أو دوّنه أولًا.",
+  "pin24WipeAllConfirm": "نعم، امسح الآن",
+  "pin24NicknameLabel": "الاسم المستعار",
+  "pin24NicknameHelp": "تمامًا كما على الجهاز — حساس لحالة الأحرف. يجب أن يطابق الاسم المستعار المخزّن على Ledger بايتًا ببايت: إذا استخدمت 'Visa' على الجهاز فإن 'visa' هنا سيعطي رمز PIN مختلفًا.",
   "pin24NicknameWhitespace": "يبدأ أو ينتهي بمسافة — وهي جزء من الاسم المستعار",
   "pin24NicknameNonAscii": "أحرف خارج ASCII — يجب أن تطابق الجهاز بايتًا ببايت",
   "pin24NicknameTooLong": "{bytes} بايت بترميز UTF-8 — يحتفظ Ledger بأسماء لا تتجاوز {max} بايت",
@@ -355,9 +354,9 @@
       "max": { "type": "int" }
     }
   },
-  "pin24ModePin": "🔢 PIN  (أرقام فقط)",
+  "pin24ModePin": "PIN (أرقام فقط)",
   "pin24ModePinHelp": "رمز PIN رقمي — أول N رقمًا من مخرجات الجهاز NUMBERS+SEPARATORS.",
-  "pin24ModePassword": "🔑 كلمة مرور  (أي مجموعة أحرف)",
+  "pin24ModePassword": "كلمة مرور (أي مجموعة أحرف)",
   "pin24ModePasswordHelp": "كلمة مرور Ledger كاملة من 20 حرفًا — كاختيار مجموعات الأحرف على الجهاز.",
   "pin24Length": "الطول",
   "pin24LengthButton": "الطول {length}",
@@ -366,12 +365,12 @@
       "length": { "type": "int" }
     }
   },
-  "pin24LengthCustom": "طول مخصص (1–12).",
+  "pin24LengthCustom": "طول مخصص (‎1–12‎).",
   "pin24LengthShorter": "أقصر",
   "pin24LengthLonger": "أطول",
   "pin24Charsets": "مجموعات الأحرف (كما تفعّلها على الجهاز)",
   "pin24CharsetSeparators": "- _ مسافة",
-  "pin24CharsetNone": "⚠ اختر مجموعة أحرف واحدة على الأقل.",
+  "pin24CharsetNone": "اختر مجموعة أحرف واحدة على الأقل.",
   "pin24SpecialsTitle": "الرموز الخاصة",
   "pin24SpecialsBody": "تسمية المفتاح الأخير اختصار. عند تفعيل الرموز الخاصة يختار الجهاز من كل هذه:",
   "pin24Gate1": "أدخل عبارة BIP39 صحيحة أعلاه لتفعيل الاشتقاق.",
@@ -390,25 +389,25 @@
       "length": { "type": "int" }
     }
   },
-  "pin24RevealPin": "👁 إظهار رمز PIN كنص",
+  "pin24RevealPin": "إظهار رمز PIN كنص",
   "pin24RevealPinHelp": "معطّل: خانات الأرقام فقط. مفعّل: يظهر أيضًا كنص عادي لتدوينه.",
-  "pin24PinCaption": "هذا ما سيكتبه جهاز Ledger لو فتحت app-passwords واخترت فقط «Use numbers» + «Use separators» والاسم المستعار «{nickname}» وقرأت أول {length} رقمًا (مع تجاهل الفواصل). إن لم يطابق الجهاز فتحقق من حالة أحرف الاسم المستعار ومن عبارة مرور BIP39 إن كنت عيّنتها.",
+  "pin24PinCaption": "هذا ما سيكتبه جهاز Ledger لو فتحت app-passwords واخترت فقط «Use numbers» + «Use separators» والاسم المستعار «{nickname}» وقرأت {length, plural, one{الرقم الأول} two{أول رقمين} few{أول {length} أرقام} many{أول {length} رقمًا} other{أول {length} رقم}} (مع تجاهل الفواصل). إن لم يطابق الجهاز فتحقق من حالة أحرف الاسم المستعار ومن عبارة مرور BIP39 إن كنت عيّنتها.",
   "@pin24PinCaption": {
     "placeholders": {
       "nickname": { "type": "String" },
       "length": { "type": "int" }
     }
   },
-  "pin24PaddingWarning": "مخرجات الجهاز فيها {digits} رقمًا فقط، فأُكمل رمز PIN بـ {zeros} صفرًا في آخره. قارن مع الجهاز بالقاعدة نفسها.",
+  "pin24PaddingWarning": "مخرجات الجهاز فيها {digits, plural, zero{0 أرقام} one{رقم واحد} two{رقمان} few{{digits} أرقام} many{{digits} رقمًا} other{{digits} رقم}} فقط، فأُكمل رمز PIN بـ{zeros, plural, one{صفر واحد} two{صفرين} few{{zeros} أصفار} many{{zeros} صفرًا} other{{zeros} صفر}} في آخره. قارن مع الجهاز بالقاعدة نفسها.",
   "@pin24PaddingWarning": {
     "placeholders": {
       "digits": { "type": "int" },
       "zeros": { "type": "int" }
     }
   },
-  "pin24FullToggle": "🔍 إظهار كلمة المرور المستخرجة كاملة (للتصحيح / المقارنة مع الجهاز)",
+  "pin24FullToggle": "إظهار كلمة المرور المستخرجة كاملة (للتصحيح / المقارنة مع الجهاز)",
   "pin24FullHelp": "يعرض سلسلة الأرقام والفواصل الكاملة التي سيكتبها Ledger (␣ = مسافة). استخدمه مرة واحدة عند الإعداد الأول: أنشئ على الجهاز إدخالًا باسم «pin24-test» وقارن حرفًا بحرف، ثم أوقفه.",
-  "pin24FullCaption": "كلمة المرور المستخرجة كاملة. رمز PIN أعلاه هو أول {length} رقمًا من هذه السلسلة (دون الفواصل). قارنها حرفًا بحرف بما يكتبه Ledger بالإعدادات نفسها.",
+  "pin24FullCaption": "كلمة المرور المستخرجة كاملة. رمز PIN أعلاه هو {length, plural, one{الرقم الأول} two{أول رقمين} few{أول {length} أرقام} many{أول {length} رقمًا} other{أول {length} رقم}} من هذه السلسلة (دون الفواصل). قارنها حرفًا بحرف بما يكتبه Ledger بالإعدادات نفسها.",
   "@pin24FullCaption": {
     "placeholders": {
       "length": { "type": "int" }
@@ -428,9 +427,9 @@
   "pin24ErrorBip32": "هذا الاسم المستعار يؤدي إلى مفتاح غير صالح نادر للغاية، ولا يستطيع الجهاز اشتقاقه أيضًا. استخدم اسمًا مستعارًا آخر.",
   "pin24ErrorGeneric": "فشل الاشتقاق بشكل غير متوقع. لا تُعرض البذرة في هذه الرسالة عمدًا. تحقق من طول العبارة وقائمة الكلمات والمجموع الاختباري، وإن تكررت المشكلة فامسح كل شيء وابدأ من جديد.",
   "pin24ErrorGenericShort": "فشل الاشتقاق بشكل غير متوقع. لا تُعرض البذرة في هذه الرسالة عمدًا.",
-  "pin24ThreatTitle": "⚠ نموذج التهديد وقائمة الاسترداد",
+  "pin24ThreatTitle": "نموذج التهديد وقائمة الاسترداد",
   "pin24ThreatProtectsTitle": "كيف تحمي هذه الشاشة البذرة",
-  "pin24ThreatProtectsBody": "• حقل البذرة مخفي دائمًا ولا يُعرض كنص عادي؛ يمكن اللصق فيه فقط ولا يمكن النسخ منه.\n• تم إيقاف اقتراحات لوحة المفاتيح والتصحيح التلقائي وتعلّم لوحة المفاتيح والتعبئة التلقائية في الحقول السرية.\n• يُحسب كل شيء على هذا الهاتف دون اتصال، في معزل (isolate) منفصل قصير العمر؛ ولا يُرسل شيء إلى خادم Vaultwarden أو Firebase أو أي مكان آخر.\n• لا يُحفظ أي شيء سري: لا في الإعدادات ولا في المزامنة السحابية ولا في النسخ الاحتياطية ولا في السجلات.\n• تبقى البذرة المشتقة في الذاكرة فقط لتجنب إعادة الاشتقاق، وتُصفَّر عند 🧹 و🚨 وعند انتقال التطبيق إلى الخلفية وبعد دقيقتين دون نشاط وعند قفل التطبيق.\n• يمنع Android لقطات الشاشة وتسجيلها لهذا التبويب، ويخفيه iOS أثناء تسجيل الشاشة أو عرضها.\n• تنتهي صلاحية النتائج المنسوخة في الحافظة بعد 60 ثانية ولا تُشارك مع أجهزتك الأخرى.",
+  "pin24ThreatProtectsBody": "• حقل البذرة مخفي دائمًا ولا يُعرض كنص عادي؛ يمكن اللصق فيه فقط ولا يمكن النسخ منه.\n• تم إيقاف اقتراحات لوحة المفاتيح والتصحيح التلقائي وتعلّم لوحة المفاتيح والتعبئة التلقائية في الحقول السرية.\n• يُحسب كل شيء على هذا الهاتف دون اتصال، في معزل (isolate) منفصل قصير العمر؛ ولا يُرسل شيء إلى خادم Vaultwarden أو Firebase أو أي مكان آخر.\n• لا يُحفظ أي شيء سري: لا في الإعدادات ولا في المزامنة السحابية ولا في النسخ الاحتياطية ولا في السجلات.\n• تبقى البذرة المشتقة في الذاكرة فقط لتجنب إعادة الاشتقاق، وتُصفَّر عند «مسح البذرة» و«مسح الكل» وعند مغادرة تبويب PIN وعند انتقال التطبيق إلى الخلفية وبعد دقيقتين دون نشاط وعند قفل التطبيق.\n• يمنع Android لقطات الشاشة وتسجيلها لهذا التبويب، ويخفيه iOS أثناء تسجيل الشاشة أو عرضها.",
   "pin24ThreatCannotTitle": "ما لا تستطيع الحماية منه",
   "pin24ThreatCannotBody": "• هاتف مخترق: برمجيات خبيثة، أو كسر حماية أو صلاحيات روت، أو تطبيق لوحة مفاتيح خبيث (لا يستطيع Android منع لوحات المفاتيح الخارجية، ويفرض iOS لوحة النظام في الحقول المخفية فقط).\n• خدمات إمكانية الوصول وقارئات الشاشة التي تستطيع قراءة الشاشة.\n• لقطات الشاشة على iOS (لا يمكن منعها — تحصل على تحذير فقط)، والكاميرات والنظر من فوق الكتف.\n• لا يمكن مسح سلاسل Dart النصية: قد تبقى العبارة التي كتبتها في ذاكرة التطبيق إلى أن تُستبدل. تُصفَّر مخازن البذرة الثنائية فقط.\n• ذاكرتك: كلمة واحدة خاطئة تعطي رمز PIN مختلفًا تمامًا، والمجموع الاختباري يكشف معظم الأخطاء لا كلها. ولا يمكن استعادة عبارة مرور منسية.",
   "pin24ThreatUseTitle": "استخدم هذه الأداة عندما",
@@ -438,9 +437,9 @@
   "pin24ThreatDontTitle": "لا تستخدمها عندما",
   "pin24ThreatDontBody": "• يكون Ledger متاحًا — استخدم الجهاز.\n• لا يكون الهاتف هاتفك، أو يكون مكسور الحماية أو بصلاحيات روت، أو فيه لوحات مفاتيح أو تطبيقات إمكانية وصول مجهولة.\n• قد يكون هناك من يسجّل الشاشة أو ينظر إليها.\n• تريد الراحة فقط: كتابة البذرة في هاتف تكشفها أكثر بكثير من محفظة الأجهزة.",
   "pin24ThreatStepsTitle": "خطوات الاسترداد الحقيقي",
-  "pin24ThreatStepsBody": "1. استخدم هاتفًا تثق به، ويُفضّل في وضع الطيران.\n2. أدخل عبارة المرور أيضًا إن كنت عيّنتها على Ledger.\n3. اكتب الاسم المستعار تمامًا كما على الجهاز (حساس لحالة الأحرف).\n4. استخرج ما تحتاجه وانسخه أو دوّنه، ثم انقر 🚨 مسح الكل وأغلق التطبيق من مبدّل التطبيقات.\n5. استعد Ledger على جهاز جديد، وغيّر الأسرار المهمة جدًا إن كان الهاتف قد يكون مخترقًا.",
+  "pin24ThreatStepsBody": "1. استخدم هاتفًا تثق به، ويُفضّل في وضع الطيران.\n2. أدخل عبارة المرور أيضًا إن كنت عيّنتها على Ledger.\n3. اكتب الاسم المستعار تمامًا كما على الجهاز (حساس لحالة الأحرف).\n4. استخرج ما تحتاجه وانسخه أو دوّنه، ثم انقر «مسح الكل» وأغلق التطبيق من مبدّل التطبيقات.\n5. استعد Ledger على جهاز جديد، وغيّر الأسرار المهمة جدًا إن كان الهاتف قد يكون مخترقًا.",
   "pin24CleanupTitle": "التنظيف بعد الاسترداد",
-  "pin24CleanupCaption": "عند الانتهاء: انسخ ما تحتاجه أو دوّنه، وانقر 🚨 مسح الكل، ثم أغلق التطبيق من مبدّل التطبيقات. لا يمكن تصفير سلاسل Dart النصية، لذا فإن إغلاق التطبيق هو ما يزيلها من الذاكرة نهائيًا.",
+  "pin24CleanupCaption": "عند الانتهاء: انسخ ما تحتاجه أو دوّنه، وانقر «مسح الكل»، ثم أغلق التطبيق من مبدّل التطبيقات. لا يمكن تصفير سلاسل Dart النصية، لذا فإن إغلاق التطبيق هو ما يزيلها من الذاكرة نهائيًا.",
   "pin24SelfTestCaption": "تحقق من أن محرك هذا الإصدار يعيد إنتاج متجهات اختبار Ledger الرسمية (بذرة Speculos العامة — لا يُستخدم أي شيء كتبته).",
   "pin24SelfTest": "فحص المحرك",
   "pin24SelfTestOk": "المحرك سليم: تطابق {passed} من {total} من المتجهات الرسمية.",
@@ -457,5 +456,417 @@
       "total": { "type": "int" }
     }
   },
-  "pin24NicknameBrokenRemoved": "أُزيل حرف غير صالح (بديل غير مقترن) — تحقق من الاسم المستعار"
+  "pin24NicknameBrokenRemoved": "أُزيل حرف غير صالح (بديل غير مقترن) — تحقق من الاسم المستعار",
+
+  "pinFixErrorsAbove": "صحّح الأخطاء المميّزة أعلاه لرؤية النتيجة.",
+  "pinShiftSummary": "احفظ متجهًا سريًا واحدًا بدل رموز PIN كثيرة: رمز PIN الجديد = رمز PIN الأساسي + المتجه، رقمًا برقم ودون حمل.",
+  "pinShiftCaption": "إزاحة لكل خانة بباقي القسمة على 10. تمويه يساعد على التذكّر وليس تشفيرًا — راجع «كيف تحسبها على الورق» و«نموذج التهديد» أدناه.",
+  "pinShiftSectionDirection": "1 · الاتجاه",
+  "pinShiftEncode": "ترميز",
+  "pinShiftDecode": "فك الترميز",
+  "pinShiftEncodeHelp": "الجديد = الأساسي + المتجه (mod 10)",
+  "pinShiftDecodeHelp": "الأساسي = الجديد − المتجه (mod 10)",
+  "pinShiftSectionLength": "2 · الطول",
+  "pinShiftLengthMustMatch": "يجب أن يتساوى طول رمز PIN وطول المتجه.",
+  "pinShiftLengthCustom": "طول مخصص (‎1–16‎).",
+  "pinShiftSectionPin": "3 · رمز PIN",
+  "pinShiftFieldBase": "رمز PIN الأساسي",
+  "pinShiftFieldDerived": "رمز PIN المشتق (الجديد)",
+  "pinShiftFieldBaseHelp": "رمز PIN الأساسي — أرقام فقط، وعددها {length}.",
+  "@pinShiftFieldBaseHelp": {
+    "placeholders": {
+      "length": { "type": "int" }
+    }
+  },
+  "pinShiftFieldDerivedHelp": "رمز PIN المشتق — أرقام فقط، وعددها {length}.",
+  "@pinShiftFieldDerivedHelp": {
+    "placeholders": {
+      "length": { "type": "int" }
+    }
+  },
+  "pinShiftPinNonDigit": "في رمز PIN محارف ليست أرقامًا في الخانات: {positions}. المسموح ‎0–9‎ فقط.",
+  "@pinShiftPinNonDigit": {
+    "placeholders": {
+      "positions": { "type": "String" }
+    }
+  },
+  "pinShiftPinLengthWarning": "طول رمز PIN هو {actual}، والمتوقع {expected}.",
+  "@pinShiftPinLengthWarning": {
+    "placeholders": {
+      "actual": { "type": "int" },
+      "expected": { "type": "int" }
+    }
+  },
+  "pinShiftSectionVector": "4 · متجه الإزاحة",
+  "pinShiftFieldVector": "متجه الإزاحة",
+  "pinShiftFieldVectorHelp": "سرّ لكل خانة — أرقام فقط، وعددها {length}.",
+  "@pinShiftFieldVectorHelp": {
+    "placeholders": {
+      "length": { "type": "int" }
+    }
+  },
+  "pinShiftVectorNonDigit": "في المتجه محارف ليست أرقامًا في الخانات: {positions}. المسموح ‎0–9‎ فقط.",
+  "@pinShiftVectorNonDigit": {
+    "placeholders": {
+      "positions": { "type": "String" }
+    }
+  },
+  "pinShiftVectorLengthWarning": "طول المتجه هو {actual}، والمتوقع {expected}.",
+  "@pinShiftVectorLengthWarning": {
+    "placeholders": {
+      "actual": { "type": "int" },
+      "expected": { "type": "int" }
+    }
+  },
+  "pinShiftWhyShape": "لماذا هذا الشكل",
+  "pinShiftWhyShapeBody": "سرّ لكل خانة طوله {length} بالضبط — بطول رمز PIN نفسه. فضاء المفاتيح إذا بقي المتجه سريًا: {keyspace}، وهي فرص رمز PIN عشوائي نفسها.",
+  "@pinShiftWhyShapeBody": {
+    "placeholders": {
+      "length": { "type": "int" },
+      "keyspace": { "type": "String" }
+    }
+  },
+  "pinShiftSectionResult": "5 · النتيجة",
+  "pinShiftReveal": "إظهار رمز PIN الأساسي والمتجه",
+  "pinShiftRevealHelp": "متوقف (افتراضيًا): الناتج فقط. مُفعّل: المُدخل + المتجه + الناتج وجدول الأرقام. يتوقف في كل مرة تُمسح فيها علامة التبويب.",
+  "pinShiftRowInputBase": "المُدخل (رمز PIN الأساسي)",
+  "pinShiftRowInputDerived": "المُدخل (رمز PIN المشتق)",
+  "pinShiftRowVector": "المتجه ({sign} لكل خانة)",
+  "@pinShiftRowVector": {
+    "placeholders": {
+      "sign": { "type": "String" }
+    }
+  },
+  "pinShiftRowOutputDerived": "الناتج (المشتق)",
+  "pinShiftRowOutputBase": "الناتج (رمز PIN الأساسي)",
+  "pinShiftOutputEmpty": "الناتج: غير جاهز بعد",
+  "pinShiftFillBoth": "املأ الحقلين بـ{length, plural, one{رقم واحد} two{رقمين} few{{length} أرقام} many{{length} رقمًا} other{{length} رقم}} بالضبط.",
+  "@pinShiftFillBoth": {
+    "placeholders": {
+      "length": { "type": "int" }
+    }
+  },
+  "pinShiftHiddenNote": "رمز PIN الأساسي والمتجه مخفيان. فعّل «إظهار رمز PIN الأساسي والمتجه» أعلاه لرؤيتهما.",
+  "pinShiftRoundTripOk": "التحقق العكسي سليم — العملية العكسية تعيد الأساسي.",
+  "pinShiftRoundTripOkDecode": "التحقق العكسي سليم — ترميز الناتج يعيد رمز PIN المشتق.",
+  "pinShiftRoundTripMismatch": "فشل التحقق العكسي: العملية العكسية تعطي قيمة مختلفة عمّا كُتب.",
+  "pinShiftWeakZero": "المتجه كله أصفار: الناتج يساوي المُدخل — لا تمويه إطلاقًا.",
+  "pinShiftWeakEqualsBase": "المتجه يساوي رمز PIN الأساسي: الجديد = 2 × الأساسي (mod 10)، وهذا يكشف نمط الأساسي.",
+  "pinShiftWeakFives": "المتجه كله خمسات: الترميز وفك الترميز يعطيان النتيجة نفسها وكل رقم يتحرك بمقدار 5 فقط — نمط واضح.",
+  "pinShiftBreakdownTitle": "التفصيل رقمًا برقم",
+  "pinShiftColInput": "المُدخل",
+  "pinShiftColVector": "المتجه",
+  "pinShiftColFormula": "الصيغة",
+  "pinShiftColOutput": "الناتج",
+  "pinShiftNoCopyNote": "لا يوجد زر نسخ عن قصد: رمز PIN المشتق يُعاد حسابه ذهنيًا أو على الورق ولا يُكتب أبدًا.",
+  "pinShiftPaperTitle": "كيف تحسبها على الورق",
+  "pinShiftPaperIntroEncode": "اكتب رمز PIN الأساسي، واكتب المتجه تحته، واجمع رقمًا برقم مع أخذ باقي القسمة على 10 — أسقط خانة العشرات من أي مجموع يبلغ 10 أو أكثر.",
+  "pinShiftPaperIntroDecode": "اكتب رمز PIN المشتق، واكتب المتجه تحته، واطرح رقمًا برقم مع أخذ باقي القسمة على 10 — أضف 10 إلى أي نتيجة سالبة.",
+  "pinShiftPaperLegend": "base — رمز PIN الأساسي من {length, plural, one{رقم واحد} two{رقمين} few{{length} أرقام} many{{length} رقمًا} other{{length} رقم}} · vec — المتجه السري من {length, plural, one{رقم واحد} two{رقمين} few{{length} أرقام} many{{length} رقمًا} other{{length} رقم}} · new — رمز PIN المشتق.",
+  "@pinShiftPaperLegend": {
+    "placeholders": {
+      "length": { "type": "int" }
+    }
+  },
+  "pinShiftPaperExampleEncode": "مثال محلول لرمز PIN من 4 أرقام، ترميز ‎+3719:",
+  "pinShiftPaperExampleEncodeNote": "العمود الأخير: ‎4 + 9 = 13‎ — أسقط رقم العشرات.",
+  "pinShiftPaperExampleDecode": "مثال محلول، فك ترميز ‎−3719:",
+  "pinShiftPaperExampleDecodeNote": "العمود الأخير: ‎3 − 9 = −6‎ — أضف 10.",
+  "pinShiftPaperRulesTitle": "القواعد في سطر واحد",
+  "pinShiftPaperRules": "• لا حمل بين الأعمدة. كل خانة مستقلة.\n• الترميز = جمع، وفك الترميز = طرح. الآن: {direction}.\n• المجموع ≥ 10: أسقط الواحد في البداية.\n• الفرق < 0: أضف 10.\n• الحساب نفسه لرموز PIN من 4 أرقام أو 16 رقمًا.",
+  "@pinShiftPaperRules": {
+    "placeholders": {
+      "direction": { "type": "String" }
+    }
+  },
+  "pinShiftDirectionEncode": "ترميز",
+  "pinShiftDirectionDecode": "فك ترميز",
+  "pinShiftPaperDontTitle": "ما يجب تجنّبه على الورق",
+  "pinShiftPaperDontBody": "• لا تحتفظ بالأساسي والمتجه والجديد على ورقة واحدة تحملها معك: احفظ المتجه في ذهنك وأتلف الورقة فورًا.\n• لا تستخدم متجهًا كله أصفار — فهو لا يغيّر شيئًا.\n• لا تستخدم متجهًا يساوي الأساسي: الجديد = 2 × الأساسي (mod 10) يكشف النمط.\n• لا تكرر متجهًا واحدًا لعائلات رموز PIN مختلفة الحساسية: تسرّب زوج واحد (الأساسي، الجديد) يكسرها كلها.",
+  "pinShiftThreatTitle": "نموذج التهديد والقيود",
+  "pinShiftThreatBody": "• ليس تشفيرًا. إزاحة جمعية على طريقة قيصر بلا قوة تشفيرية — استخدم مدير كلمات مرور أو مفتاحًا عتاديًا للأسرار الحقيقية.\n• يجب أن يكون المتجه بطول رمز PIN (هنا {length}). أي متجه أقصر يقلّص فضاء المفاتيح إلى ما دون ‎10^{length}‎.\n• تسرّب رمز PIN الأساسي وبقي المتجه سريًا: أمام المهاجم ‎10^{length}‎ احتمالًا لرمز PIN المشتق — مثل رمز PIN عشوائي.\n• تسرّب زوج واحد (الأساسي، الجديد) يكشف المتجه كله بعملية طرح واحدة — وهذه خاصية أساسية لأي إزاحة جمعية.\n• عدة رموز جديدة دون أساسياتها تكشف الفروق الثنائية بين الأساسيات في كل خانة — وهذا خطر إذا كانت الأساسيات مترابطة (تواريخ، أرقام هواتف).\n• الخوارزمية علنية: المتجه وحده هو السر.",
+  "@pinShiftThreatBody": {
+    "placeholders": {
+      "length": { "type": "int" }
+    }
+  },
+  "pinShiftUseTitle": "متى يكون ذلك منطقيًا",
+  "pinShiftUseBody": "• رموز PIN منخفضة أو متوسطة القيمة تُقفل بعد محاولات خاطئة قليلة (بطاقات، أقفال أبواب، تطبيقات محلية).\n• لا تريد حفظ رمز PIN منفصل لكل بطاقة أو كتابته.\n• أنت مستعد لتغيير رموز PIN الأساسية إذا احتمل تسرّب زوج (الأساسي، الجديد).",
+  "pinShiftDontUseTitle": "متى لا تستخدمها",
+  "pinShiftDontUseBody": "• الأسرار الحقيقية: كلمات مرور البنوك وعبارات البذرة والمفاتيح الخاصة — استخدم لها مدير كلمات مرور أو مفتاحًا عتاديًا.\n• أي شيء بلا حدّ لعدد المحاولات: التخمين هناك فوري.\n• عندما قد يعرف أحدٌ الأساسي والجديد معًا (العائلة، الزملاء، الشركاء السابقون).",
+  "pinLegacyBadge": "قديمة",
+  "pinLegacyBanner": "أداة قديمة حلّت محلها PIN Shift. هي هنا فقط لاسترداد رموز PIN أُنشئت بسكربت pass_pin المؤرشف. تعمل في اتجاه واحد — لا يمكن فك أي شيء — والخانة التي يُعاد المرور بها تُخرج 0 بصمت.",
+  "pinLegacyHow": "قناع من 8 أرقام يمرّ على سلسلة من 20 محرفًا. الرقم الأول يختار المحرف ‎1–9‎؛ وكل رقم تالٍ يتقدم بعدد مساوٍ من المحارف مع الالتفاف بعد 20. كل محرف يُزار يدخل في الناتج ويُستبدل بـ 0.",
+  "pinLegacyNotPorted": "السكربت المؤرشف الآخر، ‏2_pass.py (FIDO2)، غير مُضمَّن: فهو لا يعمل ولن يطبع إلا قيمة عشوائية.",
+  "pinLegacySectionMask": "1 · القناع",
+  "pinLegacyMaskLabel": "القناع (8 أرقام)",
+  "pinLegacyMaskHelp": "8 أرقام بالضبط من ‎1–9‎ (الصفر غير مسموح)، مثل 24681357. تُقبل أرقام ASCII فقط، عن قصد.",
+  "pinLegacyMaskAsciiOnly": "في القناع أرقام من نظام كتابة آخر (هندية عربية أو كاملة العرض). تُقبل أرقام ASCII ‏0–9 فقط — بدّل لوحة المفاتيح إلى الأرقام الغربية.",
+  "pinLegacyErrMaskFormat": "يجب أن يحتوي القناع على 8 أرقام بالضبط، مثل '24681357'.",
+  "pinLegacyErrInputLength": "يجب أن تحتوي سلسلة الإدخال على 20 محرفًا بالضبط (دون المسافات).",
+  "pinLegacyErrMaskValueRange": "يجب أن تكون قيمة القناع في الخانة {position} بين 1 و20.",
+  "@pinLegacyErrMaskValueRange": {
+    "placeholders": {
+      "position": { "type": "int" }
+    }
+  },
+  "pinLegacySectionInput": "2 · سلسلة الإدخال",
+  "pinLegacyInputLabel": "سلسلة من 20 محرفًا",
+  "pinLegacyInputHelp": "تُتجاهل المسافات وعلامات الجدولة وفواصل الأسطر. وكل محرف آخر يُحسب واحدًا — حروف ورموز ورموز تعبيرية.",
+  "pinLegacyInputBroken": "في السلسلة محرف تالف (بديل غير مقترن). امسح الحقل واكتبها من جديد.",
+  "pinLegacySectionOutput": "3 · الناتج",
+  "pinLegacyReveal": "إظهار المسار",
+  "pinLegacyRevealHelp": "يعرض الخانات المُزارة والسلسلة مع المحارف المختارة — وهذا يكشف القناع والسلسلة معًا.",
+  "pinLegacyOutputEmpty": "الناتج: غير جاهز بعد",
+  "pinLegacyIncomplete": "أدخل قناعًا من 8 أرقام وسلسلة من 20 محرفًا لرؤية الناتج.",
+  "pinLegacyOutputSemantics": "الناتج: {chars}",
+  "@pinLegacyOutputSemantics": {
+    "placeholders": {
+      "chars": { "type": "String" }
+    }
+  },
+  "pinLegacyOutputCaption": "8 محارف مأخوذة من السلسلة كما هي.",
+  "pinLegacyNotNumeric": "في الناتج محارف غير الأرقام لأن السلسلة تحتويها. استخدمه تمامًا كما يظهر.",
+  "pinLegacyRevisitWarning": "يعود المسار إلى خانة مستخدمة: عدد محارف الناتج المفروضة 0 هو {count}، ولا يمكن تمييزها عن 0 حقيقي.",
+  "@pinLegacyRevisitWarning": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "pinLegacyRevisitSteps": "فُرض 0 في خانات الناتج: {steps}.",
+  "@pinLegacyRevisitSteps": {
+    "placeholders": {
+      "steps": { "type": "String" }
+    }
+  },
+  "pinLegacyVisited": "الخانات المُزارة (‎1–20‎) بالترتيب: {positions}",
+  "@pinLegacyVisited": {
+    "placeholders": {
+      "positions": { "type": "String" }
+    }
+  },
+  "pinLegacyAboutTitle": "القوة والقيود",
+  "pinLegacyAboutBody": "• على الأكثر ‎9^8 ≈ 43‎ مليون مسار (نحو 25 بت) — وأقل عمليًا لأن الزيارات المكررة تنهار إلى 0.\n• في اتجاه واحد: لا يوجد فك.\n• من يعرف السلسلة ويرى ناتجًا واحدًا يعرف الكثير عن القناع.\n• لا يُحفظ شيء هنا؛ تُمسح الحقول عندما يغادر التطبيق الشاشة.\n• لرموز PIN الجديدة استخدم PIN Shift.",
+  "pinYkSummary": "رموز PIN وPUK ورموز الوصول لمفاتيح YubiKey، مطابقة لما تنتجه سكربتات yubikey-fleet: من إدخالات Ledger Passwords أو من مفتاح رئيسي أو عشوائيًا.",
+  "pinYkDesktopTitle": "على الحاسوب فقط",
+  "pinYkDesktopOnlyNote": "هذه الأداة تحسب القيم وتعرضها فقط. بيانات الدفعات بصيغة YAML و‎--fill والتهيئة عبر ykman ‏(yk-batch.sh وyk-provision.sh) تبقى على الحاسوب.",
+  "pinYkSectionSource": "1 · المصدر",
+  "pinYkSourceLedger": "بذرة Ledger",
+  "pinYkSourceMaster": "مفتاح رئيسي",
+  "pinYkSourceRandom": "عشوائي",
+  "pinYkSourceLedgerHelp": "تأتي رموز PIN من إدخالات Ledger Passwords‏ yk-<serial>-pins وyk-<serial>-puk (وyk-<serial>-admin): تمامًا ما يكتبه الجهاز لهذه الأسماء.",
+  "pinYkSourceMasterHelp": "القيم نفسها التي يعطيها yk-batch-secrets.py في وضع derived: ‏HMAC-SHA256 للمفتاح الرئيسي على yk-fleet/<serial>/<NN>. المفتاح الرئيسي والرقم التسلسلي نفساهما يعطيان دائمًا القيم نفسها في كل دفعة.",
+  "pinYkSourceRandomHelp": "الأبجديات والأطوال نفسها التي يستخدمها yk-batch-secrets.py في وضع random، من المولّد العشوائي الآمن للنظام.",
+  "pinYkSectionSerials": "2 · الأرقام التسلسلية",
+  "pinYkSerialsLabel": "الأرقام التسلسلية",
+  "pinYkSerialsHelp": "رقم واحد أو أكثر، مفصولة بفواصل أو مسافات أو أسطر جديدة. أرقام ASCII فقط؛ تُستخدم تمامًا كما كُتبت.",
+  "pinYkSerialsCount": "عدد المفاتيح: {count}",
+  "@pinYkSerialsCount": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "pinYkSerialsInvalid": "ليس رقمًا تسلسليًا (أرقام ASCII ‏0–9 فقط): {tokens}",
+  "@pinYkSerialsInvalid": {
+    "placeholders": {
+      "tokens": { "type": "String" }
+    }
+  },
+  "pinYkSerialsDuplicates": "أُزيلت التكرارات: {serials}",
+  "@pinYkSerialsDuplicates": {
+    "placeholders": {
+      "serials": { "type": "String" }
+    }
+  },
+  "pinYkSerialsLeadingZero": "{serials}: يُحتفظ بالصفر البادئ. «0012389» مفتاح مختلف عن «12389» — تُستخدم الأرقام التسلسلية كما هي.",
+  "@pinYkSerialsLeadingZero": {
+    "placeholders": {
+      "serials": { "type": "String" }
+    }
+  },
+  "pinYkSerialsTooMany": "{max, plural, one{يُستخدم أول رقم تسلسلي فقط.} two{يُستخدم أول رقمين تسلسليين فقط.} few{تُستخدم أول {max} أرقام تسلسلية فقط.} many{يُستخدم أول {max} رقمًا تسلسليًا فقط.} other{يُستخدم أول {max} رقم تسلسلي فقط.}}",
+  "@pinYkSerialsTooMany": {
+    "placeholders": {
+      "max": { "type": "int" }
+    }
+  },
+  "pinYkSerialsOtpTooLong": "{serials}: أطول من 12 رقمًا، لذا لا يتسع رمز وصول OTP المأخوذ من الرقم التسلسلي لـ 12 محرفًا (سيفشل الفحص أدناه).",
+  "@pinYkSerialsOtpTooLong": {
+    "placeholders": {
+      "serials": { "type": "String" }
+    }
+  },
+  "pinYkSectionPhases": "3 · التطبيقات المصغّرة",
+  "pinYkPhasesHelp": "PIV ‏(00 رمز PIN، ‏14 رمز PUK) مضمَّن دائمًا. OpenPGP يضيف 23/24/25، وFIDO2 يضيف 34، وOATH يضيف 41، وOTP يضيف 45/46.",
+  "pinYkOtpFromSerial": "رمز وصول OTP من الرقم التسلسلي",
+  "pinYkOtpFromSerialHelp": "تحصل الفتحتان على الرقم التسلسلي مكمّلًا بأصفار حتى 12 رقمًا (‎38715242 → 000038715242‎). قابل للتوقع عن قصد: الرمز يمنع فقط إعادة برمجة الفتحة.",
+  "pinYkOtpFromSerialLedger": "مع بذرة Ledger تأتي رموز وصول OTP دائمًا من الرقم التسلسلي (docs/BITWARDEN.md).",
+  "pinYkSectionLedger": "إعدادات Ledger Passwords",
+  "pinYkUsingSeed": "تُستخدم البذرة المُدخلة في PIN 24 (عدد الكلمات: {words}).",
+  "@pinYkUsingSeed": {
+    "placeholders": {
+      "words": { "type": "int" }
+    }
+  },
+  "pinYkNeedSeed": "يحتاج هذا المصدر إلى عبارة البذرة. أدخلها (وعبارة المرور إن وُجدت) في PIN 24 — لا حاجة إلى اسم مستعار: بمجرد أن تصبح العبارة صحيحة تبقى البذرة في الذاكرة لهذا التبويب فقط.",
+  "pinYkGoToPin24": "أدخل البذرة في PIN 24",
+  "pinYkLedgerRule": "رمز PIV PIN وPUK = أول 4 وآخر 4 محارف من مخرجات الجهاز (البطاقة تقبل 8 بايت على الأكثر)؛ رموز OpenPGP وFIDO2 = المخرجات كاملة من 20 محرفًا. الحقلان 25 و41 لا يأتيان من Ledger أبدًا؛ و45/46 من الرقم التسلسلي.",
+  "pinYkLedgerMask": "مجموعات محارف الإدخالات (الافتراضي في الجهاز: A-Z وa-z و0-9)",
+  "pinYkLedgerMaskNonDefault": "ليست الافتراضية. يجب أن تكون الإدخالات قد أُنشئت على الجهاز بهذه المفاتيح بالضبط؛ والفواصل والرموز الخاصة عادةً تُفسد الكتابة في مربعات حوار النظام وملف CSV.",
+  "pinYkSeparateAdmin": "إدخال منفصل للمسؤول",
+  "pinYkSeparateAdminHelp": "يأخذ رمز Admin PIN لـ OpenPGP ‏(24) من yk-<serial>-admin بدل الإدخال المشترك ‎-pins.",
+  "pinYkLedgerRest": "حقول لا يملؤها Ledger",
+  "pinYkLedgerRestHelp": "25 (رمز إعادة تعيين OpenPGP) و41 (كلمة مرور OATH) تأتيان من مفتاح رئيسي أو عشوائيًا، كما في سكربت yubikey-fleet.",
+  "pinYkSectionMaster": "المفتاح الرئيسي",
+  "pinYkMasterLabel": "المفتاح الرئيسي (الصق)",
+  "pinYkMasterHint": "تُستخدم البايتات الخام للنص الملصوق (UTF-8) بعد حذف المسافات وفواصل الأسطر من الطرفين. لا يُفكّ ترميز hex: ‏64 محرف hex هي مفتاح من 64 بايت — تمامًا كما يقرأ سكربت الحاسوب ملف المفتاح.",
+  "pinYkMasterMissing": "الصق المفتاح الرئيسي.",
+  "pinYkMasterBroken": "في المفتاح محرف تالف (بديل غير مقترن). امسح الحقل والصقه من جديد.",
+  "pinYkMasterTitle": "المفتاح الرئيسي",
+  "pinYkMasterNeverStored": "يعيش المفتاح الرئيسي في هذا الحقل فقط ما دام التبويب مفتوحًا: لا يُحفظ ولا يُزامَن ولا يُرسَل، ويُمسح عندما يغادر التطبيق الشاشة، وعند مغادرة تبويب PIN، وبعد دقيقتين دون نشاط، وعند النقر على «مسح».",
+  "pinYkSectionResult": "4 · القيم",
+  "pinYkNoSerials": "أدخل رقمًا تسلسليًا واحدًا أو أكثر.",
+  "pinYkGateBadSerials": "صحّح الأرقام التسلسلية أعلاه.",
+  "pinYkGateNoSeed": "لا توجد بذرة في الذاكرة — أدخلها في PIN 24 أولًا.",
+  "pinYkComputing": "جارٍ الحساب…",
+  "pinYkComputeFailed": "تعذّر حساب القيم. حفاظًا على الأمان لا تعرض هذه الرسالة تفاصيل — تحقق من المدخلات وأعد المحاولة.",
+  "pinYkKeyError": "تعذّر حساب هذا المفتاح.",
+  "pinYkRandomWarning": "هذه القيم غير موجودة في أي مكان آخر — احفظها في مدير كلمات المرور قبل المغادرة. الانتقال إلى أداة أخرى أو مغادرة تبويب PIN أو مغادرة التطبيق أو دقيقتان دون نشاط أو القفل تمسحها نهائيًا.",
+  "pinYkRegenerate": "توليد من جديد",
+  "pinYkRegenerateTitle": "استبدال كل القيم العشوائية؟",
+  "pinYkRegenerateBody": "القيم الحالية غير موجودة في أي مكان آخر. إذا كانت إحداها مضبوطة على مفتاح أو محفوظة، فاحتفظ بها.",
+  "pinYkRegenerateConfirm": "استبدال",
+  "pinYkValuesHiddenNote": "القيم مخفية؛ زر العين يُظهر قيمة واحدة مع مجموعها الاختباري sha256_6. القيمة المنسوخة تُمسح من الحافظة بعد 60 ثانية.",
+  "pinYkEntries": "إدخالات Ledger: {names}",
+  "@pinYkEntries": {
+    "placeholders": {
+      "names": { "type": "String" }
+    }
+  },
+  "pinYkOriginLedger": "من Ledger",
+  "pinYkOriginDerived": "مفتاح رئيسي",
+  "pinYkOriginRandom": "عشوائي",
+  "pinYkOriginSerial": "من الرقم التسلسلي",
+  "pinYkValueHidden": "قيمة مخفية",
+  "pinYkProblemLength": "الطول {length}؛ هذا الحقل يقبل ‎{min}–{max}‎.",
+  "@pinYkProblemLength": {
+    "placeholders": {
+      "length": { "type": "int" },
+      "min": { "type": "int" },
+      "max": { "type": "int" }
+    }
+  },
+  "pinYkProblemAlphabet": "محارف خارج أبجدية الحقل.",
+  "pinYkLedgerProblemLength": "{bytes} بايت؛ البطاقة تقبل ‎{min}–{max}‎.",
+  "@pinYkLedgerProblemLength": {
+    "placeholders": {
+      "bytes": { "type": "int" },
+      "min": { "type": "int" },
+      "max": { "type": "int" }
+    }
+  },
+  "pinYkLedgerProblemAscii8": "يجب أن تكون المحارف الثمانية المختارة من ASCII القابلة للطباعة دون مسافات — فرمز PIN يُكتب في مربعات حوار النظام حيث تخطيط لوحة المفاتيح غير مضمون.",
+  "pinYkLedgerProblemAscii": "محارف خارج ASCII القابلة للطباعة.",
+  "pinYkLedgerProblemCsv": "يحتوي فاصلة أو علامة اقتباس أو مسافة طرفية أو = + - @ في البداية، ولا يستطيع CSV غير المقتبس حملها.",
+  "pinYkWarnPivInOther": "رمز PIV PIN جزء من الحقل {field} ‏({name}) من إدخال Ledger نفسه: كتابة PIV PIN كثيرًا تكشف 8 من محارفه. اقبل ذلك عن وعي أو خذ ذلك الرمز من إدخال آخر.",
+  "@pinYkWarnPivInOther": {
+    "placeholders": {
+      "field": { "type": "String" },
+      "name": { "type": "String" }
+    }
+  },
+  "pinYkWarnAdminShares": "رمز Admin PIN يأتي من الإدخال المشترك ‎-pins، أي أنه يساوي رمزي User وFIDO2 اللذين يُكتبان يوميًا. فعّل «إدخال منفصل للمسؤول» إذا لم يكن ذلك مقبولًا.",
+  "pinYkCopyCsv": "نسخ بصيغة CSV لمدير كلمات المرور (لا يستورده Bitwarden مباشرة)",
+  "pinYkCopyCsvCaption": "الصيغة folder,name,field,value — سطر لكل سر، مثل yk-batch-secrets.py --bitwarden. لا يستطيع Bitwarden استيراد هذا التخطيط مباشرة: استخدمه قائمة تحقق لحقول NN في العنصر، أو حوّله أولًا.",
+  "pinYkCsvConfirmTitle": "نسخ كل القيم بصيغة CSV؟",
+  "pinYkCsvConfirmBody": "يحتوي ملف CSV على {count, plural, zero{0 قيم سرية} one{قيمة سرية واحدة} two{قيمتين سريتين} few{{count} قيم سرية} many{{count} قيمة سرية} other{{count} قيمة سرية}} بنص صريح. لا يستورده Bitwarden مباشرة — الصقه فقط حيث تحوّله أو تسجّله.",
+  "@pinYkCsvConfirmBody": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "pinYkCsvConfirm": "نسخ CSV",
+  "pinYkCsvRefusedTitle": "لم يُنسخ CSV",
+  "pinYkCsvRefusedValues": "بعض القيم لا تناسب البطاقة أو لا يمكن نقلها في CSV غير مقتبس — راجع المشكلات المعلَّمة بالأحمر.",
+  "pinYkCsvRefusedSerial": "لا يمكن كتابة رقم تسلسلي في CSV بأمان.",
+  "pinYkCsvRefusedKeys": "تعذّر حساب بعض المفاتيح، فسيكون CSV ناقصًا.",
+  "pinYkCsvRefusedGeneric": "لا يوجد ما يُصدَّر بعد.",
+  "pinYkNotesTitle": "ملاحظات وقيود",
+  "pinYkHwTitle": "حدود البطاقة وما تولّده هذه الأداة",
+  "pinYkHwField": "الحقل",
+  "pinYkHwCard": "تقبل البطاقة",
+  "pinYkHwApp": "يُولَّد هنا",
+  "pinYkHwBytes": "‎{min}–{max}‎ بايت",
+  "@pinYkHwBytes": {
+    "placeholders": {
+      "min": { "type": "int" },
+      "max": { "type": "int" }
+    }
+  },
+  "pinYkHwChars": "‎{min}–{max}‎ محرفًا",
+  "@pinYkHwChars": {
+    "placeholders": {
+      "min": { "type": "int" },
+      "max": { "type": "int" }
+    }
+  },
+  "pinYkHwExactHex": "عدد محارف hex بالضبط: {count}",
+  "@pinYkHwExactHex": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "pinYkGenSame": "{length, plural, few{{length} محارف} many{{length} محرفًا} other{{length} محرف}}، {alphabet}",
+  "@pinYkGenSame": {
+    "placeholders": {
+      "length": { "type": "int" },
+      "alphabet": { "type": "String" }
+    }
+  },
+  "pinYkGenModes": "مفتاح رئيسي: {derived}، عشوائي: {random} (عدد المحارف)، {alphabet}",
+  "@pinYkGenModes": {
+    "placeholders": {
+      "derived": { "type": "int" },
+      "random": { "type": "int" },
+      "alphabet": { "type": "String" }
+    }
+  },
+  "pinYkAlphaDigits": "أرقام",
+  "pinYkAlphaAlnum": "حروف + أرقام",
+  "pinYkAlphaHex": "hex بأحرف صغيرة",
+  "pinYkHwFidoNote": "الحد الأدنى لـ FIDO2 يعتمد على البرنامج الثابت: 4، و6 مع تعقيد PIN، و8 على FIPS 5.7. من بذرة Ledger: رمزا PIV PIN وPUK من 8 محارف (‎4 + 4‎)، والحقول 23/24/34 هي المخرجات كاملة من 20 محرفًا.",
+  "pinYkBioTitle": "YubiKey Bio",
+  "pinYkBioNote": "يستخدم YubiKey Bio (متعدد البروتوكولات) رمز PIN واحدًا لـ PIV وFIDO2، لكن كل مصدر هنا يعطي الحقلين 00 و34 قيمتين مختلفتين. اضبط إحداهما وسجّلها للاثنين.",
+  "pinYkPolicyTitle": "ما القواعد التي تتبعها القيم",
+  "pinYkPolicyNote": "وضعا المفتاح الرئيسي والعشوائي يتبعان جدول FIELDS في yk-batch-secrets.py (حروف وأرقام، أطوال ثابتة)، فتطابق القيم سكربت الحاسوب بايتًا ببايت. يقترح docs/BITWARDEN.md قيمًا أطول برموز خاصة للحقول 24/25/41 — وهنا يُعتمد جدول السكربت. أما قيم Ledger فتُفحص وفق حدود البطاقة.",
+  "pinYkDerivedTitle": "الاشتقاق من المفتاح الرئيسي",
+  "pinYkDerivedNote": "HMAC-SHA256(المفتاح الرئيسي، «yk-fleet/<serial>/<NN>» + عدّاد)، ثم أخذ عينات مع الرفض — وليس HKDF القياسي. لا دفعة ولا إصدار فيه: لتغيير أسرار مفتاح واحد يجب تغيير المفتاح الرئيسي. تُستخدم الأرقام التسلسلية كما هي، لذا ‎0012389 ≠ 12389‎.",
+  "pinYkOtpTitle": "رموز وصول OTP",
+  "pinYkOtpNote": "رمز الوصول ليس رمز PIN: يُطلب فقط لتغيير إعداد الفتحة أو حذفه، ولا يمكن قراءته من البطاقة. أخذه من الرقم التسلسلي قابل للتوقع عن قصد (قرار yubikey-fleet في 2026-08-31).",
+  "pin24AboutTitle": "حول PIN 24",
+  "pin24AutoCompleteHint": "تكفي أول 4 أحرف من الكلمة ثم مسافة — يُكمَل باقي الكلمة تلقائيًا.",
+  "pin24PassphraseSet": "مُعيَّنة — تغيّر كل النتائج",
+  "pin24FromYubikey": "تحتاج أداة YubiKey إلى البذرة. أدخلها هنا — لا حاجة إلى اسم مستعار — ثم ارجع.",
+  "pin24BackToYubikey": "العودة إلى YubiKey",
+  "pin24SeedKept": "تبقى بذرة هذه العبارة في الذاكرة لهذا التبويب (يمكن لأداة YubiKey استخدامها) حتى تمسحها أو تغادر التبويب.",
+  "pinWipedClipboardToo": "{what} — وأُزيل النص الملصوق من الحافظة أيضًا",
+  "pinClipboardNoteIos": "تبقى القيم المنسوخة على هذا الـ iPhone فقط — لا تُشارك مع أجهزتك الأخرى عبر الحافظة العامة — وتنتهي صلاحيتها في الحافظة بعد 60 ثانية.",
+  "pinClipboardNoteAndroid": "تُعلَّم القيم المنسوخة بأنها حساسة (يخفيها Android 13 وما بعده في المعاينة، ولوحات المفاتيح التي تحترم هذا الوسم لا تحفظها في سجلها) وتُمسح بعد 60 ثانية إن بقيت في الحافظة. قد تنسخها مزامنة الحافظة (Samsung أو Phone Link أو حافظات لوحات المفاتيح السحابية) إلى أجهزة أخرى رغم ذلك.",
+  "pinYkRandomLoseTitle": "مسح القيم العشوائية؟",
+  "pinYkRandomLoseBody": "هذه القيم غير موجودة في أي مكان آخر. مغادرة هذه الأداة أو مسحها يزيلها نهائيًا — احفظها أولًا في مدير كلمات المرور إن كنت تحتاجها.",
+  "pinYkRandomLoseConfirm": "امسح",
+  "pinYkRandomErasedLeft": "مُسحت قيم YubiKey العشوائية لأنك غادرت تبويب PIN.",
+  "pinYkMasterOk": "طويل بما يكفي: {min} بايت على الأقل بعد القص.",
+  "pinYkMasterShort": "قصير جدًا: يحتاج المفتاح الرئيسي إلى {min} بايت على الأقل بعد القص.",
+  "pinYkProblemLengthExact": "الطول {length}؛ هذا الحقل يقبل {count} بالضبط.",
+  "pinYkCsvRefusedOtp": "الرقم التسلسلي الأطول من 12 رقمًا يعطي رمز وصول OTP أطول من 12 محرفًا: أوقف «رمز وصول OTP من الرقم التسلسلي» أو تطبيق OTP.",
+  "pinYkCsvRefusedLedgerHint": "لقيم Ledger استخدم المجموعات الافتراضية A-Z وa-z و0-9.",
+  "pinYkHandSetTitle": "يُعيَّن يدويًا (مرحلة انتقالية)",
+  "pinYkHandSetHelp": "ما دام رمز PIN يُعيَّن يدويًا (docs/BITWARDEN.md، الانتقال إلى Ledger) فعّله هنا: لا يُشتق ولا يُعرض ولا يُضمَّن في CSV.",
+  "pinYkHandSetNote": "تُعيَّن يدويًا ولا تُعرض ولا تُضمَّن في CSV: {fields}. سجّلها بنفسك.",
+  "pinShowField": "إظهار {field}",
+  "pinHideField": "إخفاء {field}",
+  "pinCopyField": "نسخ {field}",
+  "pinSecretHiddenSemantics": "{label}: {count, plural, zero{0 محارف} one{محرف واحد} two{محرفان} few{{count} محارف} many{{count} محرفًا} other{{count} محرف}}، لا يُقرأ بصوت عالٍ — فعّل مفتاح الإظهار لسماعه",
+  "pinLegacyMaskZeroHint": "يجب أن يكون كل رقم في القناع من ‎1–9‎: الصفر غير مسموح."
 }

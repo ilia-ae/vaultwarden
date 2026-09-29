@@ -84,7 +84,8 @@ void main() {
       // Official LedgerHQ vector: A-Z + a-z + 0-9 (mask 0x07), 4-char groups.
       expect(outputText(tester), 'xNX8IQO4vP0ucO41J6JW');
       expect(
-        find.text(l.pin24PasswordCaption('A-Z + a-z + 0-9', 'gmail')),
+        find.text(
+            l.pin24PasswordCaption(ltrIsolate('A-Z + a-z + 0-9'), 'gmail')),
         findsOneWidget,
       );
 
@@ -164,7 +165,7 @@ void main() {
           fieldById('pin24_seed'), '${'abandon ' * 11}xyzzy');
       await tester.pump();
       expect(find.text(l.pin24StatusWordlist), findsOneWidget);
-      expect(find.text(l.pin24InvalidMasked('12')), findsOneWidget);
+      expect(find.text(l.pin24InvalidMasked(ltrIsolate('12'))), findsOneWidget);
       expect(visibleTextContaining('xyzzy'), findsNothing);
 
       await tester.enterText(fieldById('pin24_seed'), 'abandon ' * 12);
@@ -233,7 +234,8 @@ void main() {
       await tester.pump();
       expect(find.text('abandon'), findsOneWidget);
       expect(find.text('zoo'), findsOneWidget);
-      expect(find.text(l.pin24InvalidRevealed('“xyzzy” (#3)')), findsOneWidget);
+      expect(find.text(l.pin24InvalidRevealed(ltrIsolate('“xyzzy” (#3)'))),
+          findsOneWidget);
     });
   });
 
@@ -246,7 +248,7 @@ void main() {
 
       await tester.enterText(fieldById('pin24_seed'), 'abandon ab');
       await tester.pump();
-      expect(find.text(l.pin24PartialMasked('2')), findsOneWidget);
+      expect(find.text(l.pin24PartialMasked(ltrIsolate('2'))), findsOneWidget);
       expect(find.byType(ActionChip), findsNothing);
 
       await tester.tap(byId('pin24_show_words'));
@@ -262,17 +264,63 @@ void main() {
       expect(fieldText(tester, 'pin24_seed'), 'abandon about ');
     });
 
-    testWidgets('unique 4-letter prefix is auto-accepted while typing',
+    testWidgets('a unique 4-letter prefix is completed on a space, not before',
         (tester) async {
       useTallSurface(tester);
       mockPrivacyChannel(tester);
       await pumpPin(tester);
+      final l = l10n(tester);
 
+      expect(find.text(l.pin24AutoCompleteHint), findsOneWidget);
       await tester.enterText(fieldById('pin24_seed'), 'aba');
       await tester.pump();
       await tester.enterText(fieldById('pin24_seed'), 'aban');
       await tester.pump();
+      expect(fieldText(tester, 'pin24_seed'), 'aban', reason: 'still typing');
+      await tester.enterText(fieldById('pin24_seed'), 'aban ');
+      await tester.pump();
       expect(fieldText(tester, 'pin24_seed'), 'abandon ');
+    });
+
+    // UX #1: typing each word in full, key by key, as written on the
+    // recovery sheet, must give exactly the typed phrase (the old
+    // auto-complete turned "abandon" into "abandon don").
+    for (final (name, phrase, pin) in [
+      ('abandon×11 about', abandon12, '0853'),
+      ('Speculos 24 words', speculos24, null),
+    ]) {
+      testWidgets('typing $name key by key ends canonical', (tester) async {
+        useTallSurface(tester);
+        mockPrivacyChannel(tester);
+        await pumpPin(tester);
+        final l = l10n(tester);
+        await tester.enterText(fieldById('pin24_nickname'), 'visa');
+        for (final ch in phrase.split('')) {
+          // A keyboard appends to whatever the field holds now.
+          await tester.enterText(
+              fieldById('pin24_seed'), fieldText(tester, 'pin24_seed') + ch);
+        }
+        await settleDerivation(tester);
+        expect(fieldText(tester, 'pin24_seed'), phrase);
+        final words = phrase.split(' ').length;
+        expect(find.text(l.pin24StatusOk(words)), findsOneWidget);
+        if (pin != null) expect(displayedPin(tester), pin);
+        // Typed, not pasted.
+        expect(byId('pin24_clear_clipboard'), findsNothing);
+      });
+    }
+
+    testWidgets('4 letters and a space per word are enough', (tester) async {
+      useTallSurface(tester);
+      mockPrivacyChannel(tester);
+      await pumpPin(tester);
+      const short =
+          'aban aban aban aban aban aban aban aban aban aban aban abou ';
+      for (final ch in short.split('')) {
+        await tester.enterText(
+            fieldById('pin24_seed'), fieldText(tester, 'pin24_seed') + ch);
+      }
+      expect(fieldText(tester, 'pin24_seed'), '$abandon12 ');
     });
 
     testWidgets('prefix words need confirmation (act → action…)',
@@ -303,7 +351,7 @@ void main() {
       await tester.enterText(
           fieldById('pin24_seed'), '${'abandon ' * 10}abandonabout');
       await tester.pump();
-      expect(find.text(l.pin24GluedWords('11')), findsOneWidget);
+      expect(find.text(l.pin24GluedWords(ltrIsolate('11'))), findsOneWidget);
       await tester.tap(byId('pin24_split_glued'));
       await tester.pump();
       expect(find.text(l.pin24StatusOk(12)), findsOneWidget);
@@ -425,7 +473,7 @@ void main() {
     testWidgets('🧹 keeps nickname; 🚨 asks first and clears everything',
         (tester) async {
       useTallSurface(tester);
-      mockPrivacyChannel(tester);
+      final channel = mockPrivacyChannel(tester);
       await pumpPin(tester);
       final l = l10n(tester);
 
@@ -434,7 +482,10 @@ void main() {
       await tester.pump();
       expect(fieldText(tester, 'pin24_seed'), isEmpty);
       expect(fieldText(tester, 'pin24_nickname'), 'visa');
-      expect(find.text(l.pinWipedSeed), findsOneWidget);
+      // The seed was pasted (one big edit), so the wipe took it off the
+      // clipboard too, and says so.
+      expect(find.text(l.pinWipedClipboardToo(l.pinWipedSeed)), findsOneWidget);
+      expect(channel.named('clearClipboard'), hasLength(1));
 
       await enterPin24(tester, seed: abandon12, nickname: 'visa');
       await tester.tap(byId('pin24_wipe_all'));

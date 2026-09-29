@@ -220,7 +220,6 @@
   "pinShowLegacy": "显示旧版工具",
   "pinShowLegacyHelp": "添加旧的 8 位掩码工具（仅用于恢复用它生成的值）。",
   "pinOfflineNote": "这里的一切都离线运行，仅在本机上。您输入的任何内容都不会被保存、同步或发送到任何地方。",
-  "pinComingSoon": "此工具将在本版本中加入——尚未就绪。",
   "pinUnavailable": "无法启动 PIN 工具。请关闭并重新打开应用。",
   "pinScreenshotsAllowedBuild": "测试版本：允许对此屏幕截图。",
   "pinSeedInMemory": "来自 PIN 24 的种子仍在内存中（{words} 个单词）。",
@@ -240,9 +239,9 @@
   "pinWipedInactivity": "2 分钟无操作后已清除 PIN 工具",
   "pinCopyHint": "点按以复制",
   "pinTapToCopy": "点按以复制——60 秒后会从剪贴板清除。",
-  "pinCopied": "✓ 已复制！",
+  "pinCopied": "已复制！",
   "pinCopiedTtl": "已复制——60 秒后从剪贴板清除",
-  "pinCopyFailed": "✗ 失败",
+  "pinCopyFailed": "失败",
   "pinPastedStillOnClipboard": "粘贴的文本仍在剪贴板中。",
   "pinClearClipboard": "清空剪贴板",
   "pinClipboardCleared": "剪贴板已清空",
@@ -260,7 +259,7 @@
   "pin24Summary": "仅用于恢复：从 12、15、18、21 或 24 个单词的 BIP39 助记词派生与 Ledger 兼容的 PIN 和密码。",
   "pin24Bullets": "• 与 LedgerHQ app-passwords 派生算法逐位一致\n• 在接触秘密之前先进行 BIP39 校验（词表 + 校验和）\n• 每个服务一个 nickname；取设备输出的前 N 位数字\n• 仅在无法使用真实 Ledger 时使用",
   "pin24Caption": "Ledger Passwords 应用的软件复刻，仅用于恢复。输入 BIP39 助记词和 nickname → 得到设备在选择“Use numbers + Use separators”时为该 nickname 输入的同一个数字 PIN。请尽可能使用真实设备。",
-  "pin24Banner": "⚠ 仅用于恢复。只有在 Ledger 设备无法使用时才使用。在手机上输入 BIP39 助记词会让它暴露给操作系统、键盘应用、剪贴板、截图、屏幕录制和备份。请尽可能使用真实设备。完成后关闭此屏幕，并假定手机可能已被入侵——如可行，请事后更换重要的秘密。",
+  "pin24Banner": "仅用于恢复。只有在 Ledger 设备无法使用时才使用。在手机上输入 BIP39 助记词会让它暴露给操作系统、键盘应用、剪贴板、截图、屏幕录制和备份。请尽可能使用真实设备。完成后关闭此屏幕，并假定手机可能已被入侵——如可行，请事后更换重要的秘密。",
   "pin24Acknowledge": "我明白",
   "pin24AckRequired": "请阅读上方警告并点按“我明白”以解锁助记词输入框。",
   "pin24SectionSeed": "1 · 助记词",
@@ -268,8 +267,8 @@
   "pin24SectionMode": "3 · 模式",
   "pin24SectionOutput": "4 · 结果",
   "pin24SeedLabel": "BIP39 助记词（12 / 15 / 18 / 21 / 24 个单词；空格 / 连字符 / 逗号 / 换行均可）",
-  "pin24SeedHelp": "输入框始终隐藏。下方单词格会映射您的输入——打开 👁 可显示这些格中的单词。可以粘贴，但不能从中复制。",
-  "pin24ShowWords": "👁 在下方格中显示已输入的单词  （默认关闭）",
+  "pin24SeedHelp": "输入框始终隐藏。下方单词格会映射您的输入——打开“显示已输入的单词”即可看到这些单词。可以粘贴，但不能从中复制。",
+  "pin24ShowWords": "在下方格中显示已输入的单词（默认关闭）",
   "pin24ShowWordsHelp": "关闭：显示圆点，仅可见校验颜色。打开：每个格显示实际单词。",
   "pin24WordsMetric": "单词",
   "pin24WordsCounter": "{typed} / {target}",
@@ -306,7 +305,7 @@
       "items": { "type": "String" }
     }
   },
-  "pin24PartialMasked": "未完成的单词，位置：{positions}（打开上方 👁 查看补全）",
+  "pin24PartialMasked": "未完成的单词，位置：{positions}（打开“显示已输入的单词”查看补全）",
   "@pin24PartialMasked": {
     "placeholders": {
       "positions": { "type": "String" }
@@ -338,14 +337,14 @@
   "pin24PassphraseLabel": "密码短语",
   "pin24PassphraseCaption": "除非您在 Ledger 上明确设置过密码短语，否则请留空。如果设置过，必须在此输入——否则派生的 PIN 将与设备不一致。",
   "pin24PassphraseWhitespace": "以空格开头或结尾——空格也是密码短语的一部分",
-  "pin24WipeSeed": "🧹 清除种子",
-  "pin24WipeSeedHelp": "🧹 清除助记词和密码短语，并将缓存的种子清零；nickname 和设置保留。🚨 清除此标签页中的所有内容。",
-  "pin24WipeAll": "🚨 全部清除",
+  "pin24WipeSeed": "清除种子",
+  "pin24WipeSeedHelp": "“清除种子”会清除助记词和密码短语，并将缓存的种子清零；nickname 和设置保留。“全部清除”会清除此标签页中的所有内容。",
+  "pin24WipeAll": "全部清除",
   "pin24WipeAllTitle": "全部清除？",
-  "pin24WipeAllBody": "这将清除此标签页中的助记词、密码短语、nickname 和结果，并将缓存的种子清零。\n\n⚠ 派生出的 PIN 将丢失——请先复制或记下。",
-  "pin24WipeAllConfirm": "🚨 是，立即清除",
-  "pin24NicknameLabel": "Nickname（与设备上完全一致——区分大小写！）",
-  "pin24NicknameHelp": "必须与 Ledger 上存储的 nickname 逐字节一致。如果设备上是 'Visa'，这里输入 'visa' 会得到不同的 PIN。",
+  "pin24WipeAllBody": "这将清除此标签页中的助记词、密码短语、nickname 和结果，并将缓存的种子清零。\n\n派生出的 PIN 将丢失——请先复制或记下。",
+  "pin24WipeAllConfirm": "是，立即清除",
+  "pin24NicknameLabel": "Nickname（昵称）",
+  "pin24NicknameHelp": "与设备上完全一致——区分大小写。必须与 Ledger 上存储的 nickname 逐字节一致：如果设备上是 'Visa'，这里输入 'visa' 会得到不同的 PIN。",
   "pin24NicknameWhitespace": "以空格开头或结尾——空格也是 nickname 的一部分",
   "pin24NicknameNonAscii": "包含非 ASCII 字符——必须与设备逐字节一致",
   "pin24NicknameTooLong": "UTF-8 下为 {bytes} 字节——Ledger 的 nickname 最多 {max} 字节",
@@ -355,9 +354,9 @@
       "max": { "type": "int" }
     }
   },
-  "pin24ModePin": "🔢 PIN  （仅数字）",
+  "pin24ModePin": "PIN（仅数字）",
   "pin24ModePinHelp": "数字 PIN——设备 NUMBERS+SEPARATORS 输出中的前 N 位数字。",
-  "pin24ModePassword": "🔑 密码  （任意字符集）",
+  "pin24ModePassword": "密码（任意字符集）",
   "pin24ModePasswordHelp": "完整的 20 字符 Ledger 密码——与在设备上选择字符集相同。",
   "pin24Length": "长度",
   "pin24LengthButton": "长度 {length}",
@@ -371,7 +370,7 @@
   "pin24LengthLonger": "更长",
   "pin24Charsets": "字符集（与设备上的开关一致）",
   "pin24CharsetSeparators": "- _ 空格",
-  "pin24CharsetNone": "⚠ 请至少选择一个字符集。",
+  "pin24CharsetNone": "请至少选择一个字符集。",
   "pin24SpecialsTitle": "特殊字符",
   "pin24SpecialsBody": "最后一个开关的标签只是简写。打开特殊字符后，设备会从以下所有字符中选取：",
   "pin24Gate1": "请在上方输入有效的 BIP39 助记词以启用派生。",
@@ -390,7 +389,7 @@
       "length": { "type": "int" }
     }
   },
-  "pin24RevealPin": "👁 以文本显示 PIN",
+  "pin24RevealPin": "以文本显示 PIN",
   "pin24RevealPinHelp": "关闭：只显示数字格。打开：同时以纯文本显示，便于抄写。",
   "pin24PinCaption": "这就是在 app-passwords 中只选择“Use numbers”+“Use separators”、选中 nickname“{nickname}”并读取前 {length} 位数字（跳过分隔符）时 Ledger 会输入的内容。如果与设备不一致，请检查 nickname 的大小写以及是否设置了 BIP39 密码短语。",
   "@pin24PinCaption": {
@@ -406,7 +405,7 @@
       "zeros": { "type": "int" }
     }
   },
-  "pin24FullToggle": "🔍 显示完整的派生密码（调试 / 与设备核对）",
+  "pin24FullToggle": "显示完整的派生密码（调试 / 与设备核对）",
   "pin24FullHelp": "显示 Ledger 会输入的完整数字和分隔符字符串（␣ = 空格）。首次设置时使用一次：在设备上创建一个名为“pin24-test”的条目并逐字符比对，然后关闭此选项。",
   "pin24FullCaption": "完整的派生密码。上方的 PIN 是此字符串的前 {length} 位数字（跳过分隔符）。请与 Ledger 在相同配置下输入的内容逐字符比对。",
   "@pin24FullCaption": {
@@ -428,9 +427,9 @@
   "pin24ErrorBip32": "此 nickname 触发了极其罕见的无效密钥；设备同样无法派生。请换一个 nickname。",
   "pin24ErrorGeneric": "派生意外失败。出于安全考虑，此消息不会显示种子。请检查助记词长度、词表和 BIP39 校验和；如果问题仍然存在，请全部清除后重新开始。",
   "pin24ErrorGenericShort": "派生意外失败。出于安全考虑，此消息不会显示种子。",
-  "pin24ThreatTitle": "⚠ 威胁模型与恢复清单",
+  "pin24ThreatTitle": "威胁模型与恢复清单",
   "pin24ThreatProtectsTitle": "此屏幕如何保护种子",
-  "pin24ThreatProtectsBody": "• 助记词输入框始终隐藏，从不以明文显示；只能粘贴，不能复制出来。\n• 秘密输入框关闭了键盘建议、自动更正、键盘学习和自动填充。\n• 所有计算都在本机离线进行，在一个独立的短生命周期 isolate 中；不会发送到您的 Vaultwarden 服务器、Firebase 或任何其他地方。\n• 不保存任何秘密：不写入设置、云同步、备份或日志。\n• 派生的种子仅为避免重复计算而保存在内存中，在按 🧹、🚨、应用进入后台、2 分钟无操作以及应用锁定时清零。\n• Android 禁止对此标签页截图和录屏；iOS 在录屏或镜像时隐藏它。\n• 复制的结果 60 秒后从剪贴板过期，且不会共享到您的其他设备。",
+  "pin24ThreatProtectsBody": "• 助记词输入框始终隐藏，从不以明文显示；只能粘贴，不能复制出来。\n• 秘密输入框关闭了键盘建议、自动更正、键盘学习和自动填充。\n• 所有计算都在本机离线进行，在一个独立的短生命周期 isolate 中；不会发送到您的 Vaultwarden 服务器、Firebase 或任何其他地方。\n• 不保存任何秘密：不写入设置、云同步、备份或日志。\n• 派生的种子仅为避免重复计算而保存在内存中，在按“清除种子”“全部清除”、离开 PIN 标签页、应用进入后台、2 分钟无操作以及应用锁定时清零。\n• Android 禁止对此标签页截图和录屏；iOS 在录屏或镜像时隐藏它。",
   "pin24ThreatCannotTitle": "它无法防范的情况",
   "pin24ThreatCannotBody": "• 已被入侵的手机：恶意软件、越狱或 root，或恶意键盘应用（Android 无法阻止第三方键盘；iOS 仅在隐藏输入框中强制使用系统键盘）。\n• 可以读取屏幕的辅助功能服务和屏幕阅读器。\n• iOS 上的截图（无法阻止——只会收到警告）、摄像头以及旁人偷看。\n• Dart 字符串无法清除：您输入的助记词可能留在应用内存中，直到被覆盖。只有二进制种子缓冲区会被清零。\n• 您的记忆：一个错误的单词会得到完全不同的 PIN，校验和能发现大多数但不是全部错误。忘记的密码短语无法找回。",
   "pin24ThreatUseTitle": "在以下情况使用",
@@ -438,9 +437,9 @@
   "pin24ThreatDontTitle": "在以下情况请勿使用",
   "pin24ThreatDontBody": "• Ledger 就在手边——请使用设备。\n• 手机不是您的、已越狱或 root，或装有来历不明的键盘或辅助功能应用。\n• 可能有人在录屏或观看屏幕。\n• 只是图方便：在手机上输入种子比硬件钱包暴露得多。",
   "pin24ThreatStepsTitle": "真正恢复时的步骤",
-  "pin24ThreatStepsBody": "1. 使用您信任的手机，最好开启飞行模式。\n2. 如果在 Ledger 上设置过密码短语，也要输入。\n3. 按设备上的写法准确输入 nickname（区分大小写）。\n4. 派生所需内容，复制或记下，然后按 🚨 全部清除，并从应用切换器中关闭应用。\n5. 在新硬件上恢复 Ledger；如果手机可能已被入侵，请更换特别重要的秘密。",
+  "pin24ThreatStepsBody": "1. 使用您信任的手机，最好开启飞行模式。\n2. 如果在 Ledger 上设置过密码短语，也要输入。\n3. 按设备上的写法准确输入 nickname（区分大小写）。\n4. 派生所需内容，复制或记下，然后按“全部清除”，并从应用切换器中关闭应用。\n5. 在新硬件上恢复 Ledger；如果手机可能已被入侵，请更换特别重要的秘密。",
   "pin24CleanupTitle": "恢复后的清理",
-  "pin24CleanupCaption": "完成后：复制或记下所需内容，按 🚨 全部清除，然后从应用切换器中关闭应用。Dart 字符串无法清零，因此只有关闭应用才能最终将它们从内存中移除。",
+  "pin24CleanupCaption": "完成后：复制或记下所需内容，按“全部清除”，然后从应用切换器中关闭应用。Dart 字符串无法清零，因此只有关闭应用才能最终将它们从内存中移除。",
   "pin24SelfTestCaption": "检查本版本的引擎能否复现 Ledger 官方测试向量（使用公开的 Speculos 种子——不会使用您输入的任何内容）。",
   "pin24SelfTest": "检查引擎",
   "pin24SelfTestOk": "引擎正常：{total} 个官方向量中 {passed} 个匹配。",
@@ -457,5 +456,417 @@
       "total": { "type": "int" }
     }
   },
-  "pin24NicknameBrokenRemoved": "已删除一个无效字符（未配对的代理项）——请检查 nickname"
+  "pin24NicknameBrokenRemoved": "已删除一个无效字符（未配对的代理项）——请检查 nickname",
+
+  "pinFixErrorsAbove": "请先修正上方标出的错误，才能看到结果。",
+  "pinShiftSummary": "只需记住一个秘密向量，而不是许多 PIN：新 PIN = 基础 PIN + 向量，逐位相加，不进位。",
+  "pinShiftCaption": "按位模 10 移位。这是帮助记忆的混淆，不是加密——请参阅下方的“如何在纸上计算”和“威胁模型”。",
+  "pinShiftSectionDirection": "1 · 方向",
+  "pinShiftEncode": "编码",
+  "pinShiftDecode": "解码",
+  "pinShiftEncodeHelp": "新 = 基础 + 向量（mod 10）",
+  "pinShiftDecodeHelp": "基础 = 新 − 向量（mod 10）",
+  "pinShiftSectionLength": "2 · 长度",
+  "pinShiftLengthMustMatch": "PIN 与向量的长度必须相同。",
+  "pinShiftLengthCustom": "自定义长度（1–16）。",
+  "pinShiftSectionPin": "3 · PIN 码",
+  "pinShiftFieldBase": "基础 PIN",
+  "pinShiftFieldDerived": "派生 PIN（新）",
+  "pinShiftFieldBaseHelp": "基础 PIN——只能是数字，共 {length} 位。",
+  "@pinShiftFieldBaseHelp": {
+    "placeholders": {
+      "length": { "type": "int" }
+    }
+  },
+  "pinShiftFieldDerivedHelp": "派生 PIN——只能是数字，共 {length} 位。",
+  "@pinShiftFieldDerivedHelp": {
+    "placeholders": {
+      "length": { "type": "int" }
+    }
+  },
+  "pinShiftPinNonDigit": "PIN 中有非数字字符，位置：{positions}。只允许 0–9。",
+  "@pinShiftPinNonDigit": {
+    "placeholders": {
+      "positions": { "type": "String" }
+    }
+  },
+  "pinShiftPinLengthWarning": "PIN 长度为 {actual}，应为 {expected}。",
+  "@pinShiftPinLengthWarning": {
+    "placeholders": {
+      "actual": { "type": "int" },
+      "expected": { "type": "int" }
+    }
+  },
+  "pinShiftSectionVector": "4 · 移位向量",
+  "pinShiftFieldVector": "移位向量",
+  "pinShiftFieldVectorHelp": "按位的秘密——只能是数字，共 {length} 位。",
+  "@pinShiftFieldVectorHelp": {
+    "placeholders": {
+      "length": { "type": "int" }
+    }
+  },
+  "pinShiftVectorNonDigit": "向量中有非数字字符，位置：{positions}。只允许 0–9。",
+  "@pinShiftVectorNonDigit": {
+    "placeholders": {
+      "positions": { "type": "String" }
+    }
+  },
+  "pinShiftVectorLengthWarning": "向量长度为 {actual}，应为 {expected}。",
+  "@pinShiftVectorLengthWarning": {
+    "placeholders": {
+      "actual": { "type": "int" },
+      "expected": { "type": "int" }
+    }
+  },
+  "pinShiftWhyShape": "为什么是这种形式",
+  "pinShiftWhyShapeBody": "按位的秘密，恰好 {length} 位——与 PIN 等长。向量保密时的密钥空间：{keyspace}，与随机 PIN 的几率相同。",
+  "@pinShiftWhyShapeBody": {
+    "placeholders": {
+      "length": { "type": "int" },
+      "keyspace": { "type": "String" }
+    }
+  },
+  "pinShiftSectionResult": "5 · 结果",
+  "pinShiftReveal": "显示基础 PIN 和向量",
+  "pinShiftRevealHelp": "关闭（默认）：只显示输出。打开：输入 + 向量 + 输出，以及逐位明细。每次清除本标签页时都会关闭。",
+  "pinShiftRowInputBase": "输入（基础 PIN）",
+  "pinShiftRowInputDerived": "输入（派生 PIN）",
+  "pinShiftRowVector": "向量（每位 {sign}）",
+  "@pinShiftRowVector": {
+    "placeholders": {
+      "sign": { "type": "String" }
+    }
+  },
+  "pinShiftRowOutputDerived": "输出（派生）",
+  "pinShiftRowOutputBase": "输出（基础 PIN）",
+  "pinShiftOutputEmpty": "输出：尚未就绪",
+  "pinShiftFillBoth": "两个字段都要填写恰好 {length} 位数字。",
+  "@pinShiftFillBoth": {
+    "placeholders": {
+      "length": { "type": "int" }
+    }
+  },
+  "pinShiftHiddenNote": "基础 PIN 和向量已隐藏。打开上方的“显示基础 PIN 和向量”即可查看。",
+  "pinShiftRoundTripOk": "往返校验通过——反向运算得到基础 PIN。",
+  "pinShiftRoundTripOkDecode": "往返校验通过——对结果编码得到派生 PIN。",
+  "pinShiftRoundTripMismatch": "往返校验不一致：反向运算得到的值与输入的不同。",
+  "pinShiftWeakZero": "向量全是 0：输出等于输入——完全没有混淆。",
+  "pinShiftWeakEqualsBase": "向量等于基础 PIN：新 = 2 × 基础（mod 10），会暴露基础 PIN 的规律。",
+  "pinShiftWeakFives": "向量全是 5：编码和解码结果相同，每一位只是移动 5——规律很明显。",
+  "pinShiftBreakdownTitle": "逐位明细",
+  "pinShiftColInput": "输入",
+  "pinShiftColVector": "向量",
+  "pinShiftColFormula": "公式",
+  "pinShiftColOutput": "输出",
+  "pinShiftNoCopyNote": "有意不提供复制按钮：派生 PIN 应当在脑中或纸上重新计算，而不是写下来。",
+  "pinShiftPaperTitle": "如何在纸上计算",
+  "pinShiftPaperIntroEncode": "写下基础 PIN，在其下方写上向量，然后逐位模 10 相加——和为 10 或以上时去掉十位。",
+  "pinShiftPaperIntroDecode": "写下派生 PIN，在其下方写上向量，然后逐位模 10 相减——结果为负时加 10。",
+  "pinShiftPaperLegend": "base——您的 {length} 位基础 PIN · vec——您的 {length} 位秘密向量 · new——派生 PIN。",
+  "@pinShiftPaperLegend": {
+    "placeholders": {
+      "length": { "type": "int" }
+    }
+  },
+  "pinShiftPaperExampleEncode": "4 位 PIN 的示例，编码 +3719：",
+  "pinShiftPaperExampleEncodeNote": "最后一列是 4 + 9 = 13：去掉十位。",
+  "pinShiftPaperExampleDecode": "示例，解码 −3719：",
+  "pinShiftPaperExampleDecodeNote": "最后一列是 3 − 9 = −6：加 10。",
+  "pinShiftPaperRulesTitle": "一句话规则",
+  "pinShiftPaperRules": "• 列与列之间不进位，每一位独立计算。\n• 编码 = 加，解码 = 减。当前：{direction}。\n• 和 ≥ 10：去掉前面的 1。\n• 差 < 0：加 10。\n• 4 位和 16 位 PIN 的算法相同。",
+  "@pinShiftPaperRules": {
+    "placeholders": {
+      "direction": { "type": "String" }
+    }
+  },
+  "pinShiftDirectionEncode": "编码",
+  "pinShiftDirectionDecode": "解码",
+  "pinShiftPaperDontTitle": "纸上计算的禁忌",
+  "pinShiftPaperDontBody": "• 不要把基础 PIN、向量和新 PIN 写在随身携带的同一张纸上：向量只记在脑中，算完立即销毁纸张。\n• 不要使用全 0 的向量——它什么都不改变。\n• 不要使用等于基础 PIN 的向量：新 = 2 × 基础（mod 10）会暴露规律。\n• 不要对敏感程度不同的 PIN 家族共用一个向量：泄露一对（基础，新）就会全部失守。",
+  "pinShiftThreatTitle": "威胁模型与局限",
+  "pinShiftThreatBody": "• 这不是加密。它是凯撒式的加法移位，没有任何密码学强度——真正的秘密请使用密码管理器或硬件密钥。\n• 向量必须与 PIN 等长（此处为 {length}）。更短的向量会使密钥空间低于 10^{length}。\n• 基础 PIN 泄露而向量保密：攻击者面对派生 PIN 的 10^{length} 个候选——与随机 PIN 相同。\n• 泄露一对（基础，新）只需一次减法就能还原整个向量——这是任何加法移位的根本弱点。\n• 多个没有对应基础的新 PIN 会泄露各基础 PIN 之间按位的差——如果基础 PIN 彼此相关（日期、电话号码）则很危险。\n• 算法是公开的：只有向量是秘密。",
+  "@pinShiftThreatBody": {
+    "placeholders": {
+      "length": { "type": "int" }
+    }
+  },
+  "pinShiftUseTitle": "适用情况",
+  "pinShiftUseBody": "• 输错几次就会锁定的中低价值 PIN（银行卡、门锁、本地应用）。\n• 不想为每张卡单独记住或写下 PIN。\n• 一旦怀疑某对（基础，新）泄露，愿意更换基础 PIN。",
+  "pinShiftDontUseTitle": "不适用情况",
+  "pinShiftDontUseBody": "• 真正的秘密：银行密码、助记词、私钥——请使用密码管理器或硬件密钥。\n• 没有重试次数限制的场合：暴力破解瞬间完成。\n• 有人可能同时知道基础 PIN 和新 PIN 时（家人、同事、前任）。",
+  "pinLegacyBadge": "旧版",
+  "pinLegacyBanner": "旧版工具，已被 PIN Shift 取代。它只用于恢复用已归档的 pass_pin 脚本生成的 PIN。它只能生成——无法反向解码——而且重复访问的位置会悄悄输出 0。",
+  "pinLegacyHow": "一个 8 位掩码在 20 个字符的字符串上行走。第一位数字选择第 1–9 个字符；之后每一位向前移动相应数量的字符，超过 20 则回到开头。每个被访问的字符都会输出，并被替换为 0。",
+  "pinLegacyNotPorted": "另一个归档脚本 2_pass.py（FIDO2）没有移植：它无法运行，只会输出随机值。",
+  "pinLegacySectionMask": "1 · 掩码",
+  "pinLegacyMaskLabel": "掩码（8 位数字）",
+  "pinLegacyMaskHelp": "恰好 8 位数字 1–9（不允许 0），例如 24681357。有意只接受 ASCII 数字。",
+  "pinLegacyMaskAsciiOnly": "掩码中含有其他书写系统的数字（阿拉伯-印度数字或全角数字）。只接受 ASCII 0–9——请把键盘切换为西文数字。",
+  "pinLegacyErrMaskFormat": "掩码必须恰好包含 8 位数字，例如 '24681357'。",
+  "pinLegacyErrInputLength": "输入字符串必须恰好包含 20 个字符（不计空白）。",
+  "pinLegacyErrMaskValueRange": "掩码第 {position} 位的值必须在 1 到 20 之间。",
+  "@pinLegacyErrMaskValueRange": {
+    "placeholders": {
+      "position": { "type": "int" }
+    }
+  },
+  "pinLegacySectionInput": "2 · 输入字符串",
+  "pinLegacyInputLabel": "20 个字符的字符串",
+  "pinLegacyInputHelp": "空格、制表符和换行会被忽略。其他任何字符都算一个——字母、符号、表情符号。",
+  "pinLegacyInputBroken": "字符串中含有损坏的字符（未配对的代理项）。请清空该字段后重新输入。",
+  "pinLegacySectionOutput": "3 · 输出",
+  "pinLegacyReveal": "显示行走路径",
+  "pinLegacyRevealHelp": "显示访问过的位置以及标出所选字符的字符串——这会同时暴露掩码和字符串。",
+  "pinLegacyOutputEmpty": "输出：尚未就绪",
+  "pinLegacyIncomplete": "输入 8 位掩码和 20 个字符的字符串即可看到输出。",
+  "pinLegacyOutputSemantics": "输出：{chars}",
+  "@pinLegacyOutputSemantics": {
+    "placeholders": {
+      "chars": { "type": "String" }
+    }
+  },
+  "pinLegacyOutputCaption": "8 个字符，按原样取自字符串。",
+  "pinLegacyNotNumeric": "输出中含有数字以外的字符，因为字符串中含有它们。请完全按照显示的内容使用。",
+  "pinLegacyRevisitWarning": "行走路径回到了已使用的位置：有 {count} 个输出字符被强制为 0，无法与真正的 0 区分。",
+  "@pinLegacyRevisitWarning": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "pinLegacyRevisitSteps": "被强制为 0 的输出位置：{steps}。",
+  "@pinLegacyRevisitSteps": {
+    "placeholders": {
+      "steps": { "type": "String" }
+    }
+  },
+  "pinLegacyVisited": "依次访问的位置（1–20）：{positions}",
+  "@pinLegacyVisited": {
+    "placeholders": {
+      "positions": { "type": "String" }
+    }
+  },
+  "pinLegacyAboutTitle": "强度与局限",
+  "pinLegacyAboutBody": "• 最多 9^8 ≈ 4300 万种路径（约 25 位）——实际上更少，因为重复访问会变成 0。\n• 单向：无法解码。\n• 知道字符串并看到一次输出的人，就能推断出掩码的很多信息。\n• 这里不保存任何内容；应用离开屏幕时字段会被清除。\n• 新的 PIN 请使用 PIN Shift。",
+  "pinYkSummary": "YubiKey 的 PIN、PUK 和访问码，与 yubikey-fleet 脚本生成的一致：来自 Ledger Passwords 条目、来自主密钥，或随机生成。",
+  "pinYkDesktopTitle": "仅限电脑",
+  "pinYkDesktopOnlyNote": "此工具只计算并显示值。YAML 批次清单、--fill 以及用 ykman 写卡（yk-batch.sh、yk-provision.sh）仍在电脑上进行。",
+  "pinYkSectionSource": "1 · 来源",
+  "pinYkSourceLedger": "Ledger 种子",
+  "pinYkSourceMaster": "主密钥",
+  "pinYkSourceRandom": "随机",
+  "pinYkSourceLedgerHelp": "PIN 来自 Ledger Passwords 条目 yk-<serial>-pins 和 yk-<serial>-puk（以及 yk-<serial>-admin）：正是设备为这些名称输入的内容。",
+  "pinYkSourceMasterHelp": "与 yk-batch-secrets.py 的 derived 模式相同：以主密钥对 yk-fleet/<serial>/<NN> 做 HMAC-SHA256。相同的主密钥和序列号在任何批次中都给出相同的值。",
+  "pinYkSourceRandomHelp": "与 yk-batch-secrets.py 的 random 模式使用相同的字母表和长度，来自系统的安全随机数生成器。",
+  "pinYkSectionSerials": "2 · 序列号",
+  "pinYkSerialsLabel": "序列号",
+  "pinYkSerialsHelp": "一个或多个，用逗号、空格或换行分隔。只能是 ASCII 数字；按输入原样使用。",
+  "pinYkSerialsCount": "密钥数：{count}",
+  "@pinYkSerialsCount": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "pinYkSerialsInvalid": "不是序列号（只允许 ASCII 数字 0–9）：{tokens}",
+  "@pinYkSerialsInvalid": {
+    "placeholders": {
+      "tokens": { "type": "String" }
+    }
+  },
+  "pinYkSerialsDuplicates": "已去除重复：{serials}",
+  "@pinYkSerialsDuplicates": {
+    "placeholders": {
+      "serials": { "type": "String" }
+    }
+  },
+  "pinYkSerialsLeadingZero": "{serials}：保留前导零。“0012389”与“12389”是不同的密钥——序列号按原样使用。",
+  "@pinYkSerialsLeadingZero": {
+    "placeholders": {
+      "serials": { "type": "String" }
+    }
+  },
+  "pinYkSerialsTooMany": "只使用前 {max} 个序列号。",
+  "@pinYkSerialsTooMany": {
+    "placeholders": {
+      "max": { "type": "int" }
+    }
+  },
+  "pinYkSerialsOtpTooLong": "{serials}：超过 12 位，因此由序列号生成的 OTP 访问码超出 12 个字符（下方检查将不通过）。",
+  "@pinYkSerialsOtpTooLong": {
+    "placeholders": {
+      "serials": { "type": "String" }
+    }
+  },
+  "pinYkSectionPhases": "3 · 应用模块",
+  "pinYkPhasesHelp": "PIV（00 PIN、14 PUK）始终包含。OpenPGP 增加 23/24/25，FIDO2 增加 34，OATH 增加 41，OTP 增加 45/46。",
+  "pinYkOtpFromSerial": "OTP 访问码取自序列号",
+  "pinYkOtpFromSerialHelp": "两个槽位都使用补零到 12 位的序列号（38715242 → 000038715242）。有意设计为可预测：该码只防止槽位被重新编程。",
+  "pinYkOtpFromSerialLedger": "使用 Ledger 种子时，OTP 访问码始终取自序列号（docs/BITWARDEN.md）。",
+  "pinYkSectionLedger": "Ledger Passwords 设置",
+  "pinYkUsingSeed": "正在使用在 PIN 24 中输入的种子（{words} 个单词）。",
+  "@pinYkUsingSeed": {
+    "placeholders": {
+      "words": { "type": "int" }
+    }
+  },
+  "pinYkNeedSeed": "此来源需要您的助记词。请在 PIN 24 中输入它（如有密码短语也一并输入）——无需 nickname：助记词一旦有效，种子就只在本标签页的内存中保留。",
+  "pinYkGoToPin24": "在 PIN 24 中输入种子",
+  "pinYkLedgerRule": "PIV PIN 和 PUK = 设备输出的前 4 个 + 后 4 个字符（卡片最多接受 8 字节）；OpenPGP 和 FIDO2 PIN = 完整的 20 字符输出。字段 25 和 41 从不来自 Ledger；45/46 来自序列号。",
+  "pinYkLedgerMask": "条目的字符集（设备默认：A-Z、a-z、0-9）",
+  "pinYkLedgerMaskNonDefault": "不是默认值。这些条目必须是在设备上用完全相同的开关创建的；分隔符和特殊字符通常会影响在系统对话框中的输入，并破坏 CSV。",
+  "pinYkSeparateAdmin": "单独的管理员条目",
+  "pinYkSeparateAdminHelp": "OpenPGP Admin PIN（24）取自 yk-<serial>-admin，而不是共用的 -pins 条目。",
+  "pinYkLedgerRest": "Ledger 不填写的字段",
+  "pinYkLedgerRestHelp": "25（OpenPGP 重置码）和 41（OATH 密码）来自主密钥或随机生成，与 yubikey-fleet 脚本一致。",
+  "pinYkSectionMaster": "主密钥",
+  "pinYkMasterLabel": "主密钥（粘贴）",
+  "pinYkMasterHint": "使用所粘贴文本的原始字节（UTF-8），并去掉两端的空格和换行。不会解码 hex：64 个 hex 字符就是 64 字节的密钥——与电脑上的脚本读取密钥文件的方式完全一致。",
+  "pinYkMasterMissing": "请粘贴主密钥。",
+  "pinYkMasterBroken": "密钥中含有损坏的字符（未配对的代理项）。请清空该字段后重新粘贴。",
+  "pinYkMasterTitle": "主密钥",
+  "pinYkMasterNeverStored": "主密钥只在本标签页打开期间存在于此字段中：从不保存、同步或发送，并会在应用离开屏幕、离开 PIN 标签页、2 分钟无操作或按“清除”时被清除。",
+  "pinYkSectionResult": "4 · 值",
+  "pinYkNoSerials": "请输入一个或多个序列号。",
+  "pinYkGateBadSerials": "请修正上方的序列号。",
+  "pinYkGateNoSeed": "内存中没有种子——请先在 PIN 24 中输入。",
+  "pinYkComputing": "正在计算…",
+  "pinYkComputeFailed": "无法计算这些值。出于安全考虑，此消息不显示细节——请检查输入后重试。",
+  "pinYkKeyError": "无法计算此密钥。",
+  "pinYkRandomWarning": "这些值在其他任何地方都不存在——离开前请保存到密码管理器。切换到其他工具或离开 PIN 标签页、离开应用、2 分钟无操作或锁定都会永久清除它们。",
+  "pinYkRegenerate": "重新生成",
+  "pinYkRegenerateTitle": "替换所有随机值？",
+  "pinYkRegenerateBody": "当前的值在其他任何地方都不存在。如果其中任何一个已经设置到密钥上或已保存，请保留它们。",
+  "pinYkRegenerateConfirm": "替换",
+  "pinYkValuesHiddenNote": "值已隐藏；眼睛按钮可显示单个值及其 sha256_6 校验和。复制的值 60 秒后会从剪贴板清除。",
+  "pinYkEntries": "Ledger 条目：{names}",
+  "@pinYkEntries": {
+    "placeholders": {
+      "names": { "type": "String" }
+    }
+  },
+  "pinYkOriginLedger": "来自 Ledger",
+  "pinYkOriginDerived": "主密钥",
+  "pinYkOriginRandom": "随机",
+  "pinYkOriginSerial": "来自序列号",
+  "pinYkValueHidden": "隐藏的值",
+  "pinYkProblemLength": "长度 {length}；此字段接受 {min}–{max}。",
+  "@pinYkProblemLength": {
+    "placeholders": {
+      "length": { "type": "int" },
+      "min": { "type": "int" },
+      "max": { "type": "int" }
+    }
+  },
+  "pinYkProblemAlphabet": "含有该字段字母表以外的字符。",
+  "pinYkLedgerProblemLength": "{bytes} 字节；卡片接受 {min}–{max}。",
+  "@pinYkLedgerProblemLength": {
+    "placeholders": {
+      "bytes": { "type": "int" },
+      "min": { "type": "int" },
+      "max": { "type": "int" }
+    }
+  },
+  "pinYkLedgerProblemAscii8": "选出的 8 个字符必须是不含空格的可打印 ASCII——PIN 要在键盘布局无法控制的系统对话框中输入。",
+  "pinYkLedgerProblemAscii": "含有可打印 ASCII 以外的字符。",
+  "pinYkLedgerProblemCsv": "含有逗号、引号、首尾空格或开头的 = + - @，不加引号的 CSV 无法承载。",
+  "pinYkWarnPivInOther": "PIV PIN 是同一 Ledger 条目中字段 {field}（{name}）的一部分：频繁输入 PIV PIN 会暴露其中 8 个字符。请有意识地接受，或者从其他条目获取该 PIN。",
+  "@pinYkWarnPivInOther": {
+    "placeholders": {
+      "field": { "type": "String" },
+      "name": { "type": "String" }
+    }
+  },
+  "pinYkWarnAdminShares": "Admin PIN 来自共用的 -pins 条目，因此与每天输入的 User PIN 和 FIDO2 PIN 相同。如果无法接受，请打开“单独的管理员条目”。",
+  "pinYkCopyCsv": "复制为 CSV 供密码管理器使用（Bitwarden 无法直接导入）",
+  "pinYkCopyCsvCaption": "格式为 folder,name,field,value——每个秘密一行，与 yk-batch-secrets.py --bitwarden 相同。Bitwarden 无法直接导入这种布局：可把它当作填写条目 NN 字段的清单，或先进行转换。",
+  "pinYkCsvConfirmTitle": "将所有值复制为 CSV？",
+  "pinYkCsvConfirmBody": "CSV 以明文包含 {count} 个秘密值。Bitwarden 无法直接导入——只把它粘贴到您转换或记录它的地方。",
+  "@pinYkCsvConfirmBody": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "pinYkCsvConfirm": "复制 CSV",
+  "pinYkCsvRefusedTitle": "未复制 CSV",
+  "pinYkCsvRefusedValues": "有些值不符合卡片要求，或无法放入不加引号的 CSV——请查看标红的问题。",
+  "pinYkCsvRefusedSerial": "有序列号无法安全地写入 CSV。",
+  "pinYkCsvRefusedKeys": "有些密钥无法计算，CSV 将不完整。",
+  "pinYkCsvRefusedGeneric": "暂时没有可导出的内容。",
+  "pinYkNotesTitle": "说明与限制",
+  "pinYkHwTitle": "卡片限制以及本工具生成的内容",
+  "pinYkHwField": "字段",
+  "pinYkHwCard": "卡片接受",
+  "pinYkHwApp": "此处生成",
+  "pinYkHwBytes": "{min}–{max} 字节",
+  "@pinYkHwBytes": {
+    "placeholders": {
+      "min": { "type": "int" },
+      "max": { "type": "int" }
+    }
+  },
+  "pinYkHwChars": "{min}–{max} 个字符",
+  "@pinYkHwChars": {
+    "placeholders": {
+      "min": { "type": "int" },
+      "max": { "type": "int" }
+    }
+  },
+  "pinYkHwExactHex": "恰好 {count} 个 hex 字符",
+  "@pinYkHwExactHex": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "pinYkGenSame": "{length} 个字符，{alphabet}",
+  "@pinYkGenSame": {
+    "placeholders": {
+      "length": { "type": "int" },
+      "alphabet": { "type": "String" }
+    }
+  },
+  "pinYkGenModes": "{derived}（主密钥）/ {random}（随机）个字符，{alphabet}",
+  "@pinYkGenModes": {
+    "placeholders": {
+      "derived": { "type": "int" },
+      "random": { "type": "int" },
+      "alphabet": { "type": "String" }
+    }
+  },
+  "pinYkAlphaDigits": "数字",
+  "pinYkAlphaAlnum": "字母 + 数字",
+  "pinYkAlphaHex": "小写 hex",
+  "pinYkHwFidoNote": "FIDO2 的最小长度取决于固件：4，开启 PIN 复杂度时为 6，FIPS 5.7 上为 8。来自 Ledger 种子时：PIV PIN 和 PUK 为 8 个字符（4 + 4），字段 23/24/34 为完整的 20 字符输出。",
+  "pinYkBioTitle": "YubiKey Bio",
+  "pinYkBioNote": "YubiKey Bio（多协议版）的 PIV 和 FIDO2 共用一个 PIN，但这里的每种来源都会给字段 00 和 34 不同的值。请设置其中一个，并为两者记录同一个值。",
+  "pinYkPolicyTitle": "这些值遵循的规则",
+  "pinYkPolicyNote": "主密钥和随机模式遵循 yk-batch-secrets.py 的 FIELDS 表（字母和数字，固定长度），因此值与电脑上的脚本逐字节一致。docs/BITWARDEN.md 建议 24/25/41 使用带特殊字符的更长值——此处以脚本的表为准。Ledger 值则按卡片限制检查。",
+  "pinYkDerivedTitle": "由主密钥派生",
+  "pinYkDerivedNote": "HMAC-SHA256（主密钥，“yk-fleet/<serial>/<NN>” + 计数器），然后拒绝采样——不是标准的 HKDF。其中不含批次或版本：要轮换某个密钥的秘密，只能更换主密钥。序列号按原样使用，因此 0012389 ≠ 12389。",
+  "pinYkOtpTitle": "OTP 访问码",
+  "pinYkOtpNote": "访问码不是 PIN：只有在修改或删除槽位配置时才需要，且无法从卡片读回。取自序列号是有意设计为可预测的（yubikey-fleet 的决定，2026-08-31）。",
+  "pin24AboutTitle": "关于 PIN 24",
+  "pin24AutoCompleteHint": "输入单词的前 4 个字母再加一个空格即可——其余部分会自动补全。",
+  "pin24PassphraseSet": "已设置——会改变所有结果",
+  "pin24FromYubikey": "YubiKey 工具需要种子。请在此输入——无需 nickname——然后返回。",
+  "pin24BackToYubikey": "返回 YubiKey",
+  "pin24SeedKept": "此助记词的种子会保留在本标签页的内存中（YubiKey 工具可以使用），直到您清除它或离开此标签页。",
+  "pinWipedClipboardToo": "{what}——粘贴的文本也已从剪贴板中移除",
+  "pinClipboardNoteIos": "复制的值只保留在这台 iPhone 上——不会通过通用剪贴板共享到您的其他设备——并在 60 秒后从剪贴板过期。",
+  "pinClipboardNoteAndroid": "复制的值会被标记为敏感内容（Android 13 及以上会在预览中隐藏，遵守该标记的键盘不会把它存入历史），若 60 秒后仍在剪贴板中则会被清除。剪贴板同步（三星、连接至 Windows、键盘云剪贴板）仍可能把它复制到其他设备。",
+  "pinYkRandomLoseTitle": "清除随机值？",
+  "pinYkRandomLoseBody": "这些值在其他任何地方都不存在。离开此工具或清除都会永久删除它们——如需保留，请先保存到密码管理器。",
+  "pinYkRandomLoseConfirm": "清除",
+  "pinYkRandomErasedLeft": "由于您离开了 PIN 标签页，YubiKey 随机值已被清除。",
+  "pinYkMasterOk": "长度足够：去除空白后至少 {min} 字节。",
+  "pinYkMasterShort": "太短：去除空白后主密钥至少需要 {min} 字节。",
+  "pinYkProblemLengthExact": "长度 {length}；此字段只接受恰好 {count}。",
+  "pinYkCsvRefusedOtp": "超过 12 位的序列号会生成超过 12 个字符的 OTP 访问码：请关闭“OTP 访问码取自序列号”或 OTP 应用。",
+  "pinYkCsvRefusedLedgerHint": "对于 Ledger 值，请使用默认字符集 A-Z、a-z、0-9。",
+  "pinYkHandSetTitle": "手动设置（过渡期）",
+  "pinYkHandSetHelp": "如果某个 PIN 仍是手动设置（docs/BITWARDEN.md，过渡到 Ledger 期间），请在此打开：它不会被派生、显示，也不会包含在 CSV 中。",
+  "pinYkHandSetNote": "手动设置，不显示也不包含在 CSV 中：{fields}。请自行记录。",
+  "pinShowField": "显示{field}",
+  "pinHideField": "隐藏{field}",
+  "pinCopyField": "复制{field}",
+  "pinSecretHiddenSemantics": "{label}：{count} 个字符，不会朗读——打开显示开关即可听到",
+  "pinLegacyMaskZeroHint": "掩码的每一位必须是 1–9：不允许 0。"
 }

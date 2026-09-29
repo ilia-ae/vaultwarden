@@ -208,7 +208,6 @@
   "pinShowLegacy": "Show legacy tools",
   "pinShowLegacyHelp": "Adds the old 8-digit mask tool (kept only to recover values made with it).",
   "pinOfflineNote": "Everything here works offline, on this phone only. Nothing you type is saved, synced or sent anywhere.",
-  "pinComingSoon": "This tool is coming in this build — it is not ready yet.",
   "pinUnavailable": "The PIN tools could not start. Close and reopen the app.",
   "pinScreenshotsAllowedBuild": "Test build: screenshots of this screen are allowed.",
   "pinSeedInMemory": "A seed from PIN 24 is still in memory ({words} words).",
@@ -228,9 +227,9 @@
   "pinWipedInactivity": "PIN tools were wiped after 2 minutes without activity",
   "pinCopyHint": "Tap to copy",
   "pinTapToCopy": "Tap to copy — it clears from the clipboard after 60 seconds.",
-  "pinCopied": "✓ Copied!",
+  "pinCopied": "Copied!",
   "pinCopiedTtl": "Copied — clears from the clipboard in 60 seconds",
-  "pinCopyFailed": "✗ Failed",
+  "pinCopyFailed": "Failed",
   "pinPastedStillOnClipboard": "The pasted text is still on the clipboard.",
   "pinClearClipboard": "Clear clipboard",
   "pinClipboardCleared": "Clipboard cleared",
@@ -248,7 +247,7 @@
   "pin24Summary": "Recovery-only: derive Ledger-compatible PINs and passwords from a 12, 15, 18, 21 or 24-word BIP39 seed.",
   "pin24Bullets": "• Bit-for-bit replica of the LedgerHQ app-passwords derivation\n• BIP39 validation (wordlist + checksum) before touching the secret\n• Per-service nickname; first N digits of the device output\n• Use only when the real Ledger is unavailable",
   "pin24Caption": "Recovery-only software reproduction of the Ledger Passwords app. Type the BIP39 seed + a nickname → get the same numeric PIN the device would type for that nickname with “Use numbers + Use separators” selected. Use the real device whenever possible.",
-  "pin24Banner": "⚠ Recovery-only tool. Use it only when your Ledger device is unavailable. Typing your BIP39 seed phrase into a phone exposes it to the operating system, keyboard apps, the clipboard, screenshots, screen recording and backups. Prefer the real device whenever possible. Close this screen when done, and assume the phone could be compromised — rotate any high-value secrets afterwards if practical.",
+  "pin24Banner": "Recovery-only tool. Use it only when your Ledger device is unavailable. Typing your BIP39 seed phrase into a phone exposes it to the operating system, keyboard apps, the clipboard, screenshots, screen recording and backups. Prefer the real device whenever possible. Close this screen when done, and assume the phone could be compromised — rotate any high-value secrets afterwards if practical.",
   "pin24Acknowledge": "I understand",
   "pin24AckRequired": "Read the warning above and tap “I understand” to unlock the seed field.",
   "pin24SectionSeed": "1 · Seed phrase",
@@ -256,8 +255,8 @@
   "pin24SectionMode": "3 · Mode",
   "pin24SectionOutput": "4 · Output",
   "pin24SeedLabel": "BIP39 seed (12 / 15 / 18 / 21 / 24 words; spaces / dashes / commas / newlines all work)",
-  "pin24SeedHelp": "Always masked. The word cells below mirror what you typed — toggle 👁 to reveal those cells. Paste works; copying out does not.",
-  "pin24ShowWords": "👁 Show typed words in the cells below  (off by default)",
+  "pin24SeedHelp": "Always masked. The word cells below mirror what you typed — turn on “Show typed words” to see the words in them. Paste works; copying out does not.",
+  "pin24ShowWords": "Show typed words in the cells below (off by default)",
   "pin24ShowWordsHelp": "Off: cells render bullets, only validation colors visible. On: each cell shows the actual word.",
   "pin24WordsMetric": "Words",
   "pin24WordsCounter": "{typed} / {target}",
@@ -294,7 +293,7 @@
       "items": { "type": "String" }
     }
   },
-  "pin24PartialMasked": "Partial word(s) at position(s): {positions} (toggle 👁 above to see completions)",
+  "pin24PartialMasked": "Partial word(s) at position(s): {positions} (turn on “Show typed words” to see completions)",
   "@pin24PartialMasked": {
     "placeholders": {
       "positions": { "type": "String" }
@@ -326,14 +325,14 @@
   "pin24PassphraseLabel": "Passphrase",
   "pin24PassphraseCaption": "Leave empty unless you explicitly set a passphrase on your Ledger. If you did set one, you MUST enter it here — otherwise the derived PIN will not match the device.",
   "pin24PassphraseWhitespace": "Starts or ends with a space — it counts as part of the passphrase",
-  "pin24WipeSeed": "🧹 Wipe seed",
-  "pin24WipeSeedHelp": "🧹 clears the seed phrase and passphrase and zeroes the cached seed; nickname and settings stay. 🚨 clears everything on this tab.",
-  "pin24WipeAll": "🚨 Wipe all",
+  "pin24WipeSeed": "Wipe seed",
+  "pin24WipeSeedHelp": "“Wipe seed” clears the seed phrase and passphrase and zeroes the cached seed; nickname and settings stay. “Wipe all” clears everything on this tab.",
+  "pin24WipeAll": "Wipe all",
   "pin24WipeAllTitle": "Wipe everything?",
-  "pin24WipeAllBody": "This clears the seed phrase, passphrase, nickname and results on this tab and zeroes the cached seed.\n\n⚠ The derived PIN will be lost — copy or write it down first.",
-  "pin24WipeAllConfirm": "🚨 Yes, wipe now",
-  "pin24NicknameLabel": "Nickname (exactly as set on the device — case-sensitive!)",
-  "pin24NicknameHelp": "Must match the nickname stored on your Ledger byte-for-byte. If you used 'Visa' on the device, 'visa' here would derive a different PIN.",
+  "pin24WipeAllBody": "This clears the seed phrase, passphrase, nickname and results on this tab and zeroes the cached seed.\n\nThe derived PIN will be lost — copy or write it down first.",
+  "pin24WipeAllConfirm": "Yes, wipe now",
+  "pin24NicknameLabel": "Nickname",
+  "pin24NicknameHelp": "Exactly as set on the device — case-sensitive. It must match the nickname stored on your Ledger byte for byte: if you used 'Visa' on the device, 'visa' here derives a different PIN.",
   "pin24NicknameWhitespace": "Starts or ends with a space — it is part of the nickname",
   "pin24NicknameNonAscii": "Non-ASCII characters — they must match the device byte-for-byte",
   "pin24NicknameTooLong": "{bytes} bytes in UTF-8 — Ledger nicknames hold at most {max}",
@@ -343,9 +342,9 @@
       "max": { "type": "int" }
     }
   },
-  "pin24ModePin": "🔢 PIN  (digits only)",
+  "pin24ModePin": "PIN (digits only)",
   "pin24ModePinHelp": "Numeric PIN — first N digits of the device's NUMBERS+SEPARATORS output.",
-  "pin24ModePassword": "🔑 Password  (any charset)",
+  "pin24ModePassword": "Password (any charset)",
   "pin24ModePasswordHelp": "Full 20-char Ledger password — same as choosing charsets on the device.",
   "pin24Length": "Length",
   "pin24LengthButton": "Length {length}",
@@ -359,7 +358,7 @@
   "pin24LengthLonger": "Longer",
   "pin24Charsets": "Charsets (match what you'd toggle on the device)",
   "pin24CharsetSeparators": "- _ space",
-  "pin24CharsetNone": "⚠ Pick at least one charset.",
+  "pin24CharsetNone": "Pick at least one charset.",
   "pin24SpecialsTitle": "Special characters",
   "pin24SpecialsBody": "The last toggle’s label is shorthand. With special characters on, the device draws from all of these:",
   "pin24Gate1": "Fill in a valid BIP39 phrase above to enable derivation.",
@@ -378,25 +377,25 @@
       "length": { "type": "int" }
     }
   },
-  "pin24RevealPin": "👁 Show the PIN as text",
+  "pin24RevealPin": "Show the PIN as text",
   "pin24RevealPinHelp": "Off: only digit boxes. On: also show it as plain text for writing it down.",
-  "pin24PinCaption": "This is what your Ledger would type if you opened app-passwords, selected only “Use numbers” + “Use separators”, picked the nickname “{nickname}”, and read off the first {length} digits (skipping the separators). If it doesn't match the device, re-check the nickname casing, and the BIP39 passphrase if you set one.",
+  "pin24PinCaption": "This is what your Ledger would type if you opened app-passwords, selected only “Use numbers” + “Use separators”, picked the nickname “{nickname}”, and read off {length, plural, one{the first digit} other{the first {length} digits}} (skipping the separators). If it doesn't match the device, re-check the nickname casing, and the BIP39 passphrase if you set one.",
   "@pin24PinCaption": {
     "placeholders": {
       "nickname": { "type": "String" },
       "length": { "type": "int" }
     }
   },
-  "pin24PaddingWarning": "The device output has only {digits} digits; the PIN was padded with {zeros} zero(s) at the end. Compare with the device using the same rule.",
+  "pin24PaddingWarning": "The device output has only {digits, plural, one{1 digit} other{{digits} digits}}; the PIN was padded with {zeros, plural, one{1 zero} other{{zeros} zeros}} at the end. Compare with the device using the same rule.",
   "@pin24PaddingWarning": {
     "placeholders": {
       "digits": { "type": "int" },
       "zeros": { "type": "int" }
     }
   },
-  "pin24FullToggle": "🔍 Show full derived password (for debug / device cross-check)",
+  "pin24FullToggle": "Show full derived password (for debug / device cross-check)",
   "pin24FullHelp": "Shows the entire numbers-and-separators string the Ledger would type (␣ = space). Use it once on first setup: create an entry “pin24-test” on the device and compare character by character, then turn this off.",
-  "pin24FullCaption": "Full derived password. The PIN above is the first {length} digits of this string (separators skipped). Compare it character-for-character with what your Ledger types in the same configuration.",
+  "pin24FullCaption": "Full derived password. The PIN above is {length, plural, one{the first digit} other{the first {length} digits}} of this string (separators skipped). Compare it character-for-character with what your Ledger types in the same configuration.",
   "@pin24FullCaption": {
     "placeholders": {
       "length": { "type": "int" }
@@ -416,9 +415,9 @@
   "pin24ErrorBip32": "This nickname hits an astronomically rare invalid key; the device cannot derive it either. Use a different nickname.",
   "pin24ErrorGeneric": "Derivation failed unexpectedly. The seed itself is not echoed in this message on purpose. Re-check the phrase length, wordlist, and BIP39 checksum; if the problem persists, wipe everything and start again.",
   "pin24ErrorGenericShort": "Derivation failed unexpectedly. The seed itself is not echoed in this message on purpose.",
-  "pin24ThreatTitle": "⚠ Threat model & recovery checklist",
+  "pin24ThreatTitle": "Threat model & recovery checklist",
   "pin24ThreatProtectsTitle": "What this screen does to protect the seed",
-  "pin24ThreatProtectsBody": "• The seed field is always masked and never shown as plain text; you can paste into it, never copy out of it.\n• Keyboard suggestions, autocorrect, keyboard learning and autofill are off for the secret fields.\n• Everything is computed on this phone, offline, in a separate short-lived isolate; nothing is sent to your Vaultwarden server, Firebase or anywhere else.\n• Nothing secret is saved: not in settings, cloud sync, backups or logs.\n• The derived seed stays in memory only to avoid re-deriving it, and is zeroed on 🧹 and 🚨, when the app goes to the background, after 2 minutes without activity, and when the app locks.\n• Android blocks screenshots and recording of this tab; iOS hides it while the screen is recorded or mirrored.\n• Copied results expire from the clipboard after 60 seconds and are not shared with your other devices.",
+  "pin24ThreatProtectsBody": "• The seed field is always masked and never shown as plain text; you can paste into it, never copy out of it.\n• Keyboard suggestions, autocorrect, keyboard learning and autofill are off for the secret fields.\n• Everything is computed on this phone, offline, in a separate short-lived isolate; nothing is sent to your Vaultwarden server, Firebase or anywhere else.\n• Nothing secret is saved: not in settings, cloud sync, backups or logs.\n• The derived seed stays in memory only to avoid re-deriving it, and is zeroed on “Wipe seed” and “Wipe all”, when you leave the PIN tab, when the app goes to the background, after 2 minutes without activity, and when the app locks.\n• Android blocks screenshots and recording of this tab; iOS hides it while the screen is recorded or mirrored.",
   "pin24ThreatCannotTitle": "What it CANNOT protect against",
   "pin24ThreatCannotBody": "• A compromised phone: malware, a jailbreak or root, or a malicious keyboard app (Android cannot block third-party keyboards; iOS forces the system keyboard in masked fields only).\n• Accessibility services and screen readers that can read the screen.\n• Screenshots on iOS (they cannot be blocked — you only get a warning), cameras and people looking over your shoulder.\n• Dart strings cannot be wiped: the phrase you typed may stay in app memory until it is overwritten. Only the binary seed buffers are zeroed.\n• Your memory: one wrong word gives a completely different PIN, and the checksum catches most mistakes but not all. A forgotten passphrase cannot be recovered.",
   "pin24ThreatUseTitle": "Use this tool when",
@@ -426,9 +425,9 @@
   "pin24ThreatDontTitle": "Do NOT use it when",
   "pin24ThreatDontBody": "• The Ledger is available — use the device.\n• The phone is not yours, is jailbroken or rooted, or has unknown keyboard or accessibility apps.\n• Someone could be recording or watching the screen.\n• You just want convenience: typing the seed into a phone exposes it far more than the hardware wallet does.",
   "pin24ThreatStepsTitle": "Steps for a real recovery",
-  "pin24ThreatStepsBody": "1. Use a phone you trust, ideally in airplane mode.\n2. Enter the passphrase too if you set one on the Ledger.\n3. Type the nickname exactly as on the device (case-sensitive).\n4. Derive what you need, copy or write it down, then press 🚨 Wipe all and close the app from the app switcher.\n5. Restore the Ledger onto new hardware, and rotate especially valuable secrets if the phone may be compromised.",
+  "pin24ThreatStepsBody": "1. Use a phone you trust, ideally in airplane mode.\n2. Enter the passphrase too if you set one on the Ledger.\n3. Type the nickname exactly as on the device (case-sensitive).\n4. Derive what you need, copy or write it down, then press “Wipe all” and close the app from the app switcher.\n5. Restore the Ledger onto new hardware, and rotate especially valuable secrets if the phone may be compromised.",
   "pin24CleanupTitle": "Post-recovery cleanup",
-  "pin24CleanupCaption": "When you are done: copy or write down what you need, press 🚨 Wipe all, then close the app from the app switcher. Dart strings cannot be zeroed, so closing the app is what finally drops them from memory.",
+  "pin24CleanupCaption": "When you are done: copy or write down what you need, press “Wipe all”, then close the app from the app switcher. Dart strings cannot be zeroed, so closing the app is what finally drops them from memory.",
   "pin24SelfTestCaption": "Check that this build's engine reproduces the official Ledger test vectors (public Speculos seed — nothing you typed is used).",
   "pin24SelfTest": "Check engine",
   "pin24SelfTestOk": "Engine OK: {passed} of {total} official vectors match.",
@@ -445,5 +444,464 @@
       "total": { "type": "int" }
     }
   },
-  "pin24NicknameBrokenRemoved": "An invalid character (unpaired surrogate) was removed — check the nickname"
+  "pin24NicknameBrokenRemoved": "An invalid character (unpaired surrogate) was removed — check the nickname",
+
+  "pinFixErrorsAbove": "Fix the highlighted errors above to see the result.",
+  "pinShiftSummary": "Remember one secret vector instead of many PINs: new PIN = base PIN + vector, digit by digit, without carry.",
+  "pinShiftCaption": "Per-position modulo-10 shift. Mnemonic obfuscation, not a cipher — see “How to compute this on paper” and “Threat model” below.",
+  "pinShiftSectionDirection": "1 · Direction",
+  "pinShiftEncode": "Encode",
+  "pinShiftDecode": "Decode",
+  "pinShiftEncodeHelp": "new = base + vector (mod 10)",
+  "pinShiftDecodeHelp": "base = new − vector (mod 10)",
+  "pinShiftSectionLength": "2 · Length",
+  "pinShiftLengthMustMatch": "The PIN and the vector must have the same length.",
+  "pinShiftLengthCustom": "Custom length (1–16).",
+  "pinShiftSectionPin": "3 · PIN",
+  "pinShiftFieldBase": "Base PIN",
+  "pinShiftFieldDerived": "Derived PIN (new)",
+  "pinShiftFieldBaseHelp": "Base PIN — digits only, {length} of them.",
+  "@pinShiftFieldBaseHelp": {
+    "placeholders": {
+      "length": { "type": "int" }
+    }
+  },
+  "pinShiftFieldDerivedHelp": "Derived PIN — digits only, {length} of them.",
+  "@pinShiftFieldDerivedHelp": {
+    "placeholders": {
+      "length": { "type": "int" }
+    }
+  },
+  "pinShiftPinNonDigit": "Non-digit characters in the PIN at position(s) {positions}. Only 0–9.",
+  "@pinShiftPinNonDigit": {
+    "placeholders": {
+      "positions": { "type": "String" }
+    }
+  },
+  "pinShiftPinLengthWarning": "PIN length is {actual}; expected {expected}.",
+  "@pinShiftPinLengthWarning": {
+    "placeholders": {
+      "actual": { "type": "int" },
+      "expected": { "type": "int" }
+    }
+  },
+  "pinShiftSectionVector": "4 · Shift vector",
+  "pinShiftFieldVector": "Shift vector",
+  "pinShiftFieldVectorHelp": "Per-position secret — digits only, {length} of them.",
+  "@pinShiftFieldVectorHelp": {
+    "placeholders": {
+      "length": { "type": "int" }
+    }
+  },
+  "pinShiftVectorNonDigit": "Non-digit characters in the vector at position(s) {positions}. Only 0–9.",
+  "@pinShiftVectorNonDigit": {
+    "placeholders": {
+      "positions": { "type": "String" }
+    }
+  },
+  "pinShiftVectorLengthWarning": "Vector length is {actual}; expected {expected}.",
+  "@pinShiftVectorLengthWarning": {
+    "placeholders": {
+      "actual": { "type": "int" },
+      "expected": { "type": "int" }
+    }
+  },
+  "pinShiftWhyShape": "Why this shape",
+  "pinShiftWhyShapeBody": "Per-position secret of exactly {length, plural, one{1 digit} other{{length} digits}} — the same length as the PIN. Keyspace if the vector is private: {keyspace}, the same odds as a random PIN.",
+  "@pinShiftWhyShapeBody": {
+    "placeholders": {
+      "length": { "type": "int" },
+      "keyspace": { "type": "String" }
+    }
+  },
+  "pinShiftSectionResult": "5 · Result",
+  "pinShiftReveal": "Reveal base PIN & vector",
+  "pinShiftRevealHelp": "Off (default): only the output. On: input + vector + output and the per-digit breakdown. Turns off whenever the tab is wiped.",
+  "pinShiftRowInputBase": "Input (base PIN)",
+  "pinShiftRowInputDerived": "Input (derived PIN)",
+  "pinShiftRowVector": "Vector ({sign} per position)",
+  "@pinShiftRowVector": {
+    "placeholders": {
+      "sign": { "type": "String" }
+    }
+  },
+  "pinShiftRowOutputDerived": "Output (derived)",
+  "pinShiftRowOutputBase": "Output (base PIN)",
+  "pinShiftOutputEmpty": "Output: not ready yet",
+  "pinShiftFillBoth": "Fill both fields with exactly {length, plural, one{1 digit} other{{length} digits}}.",
+  "@pinShiftFillBoth": {
+    "placeholders": {
+      "length": { "type": "int" }
+    }
+  },
+  "pinShiftHiddenNote": "Base PIN and vector hidden. Turn on “Reveal base PIN & vector” above to see them.",
+  "pinShiftRoundTripOk": "Round-trip OK — the reverse operation reproduces the base.",
+  "pinShiftRoundTripOkDecode": "Round-trip OK — encoding the result reproduces the derived PIN.",
+  "pinShiftRoundTripMismatch": "Round-trip mismatch: reversing yields a different value than the one typed.",
+  "pinShiftWeakZero": "The vector is all zeros: the output equals the input — no obfuscation at all.",
+  "pinShiftWeakEqualsBase": "The vector equals the base PIN: new = 2 × base (mod 10), which gives away the pattern of the base.",
+  "pinShiftWeakFives": "The vector is all fives: encoding and decoding give the same result and every digit just moves by 5 — an obvious pattern.",
+  "pinShiftBreakdownTitle": "Per-digit breakdown",
+  "pinShiftColInput": "input",
+  "pinShiftColVector": "vector",
+  "pinShiftColFormula": "formula",
+  "pinShiftColOutput": "output",
+  "pinShiftNoCopyNote": "No copy button on purpose: the derived PIN is meant to be recomputed in your head or on paper, never written down.",
+  "pinShiftPaperTitle": "How to compute this on paper",
+  "pinShiftPaperIntroEncode": "Write the base PIN, write the vector underneath it, and add digit by digit modulo 10 — drop the tens place from any sum of 10 or more.",
+  "pinShiftPaperIntroDecode": "Write the derived PIN, write the vector underneath it, and subtract digit by digit modulo 10 — add 10 to any negative result.",
+  "pinShiftPaperLegend": "base — your {length}-digit base PIN · vec — your {length}-digit secret vector · new — the derived PIN.",
+  "@pinShiftPaperLegend": {
+    "placeholders": {
+      "length": { "type": "int" }
+    }
+  },
+  "pinShiftPaperExampleEncode": "Worked example for a 4-digit PIN, encode +3719:",
+  "pinShiftPaperExampleEncodeNote": "The last column is 4 + 9 = 13: drop the tens digit.",
+  "pinShiftPaperExampleDecode": "Worked example, decode −3719:",
+  "pinShiftPaperExampleDecodeNote": "The last column is 3 − 9 = −6: add 10.",
+  "pinShiftPaperRulesTitle": "Rules in one line",
+  "pinShiftPaperRules": "• No carry between columns. Each position is independent.\n• Encode = add, decode = subtract. Currently: {direction}.\n• Sum ≥ 10: drop the leading 1.\n• Difference < 0: add 10.\n• Same arithmetic for 4-digit or 16-digit PINs.",
+  "@pinShiftPaperRules": {
+    "placeholders": {
+      "direction": { "type": "String" }
+    }
+  },
+  "pinShiftDirectionEncode": "encode",
+  "pinShiftDirectionDecode": "decode",
+  "pinShiftPaperDontTitle": "What not to do on paper",
+  "pinShiftPaperDontBody": "• Don't keep base, vector and new on one sheet you carry around: keep the vector in your head and destroy the sheet right after.\n• Don't use a vector of all zeros — it changes nothing.\n• Don't use a vector equal to the base: new = 2 × base (mod 10) shows the pattern.\n• Don't reuse one vector for PIN families of different sensitivity: one leaked (base, new) pair breaks them all.",
+  "pinShiftThreatTitle": "Threat model & limitations",
+  "pinShiftThreatBody": "• Not a cipher. A Caesar-style additive shift with no cryptographic strength — use a password manager or a hardware key for real secrets.\n• The vector must be as long as the PIN ({length} here). Anything shorter would shrink the keyspace below 10^{length}.\n• Base PIN leaked, vector private: an attacker faces 10^{length} candidates for the derived PIN — the same as a random PIN.\n• One leaked (base, new) pair reveals the whole vector with one subtraction — fundamental to any additive shift.\n• Several new PINs without their bases leak the pairwise differences of the bases per position — dangerous if the bases are correlated (dates, phone numbers).\n• The algorithm is public: only the vector is secret.",
+  "@pinShiftThreatBody": {
+    "placeholders": {
+      "length": { "type": "int" }
+    }
+  },
+  "pinShiftUseTitle": "When it makes sense",
+  "pinShiftUseBody": "• Low- to medium-value PINs that lock after a few wrong tries (cards, door locks, local apps).\n• You don't want to remember or write down a separate PIN for every card.\n• You are ready to change the base PINs if a (base, new) pair may have leaked.",
+  "pinShiftDontUseTitle": "When not to use it",
+  "pinShiftDontUseBody": "• Real secrets: bank passwords, seed phrases, private keys — use a password manager or a hardware key.\n• Anything without a retry limit: brute force is instant there.\n• When someone may know both a base and a new PIN (family, colleagues, former partners).",
+  "pinLegacyBadge": "Legacy",
+  "pinLegacyBanner": "Legacy tool, superseded by PIN Shift. It is here only to recover PINs made with the archived pass_pin script. It only generates — nothing can be decoded back — and a revisited position silently outputs 0.",
+  "pinLegacyHow": "An 8-digit mask walks over a 20-character string. The first digit picks character 1–9; every next digit steps forward that many characters, wrapping around after 20. Each visited character is output and replaced with 0.",
+  "pinLegacyNotPorted": "The other archived script, 2_pass.py (FIDO2), is not included: it does not run and would only print a random value.",
+  "pinLegacySectionMask": "1 · Mask",
+  "pinLegacyMaskLabel": "Mask (8 digits)",
+  "pinLegacyMaskHelp": "Exactly 8 digits 1–9 (0 is not allowed), e.g. 24681357. Only ASCII digits are accepted, on purpose.",
+  "pinLegacyMaskAsciiOnly": "The mask contains digits of another script (Arabic-Indic or fullwidth). Only ASCII 0–9 are accepted — switch the keyboard to Western digits.",
+  "pinLegacyErrMaskFormat": "The mask must contain exactly 8 digits, e.g. '24681357'.",
+  "pinLegacyErrInputLength": "The input string must contain exactly 20 characters (excluding whitespace).",
+  "pinLegacyErrMaskValueRange": "Mask value at position {position} must be between 1 and 20.",
+  "@pinLegacyErrMaskValueRange": {
+    "placeholders": {
+      "position": { "type": "int" }
+    }
+  },
+  "pinLegacySectionInput": "2 · Input string",
+  "pinLegacyInputLabel": "String of 20 characters",
+  "pinLegacyInputHelp": "Spaces, tabs and line breaks are ignored. Every other character counts as one — letters, symbols, emoji.",
+  "pinLegacyInputBroken": "The string contains a broken character (an unpaired surrogate). Clear the field and type it again.",
+  "pinLegacySectionOutput": "3 · Output",
+  "pinLegacyReveal": "Show the walk",
+  "pinLegacyRevealHelp": "Shows the visited positions and the string with the picked characters — this reveals both the mask and the string.",
+  "pinLegacyOutputEmpty": "Output: not ready yet",
+  "pinLegacyIncomplete": "Enter an 8-digit mask and a 20-character string to see the output.",
+  "pinLegacyOutputSemantics": "Output: {chars}",
+  "@pinLegacyOutputSemantics": {
+    "placeholders": {
+      "chars": { "type": "String" }
+    }
+  },
+  "pinLegacyOutputCaption": "8 characters, taken from the string as they are.",
+  "pinLegacyNotNumeric": "The output contains characters other than digits because the string does. Use it exactly as shown.",
+  "pinLegacyRevisitWarning": "The walk comes back to an already used position: {count, plural, one{1 output character is} other{{count} output characters are}} forced to 0, indistinguishable from a real 0.",
+  "@pinLegacyRevisitWarning": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "pinLegacyRevisitSteps": "Forced to 0 at output position(s): {steps}.",
+  "@pinLegacyRevisitSteps": {
+    "placeholders": {
+      "steps": { "type": "String" }
+    }
+  },
+  "pinLegacyVisited": "Visited positions (1–20), in order: {positions}",
+  "@pinLegacyVisited": {
+    "placeholders": {
+      "positions": { "type": "String" }
+    }
+  },
+  "pinLegacyAboutTitle": "Strength and limits",
+  "pinLegacyAboutBody": "• At most 9^8 ≈ 43 million walks (about 25 bits) — fewer in practice, because revisits collapse to 0.\n• One-way: there is no decode.\n• Anyone who knows the string and sees one output learns a lot about the mask.\n• Nothing here is saved; the fields are wiped when the app leaves the screen.\n• For new PINs use PIN Shift.",
+  "pinYkSummary": "PINs, PUKs and access codes for YubiKeys, the same as the yubikey-fleet scripts produce: from Ledger Passwords entries, from a master key, or at random.",
+  "pinYkDesktopTitle": "Desktop only",
+  "pinYkDesktopOnlyNote": "This tool only computes and shows values. YAML batch manifests, --fill and provisioning with ykman (yk-batch.sh, yk-provision.sh) stay on the desktop.",
+  "pinYkSectionSource": "1 · Source",
+  "pinYkSourceLedger": "Ledger seed",
+  "pinYkSourceMaster": "Master key",
+  "pinYkSourceRandom": "Random",
+  "pinYkSourceLedgerHelp": "PINs come from the Ledger Passwords entries yk-<serial>-pins and yk-<serial>-puk (and yk-<serial>-admin): exactly what the device types for those names.",
+  "pinYkSourceMasterHelp": "Same values as yk-batch-secrets.py in derived mode: HMAC-SHA256 of the master key over yk-fleet/<serial>/<NN>. The same master and serial always give the same values, in every batch.",
+  "pinYkSourceRandomHelp": "Same alphabets and lengths as yk-batch-secrets.py in random mode, from the system's secure random generator.",
+  "pinYkSectionSerials": "2 · Serial numbers",
+  "pinYkSerialsLabel": "Serial numbers",
+  "pinYkSerialsHelp": "One or several, separated by commas, spaces or new lines. ASCII digits only; used exactly as typed.",
+  "pinYkSerialsCount": "Keys: {count}",
+  "@pinYkSerialsCount": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "pinYkSerialsInvalid": "Not a serial number (ASCII digits 0–9 only): {tokens}",
+  "@pinYkSerialsInvalid": {
+    "placeholders": {
+      "tokens": { "type": "String" }
+    }
+  },
+  "pinYkSerialsDuplicates": "Duplicates removed: {serials}",
+  "@pinYkSerialsDuplicates": {
+    "placeholders": {
+      "serials": { "type": "String" }
+    }
+  },
+  "pinYkSerialsLeadingZero": "{serials}: the leading zero is kept. “0012389” is a different key from “12389” — serials are used verbatim.",
+  "@pinYkSerialsLeadingZero": {
+    "placeholders": {
+      "serials": { "type": "String" }
+    }
+  },
+  "pinYkSerialsTooMany": "Only the first {max} serials are used.",
+  "@pinYkSerialsTooMany": {
+    "placeholders": {
+      "max": { "type": "int" }
+    }
+  },
+  "pinYkSerialsOtpTooLong": "{serials}: longer than 12 digits, so the OTP access code from the serial does not fit 12 characters (the check below fails).",
+  "@pinYkSerialsOtpTooLong": {
+    "placeholders": {
+      "serials": { "type": "String" }
+    }
+  },
+  "pinYkSectionPhases": "3 · Applets",
+  "pinYkPhasesHelp": "PIV (00 PIN, 14 PUK) is always included. OpenPGP adds 23/24/25, FIDO2 adds 34, OATH adds 41, OTP adds 45/46.",
+  "pinYkOtpFromSerial": "OTP access code from the serial",
+  "pinYkOtpFromSerialHelp": "Both slots get the serial padded with zeros to 12 digits (38715242 → 000038715242). Predictable on purpose: the code only stops the slot from being reprogrammed.",
+  "pinYkOtpFromSerialLedger": "With a Ledger seed the OTP access codes always come from the serial (docs/BITWARDEN.md).",
+  "pinYkSectionLedger": "Ledger Passwords",
+  "pinYkUsingSeed": "Using the seed entered in PIN 24 ({words} words).",
+  "@pinYkUsingSeed": {
+    "placeholders": {
+      "words": { "type": "int" }
+    }
+  },
+  "pinYkNeedSeed": "This source needs your seed phrase. Enter it (and the passphrase, if any) in PIN 24 — no nickname needed: as soon as the phrase is valid, the seed stays in memory for this tab only.",
+  "pinYkGoToPin24": "Enter the seed in PIN 24",
+  "pinYkLedgerRule": "PIV PIN and PUK = the first 4 + last 4 characters of the device output (the card takes at most 8 bytes); OpenPGP and FIDO2 PINs = the whole 20-character output. Fields 25 and 41 never come from Ledger; 45/46 come from the serial.",
+  "pinYkLedgerMask": "Charsets of the entries (device default: A-Z, a-z, 0-9)",
+  "pinYkLedgerMaskNonDefault": "Not the default. The entries must have been created on the device with exactly these toggles; separators and specials usually break typing in system dialogs and the CSV.",
+  "pinYkSeparateAdmin": "Separate admin entry",
+  "pinYkSeparateAdminHelp": "Takes the OpenPGP Admin PIN (24) from yk-<serial>-admin instead of the shared -pins entry.",
+  "pinYkLedgerRest": "Fields Ledger does not fill",
+  "pinYkLedgerRestHelp": "25 (OpenPGP Reset Code) and 41 (OATH password) come from a master key or at random, like in the yubikey-fleet script.",
+  "pinYkSectionMaster": "Master key",
+  "pinYkMasterLabel": "Master key (paste)",
+  "pinYkMasterHint": "Used as the raw bytes of the text you paste (UTF-8), trimmed of spaces and line breaks at both ends. Hex is NOT decoded: 64 hex characters are a 64-byte key — exactly how the desktop script reads the key file.",
+  "pinYkMasterMissing": "Paste the master key.",
+  "pinYkMasterBroken": "The key contains a broken character (an unpaired surrogate). Clear the field and paste it again.",
+  "pinYkMasterTitle": "The master key",
+  "pinYkMasterNeverStored": "The master key lives only in this field while the tab is open: it is never saved, synced or sent, and it is wiped when the app leaves the screen, when you leave the PIN tab, after 2 minutes without activity and with Clear.",
+  "pinYkSectionResult": "4 · Values",
+  "pinYkNoSerials": "Enter one or more serial numbers.",
+  "pinYkGateBadSerials": "Fix the serial numbers above.",
+  "pinYkGateNoSeed": "No seed in memory — enter it in PIN 24 first.",
+  "pinYkComputing": "Computing…",
+  "pinYkComputeFailed": "The values could not be computed. For safety this message shows no details — check the inputs and try again.",
+  "pinYkKeyError": "This key could not be computed.",
+  "pinYkRandomWarning": "These values exist nowhere else — save them to your password manager before you go. Leaving this tool or the PIN tab, leaving the app, 2 minutes without activity or locking erases them for good.",
+  "pinYkRegenerate": "Regenerate",
+  "pinYkRegenerateTitle": "Replace all random values?",
+  "pinYkRegenerateBody": "The current values exist nowhere else. If any of them is already set on a key or saved, keep them instead.",
+  "pinYkRegenerateConfirm": "Replace",
+  "pinYkValuesHiddenNote": "Values are hidden; the eye button shows one together with its sha256_6 checksum. A copied value leaves the clipboard after 60 seconds.",
+  "pinYkEntries": "Ledger entries: {names}",
+  "@pinYkEntries": {
+    "placeholders": {
+      "names": { "type": "String" }
+    }
+  },
+  "pinYkOriginLedger": "from Ledger",
+  "pinYkOriginDerived": "master key",
+  "pinYkOriginRandom": "random",
+  "pinYkOriginSerial": "from serial",
+  "pinYkValueHidden": "hidden value",
+  "pinYkProblemLength": "Length {length}; this field takes {min}–{max}.",
+  "@pinYkProblemLength": {
+    "placeholders": {
+      "length": { "type": "int" },
+      "min": { "type": "int" },
+      "max": { "type": "int" }
+    }
+  },
+  "pinYkProblemAlphabet": "Characters outside the field's alphabet.",
+  "pinYkLedgerProblemLength": "{bytes} bytes; the card accepts {min}–{max}.",
+  "@pinYkLedgerProblemLength": {
+    "placeholders": {
+      "bytes": { "type": "int" },
+      "min": { "type": "int" },
+      "max": { "type": "int" }
+    }
+  },
+  "pinYkLedgerProblemAscii8": "The 8 picked characters must be printable ASCII without spaces — the PIN is typed into system dialogs whose keyboard layout is not under control.",
+  "pinYkLedgerProblemAscii": "Characters outside printable ASCII.",
+  "pinYkLedgerProblemCsv": "Contains a comma, quote, edge space or leading = + - @ that the unquoted CSV cannot carry.",
+  "pinYkWarnPivInOther": "The PIV PIN is part of field {field} ({name}) from the same Ledger entry: typing the PIV PIN often exposes 8 of its characters. Accept it consciously or take that PIN from another entry.",
+  "@pinYkWarnPivInOther": {
+    "placeholders": {
+      "field": { "type": "String" },
+      "name": { "type": "String" }
+    }
+  },
+  "pinYkWarnAdminShares": "The Admin PIN comes from the shared -pins entry, so it equals the User and FIDO2 PINs typed every day. Turn on “Separate admin entry” if that is not acceptable.",
+  "pinYkCopyCsv": "Copy as CSV for a password manager (not directly importable by Bitwarden)",
+  "pinYkCopyCsvCaption": "Format folder,name,field,value — one row per secret, like yk-batch-secrets.py --bitwarden. Bitwarden cannot import this layout directly: use it as a checklist for the item's NN fields, or convert it first.",
+  "pinYkCsvConfirmTitle": "Copy all values as CSV?",
+  "pinYkCsvConfirmBody": "The CSV holds {count, plural, one{1 secret value} other{{count} secret values}} in plain text. Bitwarden cannot import it directly — paste it only where you convert or record it.",
+  "@pinYkCsvConfirmBody": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "pinYkCsvConfirm": "Copy CSV",
+  "pinYkCsvRefusedTitle": "CSV not copied",
+  "pinYkCsvRefusedValues": "Some values do not fit the card or cannot travel in the unquoted CSV — see the problems marked in red.",
+  "pinYkCsvRefusedSerial": "A serial number cannot be written to the CSV safely.",
+  "pinYkCsvRefusedKeys": "Some keys could not be computed, so the CSV would be incomplete.",
+  "pinYkCsvRefusedGeneric": "There is nothing to export yet.",
+  "pinYkNotesTitle": "Notes & limits",
+  "pinYkHwTitle": "Card limits and what this tool generates",
+  "pinYkHwField": "Field",
+  "pinYkHwCard": "Card accepts",
+  "pinYkHwApp": "Generated here",
+  "pinYkHwBytes": "{min}–{max} bytes",
+  "@pinYkHwBytes": {
+    "placeholders": {
+      "min": { "type": "int" },
+      "max": { "type": "int" }
+    }
+  },
+  "pinYkHwChars": "{min}–{max} characters",
+  "@pinYkHwChars": {
+    "placeholders": {
+      "min": { "type": "int" },
+      "max": { "type": "int" }
+    }
+  },
+  "pinYkHwExactHex": "exactly {count} hex",
+  "@pinYkHwExactHex": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "pinYkGenSame": "{length} chars, {alphabet}",
+  "@pinYkGenSame": {
+    "placeholders": {
+      "length": { "type": "int" },
+      "alphabet": { "type": "String" }
+    }
+  },
+  "pinYkGenModes": "{derived} (master key) / {random} (random) chars, {alphabet}",
+  "@pinYkGenModes": {
+    "placeholders": {
+      "derived": { "type": "int" },
+      "random": { "type": "int" },
+      "alphabet": { "type": "String" }
+    }
+  },
+  "pinYkAlphaDigits": "digits",
+  "pinYkAlphaAlnum": "letters + digits",
+  "pinYkAlphaHex": "lowercase hex",
+  "pinYkHwFidoNote": "The FIDO2 minimum depends on the firmware: 4, 6 with PIN complexity on, 8 on FIPS 5.7. From a Ledger seed: PIV PIN and PUK are 8 characters (4 + 4), fields 23/24/34 the whole 20-character output.",
+  "pinYkBioTitle": "YubiKey Bio",
+  "pinYkBioNote": "A YubiKey Bio (multi-protocol) uses one PIN for PIV and FIDO2, but every source here gives fields 00 and 34 different values. Set one of them and record it for both.",
+  "pinYkPolicyTitle": "Which rules the values follow",
+  "pinYkPolicyNote": "Master key and Random follow the FIELDS table of yk-batch-secrets.py (letters and digits, fixed lengths), so the values match the desktop script byte for byte. docs/BITWARDEN.md suggests longer values with special characters for 24/25/41 — the script's table wins here. Ledger values are checked against the card limits instead.",
+  "pinYkDerivedTitle": "Master-key derivation",
+  "pinYkDerivedNote": "HMAC-SHA256(master, “yk-fleet/<serial>/<NN>” + counter), then rejection sampling — not standard HKDF. There is no batch or version in it: to rotate one key's secrets you must change the master. Serials are used verbatim, so 0012389 ≠ 12389.",
+  "pinYkOtpTitle": "OTP access codes",
+  "pinYkOtpNote": "An access code is not a PIN: it is asked only to change or delete a slot's configuration and cannot be read back from the card. From the serial it is predictable on purpose (yubikey-fleet decision of 2026-08-31).",
+  "pin24AboutTitle": "About PIN 24",
+  "pin24AutoCompleteHint": "The first 4 letters of a word and a space are enough — the rest of the word is filled in.",
+  "pin24PassphraseSet": "set — changes every result",
+  "pin24FromYubikey": "The YubiKey tool needs the seed. Enter it here — no nickname needed — then go back.",
+  "pin24BackToYubikey": "Back to YubiKey",
+  "pin24SeedKept": "The seed of this phrase stays in memory for this tab (the YubiKey tool can use it) until you wipe it or leave the tab.",
+  "pinWipedClipboardToo": "{what} — the pasted text was removed from the clipboard too",
+  "@pinWipedClipboardToo": {
+    "placeholders": {
+      "what": { "type": "String" }
+    }
+  },
+  "pinClipboardNoteIos": "Copied values stay on this iPhone only — they are not shared with your other devices through Universal Clipboard — and expire from the clipboard after 60 seconds.",
+  "pinClipboardNoteAndroid": "Copied values are marked as sensitive (Android 13+ hides them in the preview, and keyboards that respect the flag keep them out of their history) and are cleared after 60 seconds if still on the clipboard. Clipboard sync (Samsung, Phone Link, keyboard cloud clipboards) can still copy them to other devices.",
+  "pinYkRandomLoseTitle": "Erase the random values?",
+  "pinYkRandomLoseBody": "They exist nowhere else. Leaving this tool or clearing it erases them for good — save them to your password manager first if you need them.",
+  "pinYkRandomLoseConfirm": "Erase",
+  "pinYkRandomErasedLeft": "Random YubiKey values were erased because you left the PIN tab.",
+  "pinYkMasterOk": "Long enough: at least {min} bytes after trimming.",
+  "@pinYkMasterOk": {
+    "placeholders": {
+      "min": { "type": "int" }
+    }
+  },
+  "pinYkMasterShort": "Too short: the master key needs at least {min} bytes after trimming.",
+  "@pinYkMasterShort": {
+    "placeholders": {
+      "min": { "type": "int" }
+    }
+  },
+  "pinYkProblemLengthExact": "Length {length}; this field takes exactly {count}.",
+  "@pinYkProblemLengthExact": {
+    "placeholders": {
+      "length": { "type": "int" },
+      "count": { "type": "int" }
+    }
+  },
+  "pinYkCsvRefusedOtp": "A serial longer than 12 digits gives an OTP access code longer than 12 characters: turn off “OTP access code from the serial” or the OTP applet.",
+  "pinYkCsvRefusedLedgerHint": "For Ledger values, use the default A-Z, a-z, 0-9 charsets.",
+  "pinYkHandSetTitle": "Set by hand (transition)",
+  "pinYkHandSetHelp": "While a PIN is still set by hand (docs/BITWARDEN.md, transition to Ledger), turn it on here: it is not derived, not shown and not included in the CSV.",
+  "pinYkHandSetNote": "Set by hand, not shown and not in the CSV: {fields}. Record them yourself.",
+  "@pinYkHandSetNote": {
+    "placeholders": {
+      "fields": { "type": "String" }
+    }
+  },
+  "pinShowField": "Show {field}",
+  "@pinShowField": {
+    "placeholders": {
+      "field": { "type": "String" }
+    }
+  },
+  "pinHideField": "Hide {field}",
+  "@pinHideField": {
+    "placeholders": {
+      "field": { "type": "String" }
+    }
+  },
+  "pinCopyField": "Copy {field}",
+  "@pinCopyField": {
+    "placeholders": {
+      "field": { "type": "String" }
+    }
+  },
+  "pinSecretHiddenSemantics": "{label}: {count, plural, one{1 character} other{{count} characters}}, not read aloud — turn on the reveal switch to hear it",
+  "@pinSecretHiddenSemantics": {
+    "placeholders": {
+      "label": { "type": "String" },
+      "count": { "type": "int" }
+    }
+  },
+  "pinLegacyMaskZeroHint": "Each mask digit must be 1–9: 0 is not allowed."
 }

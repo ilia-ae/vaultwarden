@@ -184,6 +184,47 @@ Pin24Response pin24Compute(Pin24Request request) {
   }
 }
 
+/// The seed alone (PBKDF2 of a validated phrase + passphrase), so the section
+/// can cache it as soon as the phrase is valid — before any nickname is typed
+/// (the YubiKey tool's Ledger source needs only the seed).
+class Pin24SeedRequest {
+  const Pin24SeedRequest({
+    required this.canonicalPhrase,
+    this.passphrase = '',
+  });
+
+  final String canonicalPhrase;
+  final String passphrase;
+
+  @override
+  String toString() => 'Pin24SeedRequest(<redacted>)';
+}
+
+/// Derives the 64-byte seed of [request] into [Pin24Response.freshSeed].
+/// Never throws: failures become [Pin24Response.errorCode].
+Pin24Response pin24SeedCompute(Pin24SeedRequest request) {
+  try {
+    return Pin24Response(
+      freshSeed: bip39ToSeed(
+        request.canonicalPhrase,
+        passphrase: request.passphrase,
+      ),
+    );
+  } on Pin24Exception catch (e) {
+    return Pin24Response(errorCode: e.code);
+  } catch (_) {
+    return const Pin24Response(errorCode: pin24UnexpectedError);
+  }
+}
+
+/// Sends [request] through [runner] (top-level: the closure captures only
+/// [request]).
+Future<Pin24Response> runPin24Seed(
+  PinComputeRunner runner,
+  Pin24SeedRequest request,
+) =>
+    runner(() => pin24SeedCompute(request));
+
 /// Runs a computation somewhere else: `Isolate.run` in the app, inline in
 /// widget tests (whose fake clock cannot drive real isolates).
 typedef PinComputeRunner = Future<R> Function<R>(
@@ -358,32 +399,38 @@ String replaceSeedWord(
   return next.join(' ') + (trailing ? ' ' : '');
 }
 
-/// Auto-accept while typing: if the last word of [newText] was just typed
-/// (one letter appended to [oldText]), has at least 4 letters and exactly one
-/// wordlist word starts with it, returns the text with that word completed
-/// and a space appended. Otherwise `null`.
+/// Auto-complete on a separator: if [newText] is [oldText] plus one typed
+/// separator (space, comma, dash, line break…) right after a word of at
+/// least 4 letters that is not itself a wordlist word and that exactly one
+/// wordlist word starts with, returns the text with that word completed
+/// (the separator kept). Otherwise `null`.
 ///
-/// Every BIP39 English word is fixed by its first four letters, so this is
-/// what the hardware wallets do. The 49 words that are prefixes of longer
-/// words never qualify (more than one match) and need a confirmation.
+/// Every BIP39 English word is fixed by its first four letters, so typing
+/// `aban` + space is enough. Nothing is completed while a word is still
+/// being typed, so typing whole words key by key — as they are written on
+/// the recovery sheet — always ends with exactly what was typed. A word
+/// that is complete but also starts longer words (`act`) is never extended.
 String? autoAcceptSeedEdit(String oldText, String newText) {
   if (newText.length != oldText.length + 1 || !newText.startsWith(oldText)) {
     return null;
   }
-  var start = newText.length;
-  while (start > 0 && _isAsciiLetter(newText.codeUnitAt(start - 1))) {
+  final separator = newText.codeUnitAt(newText.length - 1);
+  if (_isAsciiLetter(separator) || separator > 0x7F) return null;
+  var start = oldText.length;
+  while (start > 0 && _isAsciiLetter(oldText.codeUnitAt(start - 1))) {
     start--;
   }
-  final tail = newText.substring(start).toLowerCase();
-  if (tail.length < 4) return null;
+  final prefix = oldText.substring(start).toLowerCase();
+  if (prefix.length < 4 || isBip39Word(prefix)) return null;
   String? only;
   for (final w in bip39English) {
-    if (!w.startsWith(tail)) continue;
+    if (!w.startsWith(prefix)) continue;
     if (only != null) return null;
     only = w;
   }
   if (only == null) return null;
-  return '${newText.substring(0, start)}$only ';
+  return '${oldText.substring(0, start)}$only'
+      '${String.fromCharCode(separator)}';
 }
 
 /// Normalises pasted text for a single-line field: Flutter drops `\n` in
