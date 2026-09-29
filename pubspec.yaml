@@ -33,6 +33,7 @@ dependencies:
   uuid: ^4.3.0
   flutter_native_splash: ^2.4.0
   package_info_plus: ^8.0.0
+  file_selector: ^1.1.0 # .p12/.pfx client-certificate import (mTLS)
 
   # Firebase (optional settings cloud sync)
   firebase_core: ^4.11.0

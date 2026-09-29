@@ -2,6 +2,10 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
+import 'auth_exception.dart';
+
+export 'auth_exception.dart';
+
 /// OAuth **Web client** ID that Firebase auto-creates when the Google
 /// sign-in provider is enabled in the console. google_sign_in (v7) needs it
 /// as `serverClientId` on Android to mint an ID token Firebase will accept.
@@ -15,14 +19,6 @@ const String googleServerClientId = String.fromEnvironment(
   defaultValue:
       '1048656681718-5178cabf62pgcu7d86v4u8516npdvbsj.apps.googleusercontent.com',
 );
-
-/// User-facing auth failure with a message safe to show.
-class AuthException implements Exception {
-  AuthException(this.message);
-  final String message;
-  @override
-  String toString() => message;
-}
 
 /// Thin wrapper over Firebase Auth for the cloud-sync identity.
 /// Google + Apple sign-in both resolve to a Firebase [User].
@@ -47,15 +43,12 @@ class AuthService {
   /// Sign in with Google → Firebase. Throws [AuthException] on cancel/failure.
   Future<User> signInWithGoogle() async {
     if (googleServerClientId.isEmpty) {
-      throw AuthException(
-        'Google sign-in is not configured yet. Enable the Google provider in '
-        'Firebase and set the web client ID.',
-      );
+      throw AuthException(AuthFailure.notConfigured, provider: 'Google');
     }
     await _ensureGoogleInitialized();
     final signIn = GoogleSignIn.instance;
     if (!signIn.supportsAuthenticate()) {
-      throw AuthException('Google sign-in is not supported on this platform.');
+      throw AuthException(AuthFailure.unsupported, provider: 'Google');
     }
 
     final GoogleSignInAccount account;
@@ -63,14 +56,19 @@ class AuthService {
       account = await signIn.authenticate();
     } on GoogleSignInException catch (e) {
       if (e.code == GoogleSignInExceptionCode.canceled) {
-        throw AuthException('Sign-in cancelled.');
+        throw AuthException(AuthFailure.cancelled, provider: 'Google');
       }
-      throw AuthException('Google sign-in failed: ${e.description ?? e.code}');
+      throw AuthException(
+        AuthFailure.failed,
+        provider: 'Google',
+        detail: e.code.name,
+        message: 'Google sign-in failed: ${e.description ?? e.code}',
+      );
     }
 
     final idToken = account.authentication.idToken;
     if (idToken == null) {
-      throw AuthException('Google did not return an ID token.');
+      throw AuthException(AuthFailure.missingToken, provider: 'Google');
     }
     final credential = GoogleAuthProvider.credential(idToken: idToken);
     return _authorize(credential, provider: 'Google');
@@ -95,7 +93,11 @@ class AuthService {
         debugPrint('[$provider] link failed code=${e.code} — trying sign-in');
         if (e.code != 'provider-already-linked' &&
             e.code != 'credential-already-in-use') {
-          throw AuthException('$provider sign-in failed (Firebase: ${e.code})');
+          throw AuthException(
+            AuthFailure.failed,
+            provider: provider,
+            detail: e.code,
+          );
         }
         // Fall through: the provider identity already belongs to an account —
         // sign in with it instead of linking.
@@ -109,12 +111,13 @@ class AuthService {
       debugPrint('[$provider] FirebaseAuthException code=${e.code} '
           'message=${e.message}\n$st');
       if (e.code == 'account-exists-with-different-credential') {
-        throw AuthException(
-          'This email is already used with a different sign-in method. '
-          'Sign in with that method first, then connect $provider.',
-        );
+        throw AuthException(AuthFailure.emailInUse, provider: provider);
       }
-      throw AuthException('$provider sign-in failed (Firebase: ${e.code})');
+      throw AuthException(
+        AuthFailure.failed,
+        provider: provider,
+        detail: e.code,
+      );
     }
   }
 
@@ -150,15 +153,16 @@ class AuthService {
       if (e.code == 'canceled' ||
           e.code == 'user-cancelled' ||
           e.code == 'web-context-canceled') {
-        throw AuthException('Sign-in cancelled.');
+        throw AuthException(AuthFailure.cancelled, provider: 'Apple');
       }
       if (e.code == 'account-exists-with-different-credential') {
-        throw AuthException(
-          'This email is already used with a different sign-in method. '
-          'Sign in with that method first, then connect Apple.',
-        );
+        throw AuthException(AuthFailure.emailInUse, provider: 'Apple');
       }
-      throw AuthException('Apple sign-in failed (Firebase: ${e.code})');
+      throw AuthException(
+        AuthFailure.failed,
+        provider: 'Apple',
+        detail: e.code,
+      );
     }
   }
 

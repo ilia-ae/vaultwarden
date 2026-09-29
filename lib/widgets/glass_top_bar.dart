@@ -34,8 +34,7 @@ class GlassTopBar extends StatelessWidget implements PreferredSizeWidget {
   static const double tabsHeight = 54;
 
   @override
-  Size get preferredSize =>
-      const Size.fromHeight(toolbarHeight + tabsHeight);
+  Size get preferredSize => const Size.fromHeight(toolbarHeight + tabsHeight);
 
   @override
   Widget build(BuildContext context) {
@@ -84,8 +83,8 @@ class GlassTopBar extends StatelessWidget implements PreferredSizeWidget {
                       end: 4,
                       top: 0,
                       bottom: 0,
-                      child: Row(mainAxisSize: MainAxisSize.min,
-                          children: actions!),
+                      child: Row(
+                          mainAxisSize: MainAxisSize.min, children: actions!),
                     ),
                 ],
               ),
@@ -140,8 +139,7 @@ class _GlassTabs extends StatelessWidget {
                   widthFactor: 1 / n,
                   heightFactor: 1,
                   child: GlassContainer(
-                    shape:
-                        const LiquidRoundedSuperellipse(borderRadius: 21),
+                    shape: const LiquidRoundedSuperellipse(borderRadius: 21),
                     quality: GlassQuality.standard,
                     settings: appGlassFor(theme.brightness),
                     child: const SizedBox.expand(),
@@ -176,17 +174,14 @@ class _GlassTabs extends StatelessWidget {
                           animation: animation,
                           builder: (context, _) {
                             // 1 at the active tab, fades with distance.
-                            final active = (1 -
-                                    (animation.value - i).abs())
+                            final active = (1 - (animation.value - i).abs())
                                 .clamp(0.0, 1.0);
                             return Text(
                               labels[i],
                               style: TextStyle(
                                 fontSize: 15,
                                 fontWeight: FontWeight.lerp(
-                                    FontWeight.w500,
-                                    FontWeight.w700,
-                                    active),
+                                    FontWeight.w500, FontWeight.w700, active),
                                 color: Color.lerp(
                                   theme.colorScheme.onSurfaceVariant,
                                   theme.colorScheme.onSurface,

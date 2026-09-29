@@ -1,0 +1,4 @@
+# Python deps for the VaultApprover e2e harness (tool/e2e/*.py).
+cryptography>=42
+argon2-cffi>=23.1
+requests>=2.31

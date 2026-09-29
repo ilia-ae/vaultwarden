@@ -50,6 +50,8 @@ import UniformTypeIdentifiers
 /// - `isScreenCaptured` → Bool: recording, AirPlay or mirroring is active.
 /// - `isScreenshotsAllowedBuild` → false: an Android-only build flag
 ///   (`-Pallow-screenshots=true`); iOS has no such build.
+/// - `systemShowsCopyConfirmation` → false: iOS shows nothing when the app
+///   writes to the pasteboard, so the app keeps its own "Copied" message.
 ///
 /// Event channel `com.vaultapprover.app/privacy/captured`: the capture state as
 /// a Bool (the current state first, then changes) and the string `"screenshot"`
@@ -143,6 +145,8 @@ final class PrivacyChannel: NSObject, FlutterStreamHandler {
     case "isScreenCaptured":
       result(currentCaptured())
     case "isScreenshotsAllowedBuild":
+      result(false)
+    case "systemShowsCopyConfirmation":
       result(false)
     default:
       result(FlutterMethodNotImplemented)

@@ -42,13 +42,6 @@
       "status": { "type": "int" }
     }
   },
-  "errorServerWithData": "Server error ({status}): {data}",
-  "@errorServerWithData": {
-    "placeholders": {
-      "status": { "type": "int" },
-      "data": { "type": "String" }
-    }
-  },
   "errorServer": "Server error ({status})",
   "@errorServer": {
     "placeholders": {
@@ -101,12 +94,6 @@
   "pendingTab": "Pending",
   "historyTab": "History",
 
-  "errorGeneric": "Error: {error}",
-  "@errorGeneric": {
-    "placeholders": {
-      "error": { "type": "String" }
-    }
-  },
   "retry": "Retry",
   "noPendingRequests": "No pending requests",
   "pullDownToRefresh": "Pull down to refresh",
@@ -153,18 +140,6 @@
     }
   },
 
-  "ipAddress": "IP: {ip}",
-  "@ipAddress": {
-    "placeholders": {
-      "ip": { "type": "String" }
-    }
-  },
-  "minutesLeft": "{minutes}m left",
-  "@minutesLeft": {
-    "placeholders": {
-      "minutes": { "type": "int" }
-    }
-  },
   "fingerprintLabel": "Fingerprint:",
   "deny": "Deny",
   "approve": "Approve",
@@ -198,6 +173,251 @@
   "biometricRequiredMessage": "This app requires Face ID, Touch ID, or fingerprint authentication to securely store your encryption keys. Please enable biometrics in your device settings.",
   "biometricUnavailable": "Biometrics unavailable. Enable Face ID or fingerprint in device settings.",
   "biometricRetry": "Retry",
+
+  "demoModeNotice": "Demo mode — sample data, not a real account",
+  "sessionEndedOnServer": "Your session ended on the server. Please log in again.",
+  "signedOutByServer": "The server signed this device out (password or security change). Please log in again.",
+  "storageErrorTitle": "Can't read secure storage",
+  "storageErrorMessage": "Your saved login couldn't be read from the device keychain. Unlock the device and try again.",
+  "lockKeyMissing": "The encryption key for this account is missing on this device. Log out and set up again.",
+
+  "serverSection": "Server",
+  "serverRegionUs": "bitwarden.com",
+  "serverRegionEu": "bitwarden.eu",
+  "serverRegionSelfHosted": "Self-hosted",
+  "serverCloudCaption": "Bitwarden cloud: {host}",
+  "@serverCloudCaption": {
+    "placeholders": {
+      "host": {
+        "type": "String"
+      }
+    }
+  },
+  "signedInAs": "Signed in as {email}",
+  "@signedInAs": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "setupStepServerParameters": "Getting server parameters…",
+  "setupStepDerivingKey": "Deriving master key…",
+  "setupStepAuthenticating": "Signing in…",
+  "setupStepDecryptingKey": "Decrypting encryption key…",
+  "setupStepSecuringKeys": "Securing keys…",
+  "sendingCode": "Sending code…",
+  "clientCertTitle": "Client certificate (mTLS)",
+  "clientCertNone": "None. Only needed if your server requires one.",
+  "clientCertNeedsUrl": "Enter the server URL first",
+  "clientCertImport": "Import .p12 / .pfx",
+  "clientCertReplace": "Replace",
+  "clientCertRemove": "Remove",
+  "clientCertRemoveTitle": "Remove client certificate?",
+  "clientCertRemoveMessage": "The app will stop presenting a certificate to {server}. If the server requires one, sign-in and updates will stop working.",
+  "@clientCertRemoveMessage": {
+    "placeholders": {
+      "server": {
+        "type": "String"
+      }
+    }
+  },
+  "clientCertRemoved": "Client certificate removed",
+  "clientCertImported": "Client certificate imported",
+  "clientCertUnnamed": "Certificate without a name",
+  "clientCertIssuedBy": "Issued by {issuer}",
+  "@clientCertIssuedBy": {
+    "placeholders": {
+      "issuer": {
+        "type": "String"
+      }
+    }
+  },
+  "clientCertValidUntil": "Valid until {date}",
+  "@clientCertValidUntil": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "clientCertExpiresSoon": "Expires in {days} d ({date}). Import a renewed certificate.",
+  "@clientCertExpiresSoon": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "clientCertExpired": "Expired on {date}. Import a new certificate.",
+  "@clientCertExpired": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "clientCertPasswordTitle": "Certificate password",
+  "clientCertPasswordPrompt": "Enter the password for {file}.",
+  "@clientCertPasswordPrompt": {
+    "placeholders": {
+      "file": {
+        "type": "String"
+      }
+    }
+  },
+  "clientCertPasswordLabel": "Password",
+  "clientCertImportAction": "Import",
+  "clientCertPickFailed": "Couldn't open the file",
+  "errorClientCertRequired": "This server requires a client certificate (mTLS). Import your .p12/.pfx file under “Client certificate”.",
+  "errorClientCertRejected": "The server rejected the client certificate (wrong CA, expired or revoked). Import a valid certificate.",
+  "errorClientCertMaybeRequired": "The server closed the secure connection. It may require a client certificate (mTLS): import one under “Client certificate”.",
+  "errorClientCertBadPassword": "Wrong certificate password",
+  "errorClientCertUnsupported": "Not a valid .p12/.pfx client certificate with a private key",
+  "errorClientCertInvalidCa": "The CA certificate couldn't be loaded",
+  "errorNewDeviceVerificationRequired": "New device verification required: enter the code sent to your email",
+  "errorInvalidNewDeviceOtp": "Invalid or expired verification code",
+  "errorAuthRequestSuperseded": "A newer request from this device exists. Refresh and approve the latest one.",
+  "errorAuthRequestAlreadyAnswered": "This request was already answered on another device",
+  "errorAuthRequestNotFound": "This request no longer exists (it expired or was answered elsewhere)",
+  "errorClientVersionRejected": "The server rejected this app version. Please update Vault Approver.",
+  "errorMissingUserKey": "The server sent no master-password key for this account. Accounts that unlock with SSO, a trusted device or Key Connector are not supported.",
+  "errorKdfTooWeak": "The server sent unsafe key-derivation settings. Sign-in was refused to protect your master password.",
+  "errorUnsupportedKdf": "The server uses a key-derivation method this app doesn't support",
+  "errorTooManyAttemptsWait": "Too many attempts. Try again in {seconds} s.",
+  "@errorTooManyAttemptsWait": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "errorRequestExpired": "This request has expired. Ask the other device to send a new one.",
+  "errorFingerprintUnavailable": "Can't verify this request: its fingerprint phrase couldn't be computed",
+  "twoFactorChooseTitle": "Choose a two-step login method",
+  "twoFactorProviderAuthenticator": "Authenticator app",
+  "twoFactorProviderAuthenticatorHint": "6-digit code from your authenticator app",
+  "twoFactorProviderEmail": "Email",
+  "twoFactorProviderEmailHint": "A code will be sent to your email",
+  "twoFactorProviderEmailHintTo": "A code will be sent to {email}",
+  "@twoFactorProviderEmailHintTo": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "twoFactorProviderYubiKey": "YubiKey OTP",
+  "twoFactorProviderYubiKeyHint": "Touch your YubiKey to enter the code",
+  "twoFactorProviderRecoveryCode": "Recovery code",
+  "twoFactorProviderRecoveryCodeHint": "Turns off two-step login on your account",
+  "twoFactorProviderDuo": "Duo Security",
+  "twoFactorProviderWebAuthn": "Passkey or security key (FIDO2)",
+  "twoFactorProviderU2f": "FIDO U2F security key",
+  "twoFactorProviderUnknown": "Method {id}",
+  "@twoFactorProviderUnknown": {
+    "placeholders": {
+      "id": {
+        "type": "int"
+      }
+    }
+  },
+  "twoFactorNotSupported": "Not supported in this app. Use another method.",
+  "twoFactorNoSupportedMethod": "None of this account's two-step login methods works in this app. Add an authenticator app or email in the web vault, or use your recovery code.",
+  "twoFactorPromptEmail": "Enter the code sent to your email.",
+  "twoFactorPromptEmailTo": "Enter the code sent to {email}.",
+  "@twoFactorPromptEmailTo": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "twoFactorPromptYubiKey": "Plug in your YubiKey and touch it to type the code, or paste the code here.",
+  "twoFactorPromptRecoveryCode": "Enter your recovery code. Two-step login will be turned off for this account; set it up again in the web vault afterwards.",
+  "twoFactorRemember": "Remember this device",
+  "twoFactorAnotherMethod": "Use another method",
+  "resendCode": "Resend code",
+  "codeSent": "Code sent",
+  "codeSentTo": "Code sent to {email}",
+  "@codeSentTo": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "codeIncomplete": "Enter the full code",
+  "newDeviceTitle": "Verify new device",
+  "newDevicePrompt": "Bitwarden sent a verification code to your email. Enter it to finish signing in on this device.",
+  "requestTimeLeft": "{time} left",
+  "@requestTimeLeft": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "requestExpired": "Expired",
+  "requestExpiredHint": "This request has expired and can no longer be approved. Ask the other device to send a new one.",
+  "fingerprintUnavailable": "Can't verify this request: the fingerprint phrase couldn't be computed from its key. Don't approve it.",
+  "cloudSyncSection": "Cloud sync",
+  "cloudSyncSignedOutHint": "Sign in to sync your settings (theme, language, timers) across your devices. Your vault keys never leave this device.",
+  "cloudSyncContinueGoogle": "Continue with Google",
+  "cloudSyncContinueApple": "Continue with Apple",
+  "cloudSyncSignedIn": "Signed in",
+  "cloudSyncSignedInHint": "Settings sync across your devices.",
+  "cloudSyncConnectApple": "Connect Apple",
+  "cloudSyncSignOut": "Sign out of sync",
+  "cloudSyncSignInSuccessTitle": "Signed in ✓",
+  "cloudSyncSignInSuccessBody": "Settings will sync now.",
+  "cloudSyncSignInResultTitle": "Sign-in result",
+  "cloudSyncErrorNotConfigured": "Google sign-in is not set up in this version of the app.",
+  "cloudSyncErrorUnsupported": "{provider} sign-in is not available on this device.",
+  "@cloudSyncErrorUnsupported": {
+    "placeholders": {
+      "provider": {
+        "type": "String"
+      }
+    }
+  },
+  "cloudSyncErrorNoToken": "{provider} did not confirm the sign-in. Please try again.",
+  "@cloudSyncErrorNoToken": {
+    "placeholders": {
+      "provider": {
+        "type": "String"
+      }
+    }
+  },
+  "cloudSyncErrorEmailInUse": "This email is already used with a different sign-in method. Sign in with that method first, then connect {provider}.",
+  "@cloudSyncErrorEmailInUse": {
+    "placeholders": {
+      "provider": {
+        "type": "String"
+      }
+    }
+  },
+  "cloudSyncErrorFailed": "{provider} sign-in failed ({detail}).",
+  "@cloudSyncErrorFailed": {
+    "placeholders": {
+      "provider": {
+        "type": "String"
+      },
+      "detail": {
+        "type": "String"
+      }
+    }
+  },
+  "cloudSyncErrorTimeout": "Sign-in is taking too long. Check your connection and try again.",
+  "cloudSyncErrorGeneric": "Sign-in failed. Please try again.",
+  "plainHttpTitle": "Unencrypted connection",
+  "plainHttpMessage": "This server address starts with http://. Your master-password hash, sign-in tokens and approvals would travel unencrypted, and anyone on the network could read or change them. Use https:// unless you fully trust this network.",
+  "plainHttpContinue": "Continue anyway",
+  "ok": "OK",
+  "demoAddRequest": "Add demo request",
 
   "pinTab": "PIN",
   "pinTitle": "PIN tools",
@@ -756,13 +976,6 @@
   "pinYkLedgerProblemAscii8": "The 8 picked characters must be printable ASCII without spaces — the PIN is typed into system dialogs whose keyboard layout is not under control.",
   "pinYkLedgerProblemAscii": "Characters outside printable ASCII.",
   "pinYkLedgerProblemCsv": "Contains a comma, quote, edge space or leading = + - @ that the unquoted CSV cannot carry.",
-  "pinYkWarnPivInOther": "The PIV PIN is part of field {field} ({name}) from the same Ledger entry: typing the PIV PIN often exposes 8 of its characters. Accept it consciously or take that PIN from another entry.",
-  "@pinYkWarnPivInOther": {
-    "placeholders": {
-      "field": { "type": "String" },
-      "name": { "type": "String" }
-    }
-  },
   "pinYkWarnAdminShares": "The Admin PIN comes from the shared -pins entry, so it equals the User and FIDO2 PINs typed every day. Turn on “Separate admin entry” if that is not acceptable.",
   "pinYkCopyCsv": "Copy as CSV for a password manager (not directly importable by Bitwarden)",
   "pinYkCopyCsvCaption": "Format folder,name,field,value — one row per secret, like yk-batch-secrets.py --bitwarden. Bitwarden cannot import this layout directly: use it as a checklist for the item's NN fields, or convert it first.",
@@ -903,5 +1116,46 @@
       "count": { "type": "int" }
     }
   },
-  "pinLegacyMaskZeroHint": "Each mask digit must be 1–9: 0 is not allowed."
+  "pinLegacyMaskZeroHint": "Each mask digit must be 1–9: 0 is not allowed.",
+  "pinYkWarnPivInFields": "{count, plural, one{The PIV PIN is part of field {fields} from the same Ledger entry: typing the PIV PIN often exposes 8 of its characters. Accept it consciously or take that PIN from another entry.} other{The PIV PIN is part of fields {fields} from the same Ledger entry: typing the PIV PIN often exposes 8 of their characters. Accept it consciously or take those PINs from another entry.}}",
+  "@pinYkWarnPivInFields": {
+    "placeholders": {
+      "count": { "type": "int" },
+      "fields": { "type": "String" }
+    }
+  },
+  "pinHiddenLastCharNote": "Hidden fields show the last character you type for a moment, like the system password fields do. Flutter has no switch for this per field: on Android it follows the system setting “Show passwords”, iOS always does it. Pasted text is never shown.",
+  "pin24ImportTitle": "Nickname list from a backup (optional)",
+  "pin24ImportHelp": "Choose a Ledger Passwords backup (.json, as saved by passwords.ledger.com) to pick a nickname and its charsets from a list instead of typing them. Only nicknames and charsets are read, and the list is kept in memory only: it is wiped together with everything else.",
+  "pin24ImportFile": "Import list from file",
+  "pin24ImportBlocked": "Import the list before entering the seed phrase: the file picker sends the app to the background, and a seed must not stay in memory meanwhile. Wipe the seed to import.",
+  "pin24ImportLoaded": "{count, plural, one{1 nickname in the list} other{{count} nicknames in the list}}",
+  "@pin24ImportLoaded": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "pin24ImportSkipped": "{count, plural, one{1 entry could not be read and was skipped.} other{{count} entries could not be read and were skipped.}}",
+  "@pin24ImportSkipped": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "pin24ImportChoose": "Choose nickname",
+  "pin24ImportForget": "Forget list",
+  "pin24ImportChooseTitle": "Nickname from the list",
+  "pin24ImportErrorRead": "Could not read the file. Choose a Ledger Passwords backup (.json).",
+  "pin24ImportErrorTooLarge": "The file is larger than 1 MB, so it is not a nickname backup.",
+  "pin24ImportErrorEmpty": "The file has no nicknames to use.",
+  "pin24ImportReplaceTitle": "Replace the nickname?",
+  "pin24ImportReplaceBody": "The nickname field already has text. Replace what you typed with the nickname from the list?",
+  "pin24ImportReplaceConfirm": "Replace",
+  "pin24ImportRawMask": "This entry uses charsets the five toggles cannot express: {sets}. The password is derived with exactly these charsets.",
+  "@pin24ImportRawMask": {
+    "placeholders": {
+      "sets": { "type": "String" }
+    }
+  },
+  "pin24ImportUseToggles": "Use the toggles",
+  "demoRibbon": "DEMO"
 }

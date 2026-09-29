@@ -1,0 +1,64 @@
+# Local mirror of ~/CODE/vaultwarden-ansible/roles/vaultwarden_stack/templates/Caddyfile.j2
+# for the e2e stack. Differences from the stand (all deliberate):
+#   - server cert comes from tool/e2e/.pki (throwaway CA) instead of Let's Encrypt DNS-01;
+#   - site is localhost:18443 instead of vault-test.ilia.ae:2053;
+#   - access log goes to stdout (`docker logs va-e2e-caddy`) instead of /data/access.log.
+# The WebSocket hubs (/notifications/hub, /notifications/anonymous-hub) are proxied by the
+# plain reverse_proxy below, exactly like on the stand: Caddy passes the Upgrade through.
+{
+	auto_https disable_redirects
+	skip_install_trust
+}
+
+localhost:18443 {
+	tls /etc/caddy/pki/server.crt /etc/caddy/pki/server.key {
+		client_auth {
+			mode require_and_verify
+			trust_pool file {
+				pem_file /etc/caddy/pki/client-ca.pem
+			}
+		}
+	}
+
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		# SAMEORIGIN, not DENY - otherwise WebAuthn/FIDO2 breaks
+		X-Frame-Options "SAMEORIGIN"
+		X-Content-Type-Options "nosniff"
+		-Server
+	}
+
+	reverse_proxy va-e2e-vw:8080 {
+		header_up X-Real-IP {remote_host}
+	}
+
+	log {
+		output stdout
+		# The WebSocket hub carries the JWT in the query (?access_token=...) - keep it out of logs
+		format filter {
+			wrap json
+			fields {
+				request>uri query {
+					replace access_token REDACTED
+				}
+			}
+		}
+	}
+}
+
+# Zero-trust catch-all, as on the stand: ANY TLS session on the port (by IP, no SNI, foreign
+# SNI) must present a client cert from our CA. Those that pass without the right name get 404.
+https://:18443 {
+	tls {
+		issuer internal
+		client_auth {
+			mode require_and_verify
+			trust_pool file {
+				pem_file /etc/caddy/pki/client-ca.pem
+			}
+		}
+	}
+	respond "" 404
+}

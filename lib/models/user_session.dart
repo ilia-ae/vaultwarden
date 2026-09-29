@@ -1,7 +1,12 @@
+import 'server_environment.dart';
+
 /// Persisted session state (tokens + server info).
 /// The actual UserKey is NOT here — it's in secure storage separately.
 class UserSession {
   final String email;
+
+  /// Base URL of the deployment (see [ServerEnvironment.baseUrl]); cloud
+  /// sessions store `https://vault.bitwarden.com` / `https://vault.bitwarden.eu`.
   final String serverUrl;
   final String accessToken;
   final String refreshToken;
@@ -15,8 +20,14 @@ class UserSession {
     required this.accessTokenExpiry,
   });
 
-  bool get isAccessTokenExpired =>
-      DateTime.now().isAfter(accessTokenExpiry.subtract(const Duration(minutes: 1)));
+  /// The service URLs for [serverUrl].
+  ServerEnvironment get environment => ServerEnvironment.fromUrl(serverUrl);
+
+  bool get isAccessTokenExpired => expiresWithin(const Duration(minutes: 1));
+
+  /// True when the access token expires within [margin] (or already has).
+  bool expiresWithin(Duration margin, {DateTime? now}) =>
+      (now ?? DateTime.now()).isAfter(accessTokenExpiry.subtract(margin));
 
   Map<String, dynamic> toJson() => {
         'email': email,

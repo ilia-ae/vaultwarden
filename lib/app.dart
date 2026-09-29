@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'demo_runtime.dart';
+import 'demo_fixtures.dart';
 import 'l10n/app_localizations.dart';
+import 'models/settings_snapshot.dart';
 import 'models/user_session.dart';
 import 'providers/session_provider.dart';
 import 'widgets/unlock_shell.dart';
@@ -85,14 +86,20 @@ final localeProvider = StateProvider<Locale?>((ref) {
 });
 
 /// Lock timeout in seconds. 0 = immediate, -1 = never. Persisted locally.
+/// A stored value outside [kLockTimeoutOptions] reads as 0 (lock at once).
 final lockTimeoutProvider = StateProvider<int>(
-  (ref) => ref.watch(settingsServiceProvider).lockTimeout ?? 0,
+  (ref) => sanitizeLockTimeout(ref.watch(settingsServiceProvider).lockTimeout),
 );
 
 /// Poll interval in seconds for auth request refresh. Persisted locally.
+/// Clamped to ≥ 5 s so a corrupt value can never poll in a tight loop (R2).
 final pollIntervalProvider = StateProvider<int>(
-  (ref) => ref.watch(settingsServiceProvider).pollInterval ?? 15,
+  (ref) =>
+      sanitizePollInterval(ref.watch(settingsServiceProvider).pollInterval),
 );
+
+/// True only inside the runtime demo's own ProviderContainer (see [App]).
+final runtimeDemoScopeProvider = Provider<bool>((_) => false);
 
 /// Whether the app is locked (biometric required before showing content).
 /// Starts as true — the very first frame never shows sensitive data.
@@ -108,21 +115,100 @@ class App extends ConsumerStatefulWidget {
 class _AppState extends ConsumerState<App> with WidgetsBindingObserver {
   DateTime? _pausedAt;
 
-  /// The app's navigator. `UnlockShell` only covers the home route, so on
-  /// lock every route above it (dialogs, sheets) is popped here — otherwise
-  /// they would stay visible and usable over the lock (R6).
+  /// The app's navigator. `UnlockShell` only covers the home route, so every
+  /// route above it (Settings sheet, dialogs) is closed here: when the app
+  /// locks (R6, [_closeRoutesOnLock]) — otherwise it would stay visible and
+  /// usable over the lock — and when the session ends
+  /// ([_closeRoutesOnSignOut]).
   final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
+
+  /// App-level messenger: SnackBars that must survive a switch of the home
+  /// screen (session ended → setup screen, entering the demo).
+  final _messengerKey = GlobalKey<ScaffoldMessengerState>();
+
+  /// This App runs inside the runtime demo's container.
+  late final bool _inDemoScope = ref.read(runtimeDemoScopeProvider);
+
+  /// The runtime demo's container while the tester demo is on (root App
+  /// only). The whole UI then runs in it: a child of the real container
+  /// that overrides session, requests, history, lock and user key, so no
+  /// demo state can reach the real session or the server, and vice versa
+  /// (F7). Settings and services are shared with the parent.
+  ProviderContainer? _demoContainer;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    if (_inDemoScope) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _showDemoNotice());
+    } else {
+      demoRuntime.addListener(_onRuntimeDemoChanged);
+      if (demoRuntime.value) _openDemoContainer();
+    }
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    if (!_inDemoScope) demoRuntime.removeListener(_onRuntimeDemoChanged);
+    final demo = _demoContainer;
+    _demoContainer = null;
+    if (demo != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => demo.dispose());
+    }
     super.dispose();
+  }
+
+  void _openDemoContainer() {
+    _demoContainer ??= ProviderContainer(
+      parent: ProviderScope.containerOf(context, listen: false),
+      overrides: runtimeDemoOverrides(),
+    );
+  }
+
+  void _onRuntimeDemoChanged() {
+    if (!mounted) return;
+    if (demoRuntime.value) {
+      if (_demoContainer != null) return;
+      setState(_openDemoContainer);
+      return;
+    }
+    final demo = _demoContainer;
+    if (demo == null) return;
+    setState(() => _demoContainer = null);
+    // Leaving the demo: the real container starts from a clean slate
+    // (nothing in storage is touched, R4). Dispose the demo container once
+    // its widgets are gone.
+    ref.read(sessionProvider.notifier).resetLiveState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => demo.dispose());
+  }
+
+  void _showDemoNotice() {
+    final messenger = _messengerKey.currentState;
+    final context = _messengerKey.currentContext;
+    if (messenger == null || context == null) return;
+    messenger.showSnackBar(SnackBar(
+      content: Text(AppLocalizations.of(context)!.demoModeNotice),
+      duration: const Duration(seconds: 3),
+    ));
+  }
+
+  /// F11/A9: tell the user why they are back on the setup screen.
+  void _showSessionEndNotice(SessionEndNotice notice) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final messenger = _messengerKey.currentState;
+      final context = _messengerKey.currentContext;
+      if (messenger == null || context == null) return;
+      final l = AppLocalizations.of(context)!;
+      messenger.showSnackBar(SnackBar(
+        content: Text(switch (notice) {
+          SessionEndNotice.sessionEnded => l.sessionEndedOnServer,
+          SessionEndNotice.signedOutByServer => l.signedOutByServer,
+        }),
+        duration: const Duration(seconds: 8),
+      ));
+    });
   }
 
   @override
@@ -170,27 +256,48 @@ class _AppState extends ConsumerState<App> with WidgetsBindingObserver {
 
   /// Closes every route above home when the app locks (R6). Only for a real
   /// signed-in session: the setup screen's dialogs (2FA code) must survive a
-  /// trip to the authenticator app, and demo mode never locks.
+  /// trip to the authenticator app, demo mode never locks, and a system file
+  /// picker must find the route that asked for the file still there.
   void _closeRoutesOnLock() {
     if (demoActive || externalPickerActive) return;
     if (ref.read(sessionProvider).valueOrNull == null) return;
     _navigatorKey.currentState?.popUntil((route) => route.isFirst);
   }
 
+  /// Logout or a server-ended session (F11, A9): home becomes the setup
+  /// screen, so close whatever the old session left above it. Otherwise the
+  /// Settings sheet stays open over the setup screen (its "Log out" would
+  /// act on a disposed screen) and covers the "session ended" SnackBar.
+  void _closeRoutesOnSignOut() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _navigatorKey.currentState?.popUntil((route) => route.isFirst);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
+    // Runtime tester demo: the whole app runs in the demo's own container.
+    final demo = _demoContainer;
+    if (demo != null) {
+      return UncontrolledProviderScope(container: demo, child: const App());
+    }
+
     ref.listen<bool>(isLockedProvider, (previous, locked) {
       if (locked && previous == false) _closeRoutesOnLock();
     });
-    // Logout: back to the initial locked state, so a stale "unlocked" never
-    // carries over to the next session.
+    ref.listen<SessionEndNotice?>(sessionEndNoticeProvider, (_, notice) {
+      if (notice != null) _showSessionEndNotice(notice);
+    });
     ref.listen<AsyncValue<UserSession?>>(sessionProvider, (previous, next) {
-      final wasSignedIn = previous?.valueOrNull != null;
-      if (wasSignedIn &&
+      if (previous?.valueOrNull != null &&
           next is AsyncData<UserSession?> &&
           next.value == null) {
+        // Back to the initial locked state, so a stale "unlocked" never
+        // carries over to the next session.
         _pausedAt = null;
         ref.read(isLockedProvider.notifier).state = true;
+        _closeRoutesOnSignOut();
       }
     });
 
@@ -219,7 +326,8 @@ class _AppState extends ConsumerState<App> with WidgetsBindingObserver {
 
     return MaterialApp(
       navigatorKey: _navigatorKey,
-      title: 'Vault Approver',
+      scaffoldMessengerKey: _messengerKey,
+      onGenerateTitle: (context) => AppLocalizations.of(context)!.appTitle,
       debugShowCheckedModeBanner: false,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
@@ -235,7 +343,7 @@ class _AppState extends ConsumerState<App> with WidgetsBindingObserver {
                 runtimeDemo || (isDemoMode && _demoBannerFlag != 'off');
             if (!showBanner) return content;
             return Banner(
-              message: 'DEMO',
+              message: AppLocalizations.of(context)!.demoRibbon,
               location: BannerLocation.topEnd,
               color: Colors.deepOrange,
               child: content,
@@ -268,8 +376,7 @@ class _AppState extends ConsumerState<App> with WidgetsBindingObserver {
           // evaporates (Face ID de-blur reveal).
           return UnlockShell(
             locked: isLocked,
-            child:
-                isLocked ? const LockSkeleton() : const RequestsScreen(),
+            child: isLocked ? const LockSkeleton() : const RequestsScreen(),
           );
         },
         loading: () {
@@ -291,10 +398,108 @@ class _AppState extends ConsumerState<App> with WidgetsBindingObserver {
             ),
           );
         },
+        // R4: a keychain read error is not "logged out" — offer a retry
+        // instead of the setup screen (where a demo round-trip or a new
+        // login would replace the real keys).
         error: (_, __) {
           FlutterNativeSplash.remove();
-          return const SetupScreen();
+          return StorageErrorScreen(
+            onRetry: () => ref.invalidate(sessionProvider),
+            onLogout: () => ref.read(sessionProvider.notifier).logout(),
+          );
         },
+      ),
+    );
+  }
+}
+
+/// Shown when the session could not be read from the keychain (device
+/// locked, keystore unavailable…). Retry re-reads it; "Log out" (confirmed)
+/// is the way out when the keychain stays unreadable.
+class StorageErrorScreen extends StatelessWidget {
+  const StorageErrorScreen({
+    super.key,
+    required this.onRetry,
+    required this.onLogout,
+  });
+
+  final VoidCallback onRetry;
+  final Future<void> Function() onLogout;
+
+  Future<void> _confirmLogout(BuildContext context) async {
+    final l = AppLocalizations.of(context)!;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l.logoutTitle),
+        content: Text(l.logoutConfirmation),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(l.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(l.logout),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) await onLogout();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    return Scaffold(
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.lock_reset_outlined,
+                  size: 64,
+                  color: theme.colorScheme.error,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  l.storageErrorTitle,
+                  style: theme.textTheme.titleMedium,
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  l.storageErrorMessage,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 24),
+                Semantics(
+                  identifier: 'btn_storage_retry',
+                  child: FilledButton.icon(
+                    onPressed: onRetry,
+                    icon: const Icon(Icons.refresh),
+                    label: Text(l.retry),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Semantics(
+                  identifier: 'btn_storage_logout',
+                  child: TextButton(
+                    onPressed: () => _confirmLogout(context),
+                    child: Text(l.logout),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

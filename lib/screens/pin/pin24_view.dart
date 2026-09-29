@@ -7,18 +7,20 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../glass.dart' show appSpring;
 import '../../l10n/app_localizations.dart';
 import '../../pin_tools/bip39.dart';
-import '../../pin_tools/ledger_pin24.dart' show kCharsets;
+import '../../pin_tools/ledger_pin24.dart' show kCharsets, kPinMask;
 import '../../services/privacy_service.dart';
 import '../../widgets/option_pills.dart';
+import 'nickname_backup.dart';
+import 'nickname_backup_picker.dart';
 import 'pin24_engine.dart';
 import 'pin24_selftest_hook.dart';
 import 'pin_prefs.dart';
 import 'pin_session.dart';
 import 'pin_widgets.dart';
 
-/// Placeholder of the seed field: twelve masked groups.
-const _seedPlaceholder =
-    '•••• •••• •••• •••• •••• •••• •••• •••• •••• •••• •••• ••••';
+/// Placeholder of the seed field: a few masked words, short enough for one
+/// line on a 360 pt phone (LTR and RTL) without an ellipsis.
+const _seedPlaceholder = '•••• •••• •••• ••••';
 
 /// Derivation waits this long after the last edit.
 const _debounceDelay = Duration(milliseconds: 250);
@@ -48,6 +50,7 @@ class _Pin24Output {
     required this.nickname,
     required this.length,
     required this.charsets,
+    this.rawMask,
     this.pin,
     this.fullPassword,
     this.digitsInOutput = 0,
@@ -60,6 +63,9 @@ class _Pin24Output {
   final String nickname;
   final int length;
   final Set<Pin24Charset> charsets;
+
+  /// Password mode with a backup entry's mask the toggles cannot show.
+  final int? rawMask;
   final String? pin;
   final String? fullPassword;
   final int digitsInOutput;
@@ -88,6 +94,20 @@ class _Pin24ViewState extends ConsumerState<Pin24View> {
   late Pin24Mode _mode;
   late int _length;
   late Set<Pin24Charset> _charsets;
+
+  /// A backup entry's charset mask that the five toggles cannot express
+  /// (e.g. `MINUS` alone): Password mode derives with exactly this mask
+  /// until the user goes back to the toggles or changes the mode.
+  int? _rawMask;
+
+  /// Nickname-list import (the list itself lives in the session).
+  bool _importing = false;
+  NicknameBackupError? _importError;
+
+  /// The nickname last filled in from the list: while the field still holds
+  /// exactly that, another entry may replace it without asking (nothing the
+  /// user typed is lost).
+  String? _nicknameFromList;
 
   // Reveal toggles: off on every visit and after every wipe.
   bool _showWords = false;
@@ -185,6 +205,12 @@ class _Pin24ViewState extends ConsumerState<Pin24View> {
       _nickCtrl.text.isNotEmpty ||
       _output != null;
 
+  /// A file picker sends the app to the background, and the background wipe
+  /// is held off while a picker is open; so the import is offered only
+  /// while there is no seed that would sit in memory meanwhile.
+  bool get _canImport =>
+      _seedCtrl.text.isEmpty && _ppCtrl.text.isEmpty && !_session.seed.hasSeed;
+
   // ── Wipes ──
 
   void _onWipe() {
@@ -205,6 +231,10 @@ class _Pin24ViewState extends ConsumerState<Pin24View> {
         _nickFieldGen++;
         _nicknameSanitized = false;
         _returnTo = null;
+        // The session dropped the nickname list; its settings go with it.
+        _rawMask = null;
+        _importError = null;
+        _nicknameFromList = null;
       }
       _analysis = analyzeSeedText('');
       _showWords = false;
@@ -326,6 +356,7 @@ class _Pin24ViewState extends ConsumerState<Pin24View> {
 
   void _setMode(Pin24Mode mode) {
     _session.touch();
+    _rawMask = null;
     // Every tap on Password restores the device defaults, so separators or
     // specials switched on earlier never surprise the user.
     if (mode == Pin24Mode.password) {
@@ -346,6 +377,7 @@ class _Pin24ViewState extends ConsumerState<Pin24View> {
 
   void _toggleCharset(Pin24Charset charset) {
     _session.touch();
+    _rawMask = null;
     final next = {..._charsets};
     if (!next.remove(charset)) next.add(charset);
     _charsets = next;
@@ -359,6 +391,175 @@ class _Pin24ViewState extends ConsumerState<Pin24View> {
     if (mounted) setState(() => _acknowledged = true);
   }
 
+  // ── Nickname list (Ledger Passwords backup) ──
+
+  Future<void> _importFile() async {
+    if (!_canImport || _importing) return;
+    _session.touch();
+    final pick = ref.read(nicknameBackupPickerProvider);
+    setState(() {
+      _importing = true;
+      _importError = null;
+    });
+    NicknameBackup? backup;
+    NicknameBackupError? error;
+    try {
+      final bytes = await pick();
+      if (bytes != null) backup = parseNicknameBackup(bytes);
+    } on NicknameBackupException catch (e) {
+      error = e.error;
+    } catch (_) {
+      // Picker or I/O failure: deliberately not logged (it names the file).
+      error = NicknameBackupError.unreadable;
+    }
+    if (!mounted) return;
+    _session.touch();
+    setState(() {
+      _importing = false;
+      _importError = error;
+      if (backup != null) _session.nicknameBackup = backup;
+    });
+  }
+
+  void _forgetList() {
+    _session.touch();
+    HapticFeedback.selectionClick();
+    setState(() {
+      _session.nicknameBackup = null;
+      _importError = null;
+    });
+  }
+
+  /// Short description of an entry's charsets: the toggle labels when the
+  /// toggles can show the mask, else the exact sets.
+  String _entryCharsets(AppLocalizations l, int mask) {
+    final toggles = pin24CharsetsForMask(mask);
+    if (toggles == null) return ledgerCharsetsLabel(mask);
+    return [
+      for (final c in Pin24Charset.values)
+        if (toggles.contains(c)) _charsetLabel(l, c),
+    ].join(' + ');
+  }
+
+  Future<void> _chooseFromList() async {
+    final backup = _session.nicknameBackup;
+    if (backup == null) return;
+    _session.touch();
+    final l = AppLocalizations.of(context)!;
+    Widget tile(BuildContext context, NicknameBackupEntry e, {int? index}) {
+      final item = ListTile(
+        contentPadding: EdgeInsets.zero,
+        title: Text(e.nickname, maxLines: 1, overflow: TextOverflow.ellipsis),
+        subtitle: Text(
+          ltrIsolate(_entryCharsets(l, e.mask)),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        onTap: index == null ? null : () => Navigator.pop(context, e),
+      );
+      return index == null
+          ? item
+          : Semantics(identifier: 'pin24_import_entry_$index', child: item);
+    }
+
+    final entry = await showPinDialog<NicknameBackupEntry>(
+      context: context,
+      session: _session,
+      builder: (context) => AlertDialog(
+        title: Text(l.pin24ImportChooseTitle),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.sizeOf(context).height * 0.5,
+            ),
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: backup.entries.length,
+              // Every row has the same shape: the list is sized without
+              // building all of them.
+              prototypeItem: tile(context, backup.entries.first),
+              itemBuilder: (context, i) =>
+                  tile(context, backup.entries[i], index: i),
+            ),
+          ),
+        ),
+        actions: [
+          Semantics(
+            identifier: 'pin24_import_choose_cancel',
+            child: TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(l.cancel),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (entry == null || !mounted || _session.nicknameBackup != backup) return;
+
+    // Never overwrite what the user typed without asking.
+    final typed = _nickCtrl.text;
+    if (typed.isNotEmpty &&
+        typed != entry.nickname &&
+        typed != _nicknameFromList) {
+      final replace = await confirmPinAction(
+        context: context,
+        session: _session,
+        tone: PinDialogTone.sensitive,
+        icon: Icons.edit_outlined,
+        title: l.pin24ImportReplaceTitle,
+        body: l.pin24ImportReplaceBody,
+        confirmLabel: l.pin24ImportReplaceConfirm,
+        confirmId: 'pin24_import_replace_confirm',
+        cancelId: 'pin24_import_replace_cancel',
+      );
+      if (!replace ||
+          !mounted ||
+          _session.nicknameBackup != backup ||
+          _nickCtrl.text != typed) {
+        return;
+      }
+    }
+    _applyEntry(entry);
+  }
+
+  /// Fills the nickname and sets the entry's charsets: PIN mode for the
+  /// device's PIN mask (numbers + separators), otherwise Password mode with
+  /// the matching toggles, or the raw mask when the toggles cannot show it.
+  void _applyEntry(NicknameBackupEntry entry) {
+    _session.touch();
+    HapticFeedback.selectionClick();
+    if (_nickCtrl.text != entry.nickname) {
+      _nickCtrl.value = TextEditingValue(
+        text: entry.nickname,
+        selection: TextSelection.collapsed(offset: entry.nickname.length),
+      );
+      _nicknameSanitized = false;
+    }
+    _nicknameFromList = entry.nickname;
+    final toggles = pin24CharsetsForMask(entry.mask);
+    if (entry.mask == kPinMask) {
+      _mode = Pin24Mode.pin;
+      _rawMask = null;
+    } else {
+      _mode = Pin24Mode.password;
+      _rawMask = toggles == null ? entry.mask : null;
+      if (toggles != null) {
+        _charsets = toggles;
+        unawaited(_prefs.setPin24Charsets(toggles));
+      }
+    }
+    unawaited(_prefs.setPin24Mode(_mode));
+    _inputsChanged();
+  }
+
+  void _useToggles() {
+    _session.touch();
+    HapticFeedback.selectionClick();
+    _rawMask = null;
+    _inputsChanged();
+  }
+
   // ── Derivation ──
 
   /// Which gate blocks derivation (1: phrase, 2: nickname, 3: charsets), or
@@ -366,7 +567,9 @@ class _Pin24ViewState extends ConsumerState<Pin24View> {
   int get _gate {
     if (!_analysis.validation.isValid) return 1;
     if (_nickCtrl.text.isEmpty) return 2;
-    if (_mode == Pin24Mode.password && _charsets.isEmpty) return 3;
+    if (_mode == Pin24Mode.password && _rawMask == null && _charsets.isEmpty) {
+      return 3;
+    }
     return 0;
   }
 
@@ -443,6 +646,7 @@ class _Pin24ViewState extends ConsumerState<Pin24View> {
     final nickname = _nickCtrl.text;
     final length = _length;
     final charsets = {..._charsets};
+    final rawMask = mode == Pin24Mode.password ? _rawMask : null;
     final wordCount = _analysis.words.length;
     final canonical = _analysis.parsed.canonical;
     final passphrase = _ppCtrl.text;
@@ -455,7 +659,7 @@ class _Pin24ViewState extends ConsumerState<Pin24View> {
       nickname: nickname,
       mode: mode,
       length: length,
-      setMask: pin24MaskOf(charsets),
+      setMask: rawMask ?? pin24MaskOf(charsets),
     );
     Pin24Response response;
     try {
@@ -483,6 +687,7 @@ class _Pin24ViewState extends ConsumerState<Pin24View> {
         nickname: nickname,
         length: length,
         charsets: charsets,
+        rawMask: rawMask,
         pin: response.pin,
         fullPassword: response.fullPassword,
         digitsInOutput: response.digitsInOutput,
@@ -970,6 +1175,105 @@ class _Pin24ViewState extends ConsumerState<Pin24View> {
             ],
           ),
         ],
+        const SizedBox(height: 4),
+        _importSection(l),
+      ],
+    );
+  }
+
+  Widget _importSection(AppLocalizations l) {
+    final backup = _session.nicknameBackup;
+    final error = _importError;
+    return PinDisclosure(
+      title: l.pin24ImportTitle,
+      identifier: 'pin24_import',
+      initiallyExpanded: backup != null,
+      children: [
+        PinCaption(l.pin24ImportHelp),
+        const SizedBox(height: 8),
+        if (backup == null) ...[
+          if (!_canImport) ...[
+            Semantics(
+              identifier: 'pin24_import_blocked',
+              child: PinNotice(l.pin24ImportBlocked),
+            ),
+            const SizedBox(height: 6),
+          ],
+          Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: Semantics(
+              identifier: 'pin24_import_file',
+              enabled: _canImport && !_importing,
+              child: OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(minimumSize: const Size(0, 48)),
+                onPressed: _canImport && !_importing ? _importFile : null,
+                icon: _importing
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.file_open_outlined, size: 18),
+                label: Text(l.pin24ImportFile),
+              ),
+            ),
+          ),
+        ] else ...[
+          Semantics(
+            identifier: 'pin24_import_loaded',
+            child: PinNotice(
+              l.pin24ImportLoaded(backup.entries.length),
+              kind: PinNoticeKind.ok,
+            ),
+          ),
+          if (backup.skipped > 0)
+            Semantics(
+              identifier: 'pin24_import_skipped',
+              child: PinNotice(
+                l.pin24ImportSkipped(backup.skipped),
+                kind: PinNoticeKind.warning,
+              ),
+            ),
+          const SizedBox(height: 6),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              Semantics(
+                identifier: 'pin24_import_choose',
+                child: FilledButton.tonalIcon(
+                  style: FilledButton.styleFrom(minimumSize: const Size(0, 48)),
+                  onPressed: _chooseFromList,
+                  icon: const Icon(Icons.list_alt_outlined, size: 18),
+                  label: Text(l.pin24ImportChoose),
+                ),
+              ),
+              Semantics(
+                identifier: 'pin24_import_forget',
+                child: TextButton.icon(
+                  style: TextButton.styleFrom(minimumSize: const Size(0, 48)),
+                  onPressed: _forgetList,
+                  icon: const Icon(Icons.playlist_remove, size: 18),
+                  label: Text(l.pin24ImportForget),
+                ),
+              ),
+            ],
+          ),
+        ],
+        if (error != null) ...[
+          const SizedBox(height: 6),
+          Semantics(
+            identifier: 'pin24_import_error',
+            child: PinNotice(
+              switch (error) {
+                NicknameBackupError.tooLarge => l.pin24ImportErrorTooLarge,
+                NicknameBackupError.unreadable => l.pin24ImportErrorRead,
+                NicknameBackupError.empty => l.pin24ImportErrorEmpty,
+              },
+              kind: PinNoticeKind.error,
+            ),
+          ),
+        ],
       ],
     );
   }
@@ -1042,6 +1346,25 @@ class _Pin24ViewState extends ConsumerState<Pin24View> {
                 ),
               ),
             ],
+          ),
+        ] else if (_rawMask != null) ...[
+          SectionHeader(l.pin24Charsets, padding: EdgeInsets.zero),
+          const SizedBox(height: 6),
+          Semantics(
+            identifier: 'pin24_raw_mask',
+            child: PinNotice(
+              l.pin24ImportRawMask(ltrIsolate(
+                  '${ledgerCharsetsLabel(_rawMask!)} · 0x${_rawMask!.toRadixString(16).padLeft(2, '0').toUpperCase()}')),
+              kind: PinNoticeKind.warning,
+              action: Semantics(
+                identifier: 'pin24_raw_mask_exit',
+                child: TextButton.icon(
+                  onPressed: _useToggles,
+                  icon: const Icon(Icons.tune, size: 18),
+                  label: Text(l.pin24ImportUseToggles),
+                ),
+              ),
+            ),
           ),
         ] else ...[
           Row(
@@ -1276,9 +1599,7 @@ class _Pin24ViewState extends ConsumerState<Pin24View> {
               onPressed: () async {
                 final ok = await _copy(full);
                 if (!mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                  content: Text(ok ? l.pinCopiedTtl : l.pinCopyFailed),
-                ));
+                await showPinCopyResult(context, _privacy, ok: ok);
               },
               icon: const Icon(Icons.copy, size: 18),
               label: Text(l.pin24CopyFull),
@@ -1292,10 +1613,13 @@ class _Pin24ViewState extends ConsumerState<Pin24View> {
 
   List<Widget> _passwordResult(AppLocalizations l, _Pin24Output out) {
     final password = out.password!;
-    final sets = [
-      for (final c in Pin24Charset.values)
-        if (out.charsets.contains(c)) _charsetLabel(l, c),
-    ].join(' + ');
+    final raw = out.rawMask;
+    final sets = raw != null
+        ? ledgerCharsetsLabel(raw)
+        : [
+            for (final c in Pin24Charset.values)
+              if (out.charsets.contains(c)) _charsetLabel(l, c),
+          ].join(' + ');
     return [
       PinCopyable(
         identifier: 'pin24_output',
@@ -1356,7 +1680,8 @@ class _Pin24ViewState extends ConsumerState<Pin24View> {
           children: [
             section(l.pin24ThreatProtectsTitle,
                 '${l.pin24ThreatProtectsBody}\n• ${pinClipboardPrivacyNote(l)}'),
-            section(l.pin24ThreatCannotTitle, l.pin24ThreatCannotBody),
+            section(l.pin24ThreatCannotTitle,
+                '${l.pin24ThreatCannotBody}\n• ${l.pinHiddenLastCharNote}'),
             section(l.pin24ThreatUseTitle, l.pin24ThreatUseBody),
             section(l.pin24ThreatDontTitle, l.pin24ThreatDontBody),
             section(l.pin24ThreatStepsTitle, l.pin24ThreatStepsBody),

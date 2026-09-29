@@ -3,15 +3,47 @@ rules_version = '2';
 // Settings cloud sync — each signed-in user owns exactly one document tree
 // under /users/{uid}. Only that user (matching Firebase Auth uid) may read
 // or write it. No public access; unauthenticated requests are denied.
+//
+// Writes of the settings document are validated (R2/A15). The app writes
+// with set(..., merge: true), so request.resource.data is the MERGED
+// document: every field that can be present — including values written by
+// older app versions — must stay acceptable.
+//   themeMode    'system' | 'light' | 'dark'
+//   locale       null or a short BCP-47 tag ('en', 'zh-Hans', …)
+//   lockTimeout  0, 15, 60, 300, 900 or -1 (seconds; -1 = "never" is no
+//                longer uploaded but older clients wrote it)
+//   pollInterval 5, 15, 30 or 60 (seconds; 0 or negative would make every
+//                device poll its server in a tight loop)
+//   updatedAt    FieldValue.serverTimestamp()
+// Keep the value lists in sync with lib/models/settings_snapshot.dart.
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /users/{userId} {
-      allow read, write: if request.auth != null
-                         && request.auth.uid == userId;
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
 
-      match /{document=**} {
-        allow read, write: if request.auth != null
-                           && request.auth.uid == userId;
+    function validSettings(d) {
+      return d.keys().hasOnly(
+               ['themeMode', 'locale', 'lockTimeout', 'pollInterval',
+                'updatedAt'])
+          && (!('themeMode' in d) || d.themeMode in ['system', 'light', 'dark'])
+          && (!('locale' in d) || d.locale == null
+              || (d.locale is string && d.locale.size() <= 35))
+          && (!('lockTimeout' in d) || d.lockTimeout in [0, 15, 60, 300, 900, -1])
+          && (!('pollInterval' in d) || d.pollInterval in [5, 15, 30, 60])
+          && (!('updatedAt' in d) || d.updatedAt is timestamp);
+    }
+
+    match /users/{userId} {
+      allow read, delete: if isOwner(userId);
+      allow create, update: if isOwner(userId)
+                            && validSettings(request.resource.data);
+
+      // Sub-collections (unused today) stay owner-only. `{document=**}`
+      // alone would also match zero segments — the settings document
+      // itself — and silently bypass the validation above.
+      match /{collection}/{document=**} {
+        allow read, write: if isOwner(userId);
       }
     }
   }

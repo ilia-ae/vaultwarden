@@ -12,6 +12,14 @@
 //
 // Capture pipeline drives this from screenshots-capture, then runs Maestro
 // flows that take simctl screenshots of each state.
+//
+// The runtime tester demo (5 taps on the build version) runs the whole UI in
+// its own ProviderContainer with [runtimeDemoOverrides] (see App), so demo
+// and real state never share a provider (F7).
+//
+// Every demo IP comes from the RFC 5737 documentation ranges (192.0.2.0/24,
+// 198.51.100.0/24, 203.0.113.0/24): demo history must never colour a real
+// LAN or public address (F13).
 import 'dart:math';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -26,6 +34,22 @@ import 'providers/session_provider.dart';
 // Re-export the demo flags so the many `import 'demo_fixtures.dart'` sites keep
 // seeing demoMode/isDemoMode/demoActive/demoRuntime unchanged.
 export 'demo_runtime.dart';
+
+/// Overrides of the isolated runtime-demo container: fake session, fixture
+/// requests and history (in memory only), unlocked, no user key. Everything
+/// else (settings, services) is read from the parent container; the demo
+/// notifiers never call the services.
+List<Override> runtimeDemoOverrides() => [
+      runtimeDemoScopeProvider.overrideWithValue(true),
+      sessionProvider.overrideWith(() => _DemoSessionNotifier(demoSession())),
+      authRequestsProvider
+          .overrideWith(() => _DemoAuthRequestsNotifier(demoPendingRequests())),
+      historyProvider.overrideWith(
+          (ref) => HistoryNotifier.inMemory(demoHistoryEntries())),
+      isLockedProvider.overrideWith((ref) => false),
+      userKeyProvider.overrideWith((ref) => null),
+      sessionEndNoticeProvider.overrideWith((ref) => null),
+    ];
 
 /// Provider overrides for the current demo mode.
 /// Returns empty list when DEMO_MODE=off, so production builds are unaffected.
@@ -58,12 +82,23 @@ List<AuthRequest> demoPendingRequests() {
       id: 'demo-pending-1',
       publicKey: 'demo-public-key',
       requestDeviceType: 'macOS Browser',
-      requestIpAddress: '192.168.1.42',
+      requestIpAddress: '203.0.113.7', // new → grey frame
       creationDate: now.subtract(const Duration(minutes: 1)),
       fingerprint: 'ocean-mountain-river-cloud-fox',
     ),
   ];
 }
+
+/// Demo pull-to-refresh: a copy created a minute ago, so fixtures never run
+/// out of their 5-minute window while a tester looks at them.
+AuthRequest demoRestamp(AuthRequest r) => AuthRequest(
+      id: r.id,
+      publicKey: r.publicKey,
+      requestDeviceType: r.requestDeviceType,
+      requestIpAddress: r.requestIpAddress,
+      creationDate: DateTime.now().subtract(const Duration(minutes: 1)),
+      fingerprint: r.fingerprint,
+    );
 
 // ── Runtime demo: the '+' action synthesises fresh incoming requests ──
 
@@ -73,19 +108,36 @@ final _demoRng = Random();
 /// the injected cards show varied trust frames (green/red/grey).
 const _demoSampleDevices = <(String, String)>[
   ('Chrome on Windows', '198.51.100.18'), // denied before → red frame
-  ('Safari on macOS', '192.168.1.50'), // approved before → green frame
+  ('Safari on macOS', '192.0.2.50'), // approved before → green frame
   ('Firefox on Linux', '203.0.113.42'), // approved before → green frame
-  ('Brave on macOS', '10.0.1.15'), // approved before → green frame
-  ('Safari on iPhone', '10.0.1.22'), // approved before → green frame
-  ('Edge on Windows', '2a03:b0c0:3:d0::79:7001'), // new → grey frame
-  ('Chrome on Android', '172.16.0.4'), // new → grey frame
-  ('Vivaldi on Linux', '45.77.12.9'), // new → grey frame
+  ('Brave on macOS', '192.0.2.15'), // approved before → green frame
+  ('Safari on iPhone', '192.0.2.22'), // approved before → green frame
+  ('Edge on Windows', '198.51.100.79'), // new → grey frame
+  ('Chrome on Android', '203.0.113.4'), // new → grey frame
+  ('Vivaldi on Linux', '198.51.100.9'), // new → grey frame
 ];
 
 const _demoWords = [
-  'ocean', 'mountain', 'river', 'cloud', 'fox', 'ember', 'willow', 'harbor',
-  'copper', 'lantern', 'meadow', 'quartz', 'raven', 'saffron', 'tundra',
-  'violet', 'walnut', 'zephyr', 'cedar', 'marble',
+  'ocean',
+  'mountain',
+  'river',
+  'cloud',
+  'fox',
+  'ember',
+  'willow',
+  'harbor',
+  'copper',
+  'lantern',
+  'meadow',
+  'quartz',
+  'raven',
+  'saffron',
+  'tundra',
+  'violet',
+  'walnut',
+  'zephyr',
+  'cedar',
+  'marble',
 ];
 
 String _demoFingerprint() {
@@ -114,12 +166,11 @@ List<HistoryEntry> demoHistoryEntries() {
     HistoryEntry(
       requestId: 'demo-h-1',
       deviceType: 'iPhone iOS',
-      ipAddress: '10.0.1.15',
+      ipAddress: '192.0.2.15',
       fingerprint: 'apple-sand-wave-tree-bird',
       approved: true,
       respondedAt: now.subtract(const Duration(minutes: 5)),
-      requestCreatedAt:
-          now.subtract(const Duration(minutes: 5, seconds: 2)),
+      requestCreatedAt: now.subtract(const Duration(minutes: 5, seconds: 2)),
     ),
     HistoryEntry(
       requestId: 'demo-h-2',
@@ -128,8 +179,7 @@ List<HistoryEntry> demoHistoryEntries() {
       fingerprint: 'forest-river-stone-deer-moon',
       approved: true,
       respondedAt: now.subtract(const Duration(hours: 2)),
-      requestCreatedAt:
-          now.subtract(const Duration(hours: 2, seconds: 3)),
+      requestCreatedAt: now.subtract(const Duration(hours: 2, seconds: 3)),
     ),
     HistoryEntry(
       requestId: 'demo-h-3',
@@ -138,35 +188,31 @@ List<HistoryEntry> demoHistoryEntries() {
       fingerprint: 'cloud-mountain-fire-eagle-leaf',
       approved: false,
       respondedAt: now.subtract(const Duration(days: 1)),
-      requestCreatedAt:
-          now.subtract(const Duration(days: 1, seconds: 5)),
+      requestCreatedAt: now.subtract(const Duration(days: 1, seconds: 5)),
     ),
     HistoryEntry(
       requestId: 'demo-h-4',
       deviceType: 'iPad iOS',
-      ipAddress: '10.0.1.22',
+      ipAddress: '192.0.2.22',
       fingerprint: 'wind-sun-cloud-river-stone',
       approved: true,
       respondedAt: now.subtract(const Duration(days: 2)),
-      requestCreatedAt:
-          now.subtract(const Duration(days: 2, seconds: 1)),
+      requestCreatedAt: now.subtract(const Duration(days: 2, seconds: 1)),
     ),
     HistoryEntry(
       requestId: 'demo-h-5',
       deviceType: 'macOS Safari',
-      ipAddress: '192.168.1.50',
+      ipAddress: '192.0.2.50',
       fingerprint: 'mountain-fox-cloud-tree-bird',
       approved: true,
       respondedAt: now.subtract(const Duration(days: 3)),
-      requestCreatedAt:
-          now.subtract(const Duration(days: 3, seconds: 4)),
+      requestCreatedAt: now.subtract(const Duration(days: 3, seconds: 4)),
     ),
   ];
 }
 
 List<Override> _mainOverrides() => [
-      sessionProvider
-          .overrideWith(() => _DemoSessionNotifier(demoSession())),
+      sessionProvider.overrideWith(() => _DemoSessionNotifier(demoSession())),
       authRequestsProvider
           .overrideWith(() => _DemoAuthRequestsNotifier(demoPendingRequests())),
       historyProvider
@@ -175,8 +221,7 @@ List<Override> _mainOverrides() => [
     ];
 
 List<Override> _lockOverrides() => [
-      sessionProvider
-          .overrideWith(() => _DemoSessionNotifier(demoSession())),
+      sessionProvider.overrideWith(() => _DemoSessionNotifier(demoSession())),
       isLockedProvider.overrideWith((ref) => true),
     ];
 
@@ -207,13 +252,9 @@ class _DemoAuthRequestsNotifier extends AuthRequestsNotifier {
   void resume() {}
 }
 
+/// Screenshot history: fixed entries, in memory only, never changes.
 class _DemoHistoryNotifier extends HistoryNotifier {
-  _DemoHistoryNotifier(List<HistoryEntry> entries) : super() {
-    // HistoryNotifier's constructor kicks off an async _load() from secure
-    // storage. On a fresh simulator (after `simctl uninstall`) storage is
-    // empty, so _load() leaves state untouched and our seed wins.
-    state = entries;
-  }
+  _DemoHistoryNotifier(super.entries) : super.inMemory();
 
   @override
   Future<void> add(HistoryEntry e) async {}

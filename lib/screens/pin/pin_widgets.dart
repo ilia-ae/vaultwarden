@@ -310,6 +310,9 @@ class _PinSecretFieldState extends State<PinSecretField> {
       decoration: InputDecoration(
         labelText: widget.labelText,
         hintText: widget.hintText,
+        // A field forced LTR (seed, digits) keeps its hint on the same side
+        // as the typed text, also in RTL locales.
+        hintTextDirection: widget.textDirection,
         helperText: widget.helperText,
         helperMaxLines: 8,
         hintMaxLines: 1,
@@ -1260,6 +1263,25 @@ String pinClipboardPrivacyNote(AppLocalizations l) =>
     defaultTargetPlatform == TargetPlatform.iOS
         ? l.pinClipboardNoteIos
         : l.pinClipboardNoteAndroid;
+
+/// Tells the user how a copy through [PrivacyService.copySensitive] went: a
+/// failure always, a success only where the system does not confirm it
+/// itself. Android 13+ shows its own clipboard overlay for every copy, and a
+/// SnackBar on top of it would say the same thing twice (the tapped control's
+/// own "Copied!" flash stays).
+Future<void> showPinCopyResult(
+  BuildContext context,
+  PrivacyService privacy, {
+  required bool ok,
+}) async {
+  if (ok && await privacy.systemShowsCopyConfirmation()) return;
+  if (!context.mounted) return;
+  final l = AppLocalizations.of(context)!;
+  ScaffoldMessenger.of(context)
+    ..hideCurrentSnackBar()
+    ..showSnackBar(
+        SnackBar(content: Text(ok ? l.pinCopiedTtl : l.pinCopyFailed)));
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Clipboard reminder

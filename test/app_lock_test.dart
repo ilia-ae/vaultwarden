@@ -42,7 +42,14 @@ class _FakeStorage extends SecureStorageService {
   Future<UserSession?> loadSession() async => session;
 
   @override
-  Future<void> clearAll() async => session = null;
+  Future<void> clearSessionData({
+    bool keepTwoFactorRemember = false,
+    UserSession? session,
+  }) async =>
+      this.session = null;
+
+  @override
+  Future<void> clearAll({bool keepDeviceId = true}) async => session = null;
 }
 
 class _NoBiometrics extends BiometricService {

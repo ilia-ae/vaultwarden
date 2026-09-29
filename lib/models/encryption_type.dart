@@ -12,8 +12,13 @@ enum EncryptionType {
   const EncryptionType(this.value);
   final int value;
 
-  static EncryptionType fromValue(int v) =>
-      EncryptionType.values.firstWhere((e) => e.value == v);
+  /// Throws [FormatException] for unknown types.
+  static EncryptionType fromValue(int v) {
+    for (final e in EncryptionType.values) {
+      if (e.value == v) return e;
+    }
+    throw FormatException('Unsupported encryption type', v);
+  }
 
   bool get hasIv =>
       this == aesCbc256_B64 ||

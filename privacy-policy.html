@@ -25,18 +25,20 @@
 <body>
 
 <h1>Privacy Policy</h1>
-<p class="updated">Last updated: March 2, 2025</p>
+<p class="updated">Last updated: September 27, 2026</p>
 
-<p>Vault Approver ("the App") is a companion mobile application for self-hosted Vaultwarden/Bitwarden servers. This policy describes how the App handles your data.</p>
+<p>Vault Approver ("the App") is a companion mobile application for Bitwarden cloud (bitwarden.com, bitwarden.eu) and self-hosted Vaultwarden/Bitwarden servers. This policy describes how the App handles your data.</p>
 
 <h2>1. Data We Collect</h2>
 <p>The App stores the following data <strong>locally on your device only</strong>:</p>
 <ul>
-    <li>Vaultwarden server URL</li>
+    <li>Server URL (your self-hosted server, or bitwarden.com / bitwarden.eu)</li>
     <li>Account email address</li>
     <li>Encrypted authentication tokens (access token, refresh token)</li>
-    <li>Encrypted user key (protected by device biometrics)</li>
+    <li>Encrypted user key (the App asks for Face ID, Touch ID or fingerprint before it decrypts it)</li>
     <li>Unique device identifier (randomly generated UUID)</li>
+    <li>Client certificate for mutual TLS (a .p12/.pfx file and its password), only if you import one for a self-hosted server that requires it — kept in the secure keychain for that server only</li>
+    <li>Two-step login "remember this device" token, only if you keep that option on — kept in the secure keychain for that server and account</li>
     <li>User preferences (theme, language, lock timeout, refresh interval)</li>
     <li>Request approval/denial history</li>
 </ul>
@@ -53,33 +55,41 @@
 <h2>3. How Data Is Stored</h2>
 <p>All sensitive data is stored in the device's secure storage:</p>
 <ul>
-    <li><strong>iOS:</strong> Apple Keychain with biometric access control</li>
-    <li><strong>Android:</strong> Android Keystore with encrypted shared preferences</li>
+    <li><strong>iOS:</strong> Apple Keychain, "this device only" items that are available only while the device has a passcode and is unlocked</li>
+    <li><strong>Android:</strong> encrypted shared preferences backed by the Android Keystore</li>
 </ul>
-<p>Encryption keys are protected by your device's biometric authentication (Face ID, Touch ID, or Fingerprint). Without biometric verification, the keys cannot be accessed.</p>
+<p>Your user key is stored encrypted, and the App asks for your biometrics (Face ID, Touch ID or fingerprint) before it decrypts it. The secure-storage items themselves are protected by your device passcode and the operating system, not by a separate biometric-only lock, so keep your device protected with a passcode.</p>
 
 <h2>4. Network Communication</h2>
-<p>The App communicates exclusively with the Vaultwarden server URL you provide during setup. All communication uses HTTPS encryption. The App connects to:</p>
+<p>For your vault account, the App communicates only with the server you choose during setup: your self-hosted server URL or, if you choose Bitwarden cloud, Bitwarden's own servers (<code>vault</code>, <code>api</code>, <code>identity</code> and <code>notifications</code> hosts of bitwarden.com or bitwarden.eu). Communication uses HTTPS encryption unless you enter an <code>http://</code> server address yourself; the App warns you before signing in over such an unencrypted connection. If you imported a client certificate, it is presented only to the server it was imported for, and the App does not follow redirects to other servers. The App connects to:</p>
 <ul>
     <li><code>/identity/accounts/prelogin</code> — to retrieve key derivation parameters</li>
     <li><code>/identity/connect/token</code> — to authenticate and refresh tokens</li>
-    <li><code>/api/auth-requests</code> — to fetch and respond to login requests</li>
+    <li><code>/api/auth-requests/pending</code> (on older servers <code>/api/auth-requests</code>) — to fetch pending login requests, and <code>/api/auth-requests/{id}</code> — to approve or deny one</li>
+    <li><code>/api/two-factor/send-email-login</code> and <code>/api/accounts/resend-new-device-otp</code> — only when you ask for an e-mailed sign-in or device verification code</li>
+    <li><code>/api/now</code> — the server time, so request expiry follows the server's clock</li>
     <li><code>/notifications/hub</code> — WebSocket for real-time notifications</li>
 </ul>
-<p>No data is sent to any third-party service, advertising network, or analytics provider.</p>
-<p>The PIN tools (PIN 24, PIN Shift, YubiKey and the legacy mask) run fully offline on your device: nothing you enter there — seed phrases, passphrases, PINs, master keys or serial numbers — is stored, synced, or transmitted anywhere.</p>
+<p>Apart from the optional cloud settings sync below, no data is sent to any third-party service, advertising network, or analytics provider.</p>
+<p>The PIN tools (PIN 24, PIN Shift, YubiKey and the legacy mask) run fully offline on your device: nothing you enter there — seed phrases, passphrases, PINs, master keys or serial numbers — is stored, synced, or transmitted anywhere. PIN 24 can read a nickname list from a Ledger Passwords backup file that you pick yourself: only the nicknames and charset names are read, on the device, and kept in memory until the PIN tools are wiped; the file is never changed or uploaded.</p>
 
 <h2>5. Third-Party Services</h2>
-<p>The App does not integrate any third-party SDKs, analytics tools, advertising frameworks, or tracking services. There are no external dependencies that transmit data outside your device and your Vaultwarden server.</p>
+<p>The App does not integrate any analytics tools, advertising frameworks, or tracking services.</p>
+<p><strong>Optional cloud settings sync.</strong> The App includes Google Firebase (Firebase Authentication and Cloud Firestore) for one optional feature: keeping your App settings the same on your devices. It is off until you sign in to it under <strong>Settings → Cloud sync</strong> with Sign in with Google or Sign in with Apple. Only then does the App send to Firebase:</p>
+<ul>
+    <li>your Firebase account identity from Google or Apple (as handled by Firebase Authentication)</li>
+    <li>theme, language, lock timeout (except "never lock", which is never synced) and refresh interval, plus the time of the last change</li>
+</ul>
+<p>Your vault account, server address, email address, keys, tokens, certificates, request history and login requests are never sent to Firebase. Signing out of cloud sync stops the sync; it does not affect your vault session.</p>
 
 <h2>6. Data Sharing</h2>
-<p>We do not sell, share, or transfer your data to any third party. Your data stays between your device and your self-hosted server.</p>
+<p>We do not sell, share, or transfer your data to any third party. Your account data stays between your device and the server you chose; if you turn on cloud sync, your App settings are also stored in Google Firebase as described above.</p>
 
 <h2>7. Data Retention and Deletion</h2>
 <p>All data is stored locally on your device. You can delete all stored data at any time by:</p>
 <ul>
-    <li>Using the <strong>Logout</strong> button in Settings — this erases all encryption keys, tokens, and session data</li>
-    <li>Uninstalling the App — this removes all App data from the device</li>
+    <li>Using the <strong>Logout</strong> button in Settings — this erases all encryption keys, tokens, session data, request history and "remember this device" tokens. The device identifier and imported client certificates are kept so that the server recognises this device on the next sign-in; remove a certificate under <strong>Settings → Client certificate</strong></li>
+    <li>Uninstalling the App — this removes the App's data from the device. iOS may keep secure keychain items after an app is deleted; if you install the App again, it deletes those leftovers the first time it starts, before anything is signed in</li>
 </ul>
 <p>Request history older than 30 days is automatically cleaned up.</p>
 

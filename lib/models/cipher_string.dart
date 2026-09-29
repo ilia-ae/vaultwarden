@@ -5,8 +5,10 @@ import 'encryption_type.dart';
 
 /// Parses and encodes Bitwarden CipherString format.
 ///
-/// Symmetric (type 0,1,2): "encType.{base64_iv}|{base64_ct}|{base64_mac}"
-/// Asymmetric (type 3,4,5,6): "encType.{base64_ct}" or "encType.{base64_ct}|{base64_mac}"
+/// Symmetric type 0: "0.{base64_iv}|{base64_ct}"
+/// Symmetric types 1, 2: "encType.{base64_iv}|{base64_ct}|{base64_mac}" — the
+///   MAC is mandatory (as in the official SDK).
+/// Asymmetric (type 3,4): "encType.{base64_ct}"; (5,6): "encType.{ct}|{mac}".
 class CipherString {
   final EncryptionType encType;
   final Uint8List? iv;
@@ -20,35 +22,53 @@ class CipherString {
     this.mac,
   });
 
+  /// Throws [FormatException] on anything malformed (unknown type, missing
+  /// parts, missing MAC for MAC'd types, bad base64).
   factory CipherString.parse(String encoded) {
     final dotIndex = encoded.indexOf('.');
     if (dotIndex == -1) {
-      throw FormatException('Invalid CipherString: no type prefix', encoded);
+      throw const FormatException('Invalid CipherString: no type prefix');
     }
 
-    final encType = EncryptionType.fromValue(int.parse(encoded.substring(0, dotIndex)));
+    final typeValue = int.tryParse(encoded.substring(0, dotIndex));
+    if (typeValue == null) {
+      throw const FormatException('Invalid CipherString: bad type prefix');
+    }
+    final encType = EncryptionType.fromValue(typeValue);
     final rest = encoded.substring(dotIndex + 1);
     final parts = rest.split('|');
 
+    Uint8List b64(String s) {
+      if (s.isEmpty) throw const FormatException('Invalid CipherString part');
+      return base64Decode(s);
+    }
+
     if (encType.hasIv) {
-      // Symmetric: iv|ct|mac or iv|ct
-      if (parts.length < 2) {
-        throw FormatException('Invalid symmetric CipherString', encoded);
+      final expected = encType.hasMac ? 3 : 2;
+      if (parts.length != expected) {
+        throw const FormatException('Invalid symmetric CipherString');
+      }
+      final iv = b64(parts[0]);
+      if (iv.length != 16) {
+        throw const FormatException('Invalid CipherString IV length');
       }
       return CipherString(
         encType: encType,
-        iv: base64Decode(parts[0]),
-        ciphertext: base64Decode(parts[1]),
-        mac: parts.length > 2 && parts[2].isNotEmpty ? base64Decode(parts[2]) : null,
-      );
-    } else {
-      // Asymmetric: ct or ct|mac
-      return CipherString(
-        encType: encType,
-        ciphertext: base64Decode(parts[0]),
-        mac: parts.length > 1 && parts[1].isNotEmpty ? base64Decode(parts[1]) : null,
+        iv: iv,
+        ciphertext: b64(parts[1]),
+        mac: encType.hasMac ? b64(parts[2]) : null,
       );
     }
+
+    final expected = encType.hasMac ? 2 : 1;
+    if (parts.length != expected) {
+      throw const FormatException('Invalid asymmetric CipherString');
+    }
+    return CipherString(
+      encType: encType,
+      ciphertext: b64(parts[0]),
+      mac: encType.hasMac ? b64(parts[1]) : null,
+    );
   }
 
   String encode() {

@@ -83,7 +83,7 @@ class PrivacyService {
 
   /// Method channel: `copySensitive`, `clearClipboardIfOurs`,
   /// `clearClipboard`, `setSecureScreen`, `isScreenCaptured`,
-  /// `isScreenshotsAllowedBuild`.
+  /// `isScreenshotsAllowedBuild`, `systemShowsCopyConfirmation`.
   static const channelName = 'com.vaultapprover.app/privacy';
 
   /// Event channel: `bool` capture state, or the string `'screenshot'`.
@@ -217,6 +217,23 @@ class PrivacyService {
     final reply = await _invoke<bool>('isScreenshotsAllowedBuild');
     return reply?.value ?? false;
   }
+
+  /// Whether the platform itself confirms every clipboard write on screen:
+  /// Android 13+ (API 33) shows its own clipboard overlay, so the app should
+  /// not add a "Copied" message of its own there. `false` on iOS, on older
+  /// Android and wherever the channel is missing, fails or answers anything
+  /// but a `bool`. It cannot change while the app runs, so a real answer is
+  /// asked for once.
+  Future<bool> systemShowsCopyConfirmation() async {
+    final known = _systemShowsCopyConfirmation;
+    if (known != null) return known;
+    final reply = await _invoke<bool>('systemShowsCopyConfirmation');
+    final value = reply?.value;
+    if (value != null) _systemShowsCopyConfirmation = value;
+    return value ?? false;
+  }
+
+  bool? _systemShowsCopyConfirmation;
 
   /// Capture and screenshot notifications from the platform.
   ///

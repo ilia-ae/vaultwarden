@@ -347,7 +347,10 @@ void main() {
 
     await tester.tap(byId('pin_shift_threat'));
     await tester.pumpAndSettle();
-    expect(find.text(l.pinShiftThreatBody(8)), findsOneWidget);
+    // The body plus the note on the briefly shown last character.
+    expect(
+        find.text('${l.pinShiftThreatBody(8)}\n• ${l.pinHiddenLastCharNote}'),
+        findsOneWidget);
     expect(find.text(l.pinShiftDontUseBody), findsOneWidget);
   });
 }

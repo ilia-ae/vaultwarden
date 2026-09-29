@@ -62,6 +62,25 @@ int clampPin24Length(int length) =>
 int pin24MaskOf(Iterable<Pin24Charset> charsets) =>
     charsets.fold(0, (mask, c) => mask | c.mask);
 
+/// The toggles that give exactly [mask], or `null` when the five toggles
+/// cannot express it: the device groups MINUS, UNDERLINE and SPACE into
+/// "separators" and SPECIAL and BRACKETS into "specials", so a mask with
+/// only part of a group (a backup entry with just `MINUS`, say) needs the
+/// raw mask. 0 gives the empty set.
+Set<Pin24Charset>? pin24CharsetsForMask(int mask) {
+  if (mask < 0 || mask > kAllSets) return null;
+  final out = <Pin24Charset>{};
+  for (final c in Pin24Charset.values) {
+    final bits = mask & c.mask;
+    if (bits == c.mask) {
+      out.add(c);
+    } else if (bits != 0) {
+      return null;
+    }
+  }
+  return out;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Isolate request / response
 // ─────────────────────────────────────────────────────────────────────────────

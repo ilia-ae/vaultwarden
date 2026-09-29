@@ -27,7 +27,6 @@
   "errorEndpointNotFound": "تعذّر العثور على الخادم — تحقّق من العنوان",
   "errorTooManyAttempts": "محاولات كثيرة — حاول لاحقًا",
   "errorServerRetry": "خطأ في الخادم ({status}) — حاول لاحقًا",
-  "errorServerWithData": "خطأ في الخادم ({status}): {data}",
   "errorServer": "خطأ في الخادم ({status})",
   "errorConnectionTimeout": "انتهت مهلة الاتصال — تحقّق من عنوان الخادم",
   "errorCannotConnect": "تعذّر الاتصال بالخادم",
@@ -54,7 +53,6 @@
   "authRequestsTitle": "طلبات المصادقة",
   "pendingTab": "معلّقة",
   "historyTab": "السجل",
-  "errorGeneric": "خطأ: {error}",
   "retry": "إعادة المحاولة",
   "noPendingRequests": "لا طلبات معلّقة",
   "pullDownToRefresh": "اسحب للأسفل للتحديث",
@@ -72,8 +70,6 @@
   "minutesAgo": "قبل {minutes} د",
   "hoursAgo": "قبل {hours} س",
   "daysAgo": "قبل {days} ي",
-  "ipAddress": "IP: {ip}",
-  "minutesLeft": "متبقّي {minutes} د",
   "fingerprintLabel": "عبارة البصمة:",
   "deny": "رفض",
   "approve": "موافقة",
@@ -116,16 +112,6 @@
       }
     }
   },
-  "@errorServerWithData": {
-    "placeholders": {
-      "status": {
-        "type": "int"
-      },
-      "data": {
-        "type": "String"
-      }
-    }
-  },
   "@errorServer": {
     "placeholders": {
       "status": {
@@ -148,13 +134,6 @@
     }
   },
   "@denyFailedMessage": {
-    "placeholders": {
-      "error": {
-        "type": "String"
-      }
-    }
-  },
-  "@errorGeneric": {
     "placeholders": {
       "error": {
         "type": "String"
@@ -196,20 +175,119 @@
       }
     }
   },
-  "@ipAddress": {
-    "placeholders": {
-      "ip": {
-        "type": "String"
-      }
-    }
-  },
-  "@minutesLeft": {
-    "placeholders": {
-      "minutes": {
-        "type": "int"
-      }
-    }
-  },
+
+  "demoModeNotice": "الوضع التجريبي — بيانات نموذجية، وليس حسابًا حقيقيًا",
+  "sessionEndedOnServer": "انتهت جلستك على الخادم. سجّل الدخول مجدّدًا.",
+  "signedOutByServer": "سجّل الخادم خروج هذا الجهاز (تغيير كلمة المرور أو إعدادات الأمان). سجّل الدخول مجدّدًا.",
+  "storageErrorTitle": "تعذّرت قراءة التخزين الآمن",
+  "storageErrorMessage": "تعذّرت قراءة بيانات الدخول المحفوظة من سلسلة مفاتيح الجهاز. افتح قفل الجهاز وحاول مرة أخرى.",
+  "lockKeyMissing": "مفتاح التشفير لهذا الحساب غير موجود على هذا الجهاز. سجّل الخروج وأعد الإعداد.",
+
+  "serverSection": "الخادم",
+  "serverRegionUs": "bitwarden.com",
+  "serverRegionEu": "bitwarden.eu",
+  "serverRegionSelfHosted": "خادم خاص",
+  "serverCloudCaption": "سحابة Bitwarden: {host}",
+  "signedInAs": "تم تسجيل الدخول باسم {email}",
+  "setupStepServerParameters": "جارٍ جلب إعدادات الخادم…",
+  "setupStepDerivingKey": "جارٍ اشتقاق المفتاح الرئيسي…",
+  "setupStepAuthenticating": "جارٍ تسجيل الدخول…",
+  "setupStepDecryptingKey": "جارٍ فك تشفير مفتاح التشفير…",
+  "setupStepSecuringKeys": "جارٍ تأمين المفاتيح…",
+  "sendingCode": "جارٍ إرسال الرمز…",
+  "clientCertTitle": "شهادة العميل (mTLS)",
+  "clientCertNone": "لا توجد. مطلوبة فقط إذا كان خادمك يطلبها.",
+  "clientCertNeedsUrl": "أدخل عنوان URL للخادم أولاً",
+  "clientCertImport": "استيراد ملف .p12 / .pfx",
+  "clientCertReplace": "استبدال",
+  "clientCertRemove": "إزالة",
+  "clientCertRemoveTitle": "إزالة شهادة العميل؟",
+  "clientCertRemoveMessage": "سيتوقف التطبيق عن تقديم شهادة إلى {server}. إذا كان الخادم يتطلبها فسيتوقف تسجيل الدخول والتحديثات عن العمل.",
+  "clientCertRemoved": "تمت إزالة شهادة العميل",
+  "clientCertImported": "تم استيراد شهادة العميل",
+  "clientCertUnnamed": "شهادة بلا اسم",
+  "clientCertIssuedBy": "صادرة عن {issuer}",
+  "clientCertValidUntil": "صالحة حتى {date}",
+  "clientCertExpiresSoon": "تنتهي صلاحيتها خلال {days, plural, =0{أقل من يوم} =1{يوم واحد} =2{يومين} few{{days} أيام} many{{days} يومًا} other{{days} يوم}} ({date}). استورد شهادة مجددة.",
+  "clientCertExpired": "انتهت صلاحيتها في {date}. استورد شهادة جديدة.",
+  "clientCertPasswordTitle": "كلمة مرور الشهادة",
+  "clientCertPasswordPrompt": "أدخل كلمة المرور للملف {file}.",
+  "clientCertPasswordLabel": "كلمة المرور",
+  "clientCertImportAction": "استيراد",
+  "clientCertPickFailed": "تعذر فتح الملف",
+  "errorClientCertRequired": "يتطلب هذا الخادم شهادة عميل (mTLS). استورد ملف .p12/.pfx من قسم «شهادة العميل».",
+  "errorClientCertRejected": "رفض الخادم شهادة العميل (جهة إصدار خاطئة أو منتهية أو ملغاة). استورد شهادة صالحة.",
+  "errorClientCertMaybeRequired": "أغلق الخادم الاتصال الآمن. قد يتطلب شهادة عميل (mTLS): استوردها من قسم «شهادة العميل».",
+  "errorClientCertBadPassword": "كلمة مرور الشهادة غير صحيحة",
+  "errorClientCertUnsupported": "ليست شهادة عميل .p12/.pfx صالحة تحتوي على مفتاح خاص",
+  "errorClientCertInvalidCa": "تعذر تحميل شهادة جهة الإصدار",
+  "errorNewDeviceVerificationRequired": "يلزم التحقق من الجهاز الجديد: أدخل الرمز المرسل إلى بريدك الإلكتروني",
+  "errorInvalidNewDeviceOtp": "رمز التحقق غير صالح أو منتهي الصلاحية",
+  "errorAuthRequestSuperseded": "يوجد طلب أحدث من هذا الجهاز. حدّث القائمة ووافق على أحدث طلب.",
+  "errorAuthRequestAlreadyAnswered": "تمت الإجابة على هذا الطلب بالفعل على جهاز آخر",
+  "errorAuthRequestNotFound": "لم يعد هذا الطلب موجودًا (انتهت صلاحيته أو تمت معالجته في مكان آخر)",
+  "errorClientVersionRejected": "رفض الخادم إصدار التطبيق هذا. يُرجى تحديث Vault Approver.",
+  "errorMissingUserKey": "لم يرسل الخادم مفتاح كلمة المرور الرئيسية لهذا الحساب. الحسابات التي تُفتح عبر SSO أو جهاز موثوق أو Key Connector غير مدعومة.",
+  "errorKdfTooWeak": "أرسل الخادم إعدادات اشتقاق مفاتيح غير آمنة. رُفض تسجيل الدخول لحماية كلمة المرور الرئيسية.",
+  "errorUnsupportedKdf": "يستخدم الخادم طريقة اشتقاق مفاتيح لا يدعمها هذا التطبيق",
+  "errorTooManyAttemptsWait": "محاولات كثيرة جدًا. أعد المحاولة بعد {seconds, plural, =1{ثانية واحدة} =2{ثانيتين} few{{seconds} ثوانٍ} many{{seconds} ثانية} other{{seconds} ثانية}}.",
+  "errorRequestExpired": "انتهت صلاحية هذا الطلب. اطلب من الجهاز الآخر إرسال طلب جديد.",
+  "errorFingerprintUnavailable": "لا يمكن التحقق من هذا الطلب: تعذر حساب عبارة البصمة",
+  "twoFactorChooseTitle": "اختر طريقة تسجيل الدخول بخطوتين",
+  "twoFactorProviderAuthenticator": "تطبيق المصادقة",
+  "twoFactorProviderAuthenticatorHint": "رمز من 6 أرقام من تطبيق المصادقة",
+  "twoFactorProviderEmail": "البريد الإلكتروني",
+  "twoFactorProviderEmailHint": "سيتم إرسال رمز إلى بريدك الإلكتروني",
+  "twoFactorProviderEmailHintTo": "سيتم إرسال رمز إلى {email}",
+  "twoFactorProviderYubiKey": "رمز YubiKey لمرة واحدة",
+  "twoFactorProviderYubiKeyHint": "المس مفتاح YubiKey لإدخال الرمز",
+  "twoFactorProviderRecoveryCode": "رمز الاسترداد",
+  "twoFactorProviderRecoveryCodeHint": "يُعطّل تسجيل الدخول بخطوتين في حسابك",
+  "twoFactorProviderDuo": "Duo Security",
+  "twoFactorProviderWebAuthn": "مفتاح مرور أو مفتاح أمان (FIDO2)",
+  "twoFactorProviderU2f": "مفتاح أمان FIDO U2F",
+  "twoFactorProviderUnknown": "الطريقة {id}",
+  "twoFactorNotSupported": "غير مدعوم في هذا التطبيق. استخدم طريقة أخرى.",
+  "twoFactorNoSupportedMethod": "لا تعمل أي من طرق تسجيل الدخول بخطوتين لهذا الحساب في هذا التطبيق. أضف تطبيق مصادقة أو البريد الإلكتروني في خزنة الويب، أو استخدم رمز الاسترداد.",
+  "twoFactorPromptEmail": "أدخل الرمز المرسل إلى بريدك الإلكتروني.",
+  "twoFactorPromptEmailTo": "أدخل الرمز المرسل إلى {email}.",
+  "twoFactorPromptYubiKey": "وصّل مفتاح YubiKey والمسه لكتابة الرمز، أو الصق الرمز هنا.",
+  "twoFactorPromptRecoveryCode": "أدخل رمز الاسترداد. سيتم تعطيل تسجيل الدخول بخطوتين لهذا الحساب؛ أعد إعداده لاحقًا في خزنة الويب.",
+  "twoFactorRemember": "تذكر هذا الجهاز",
+  "twoFactorAnotherMethod": "استخدام طريقة أخرى",
+  "resendCode": "إعادة إرسال الرمز",
+  "codeSent": "تم إرسال الرمز",
+  "codeSentTo": "تم إرسال الرمز إلى {email}",
+  "codeIncomplete": "أدخل الرمز كاملًا",
+  "newDeviceTitle": "التحقق من جهاز جديد",
+  "newDevicePrompt": "أرسل Bitwarden رمز تحقق إلى بريدك الإلكتروني. أدخله لإكمال تسجيل الدخول على هذا الجهاز.",
+  "requestTimeLeft": "متبقٍ {time}",
+  "requestExpired": "منتهي الصلاحية",
+  "requestExpiredHint": "انتهت صلاحية هذا الطلب ولم يعد بالإمكان الموافقة عليه. اطلب من الجهاز الآخر إرسال طلب جديد.",
+  "fingerprintUnavailable": "لا يمكن التحقق من هذا الطلب: تعذر حساب عبارة البصمة من مفتاحه. لا توافق عليه.",
+  "cloudSyncSection": "المزامنة السحابية",
+  "cloudSyncSignedOutHint": "سجّل الدخول لمزامنة إعداداتك (المظهر واللغة والمؤقتات) بين أجهزتك. مفاتيح خزنتك لا تغادر هذا الجهاز أبدًا.",
+  "cloudSyncContinueGoogle": "المتابعة باستخدام Google",
+  "cloudSyncContinueApple": "المتابعة باستخدام Apple",
+  "cloudSyncSignedIn": "تم تسجيل الدخول",
+  "cloudSyncSignedInHint": "تتم مزامنة الإعدادات بين أجهزتك.",
+  "cloudSyncConnectApple": "ربط حساب Apple",
+  "cloudSyncSignOut": "تسجيل الخروج من المزامنة",
+  "cloudSyncSignInSuccessTitle": "تم تسجيل الدخول ✓",
+  "cloudSyncSignInSuccessBody": "ستتم مزامنة الإعدادات الآن.",
+  "cloudSyncSignInResultTitle": "نتيجة تسجيل الدخول",
+  "cloudSyncErrorNotConfigured": "تسجيل الدخول عبر Google غير مُعدّ في هذا الإصدار من التطبيق.",
+  "cloudSyncErrorUnsupported": "تسجيل الدخول عبر {provider} غير متاح على هذا الجهاز.",
+  "cloudSyncErrorNoToken": "لم يؤكد {provider} تسجيل الدخول. حاول مرة أخرى.",
+  "cloudSyncErrorEmailInUse": "هذا البريد الإلكتروني مستخدم بالفعل مع طريقة تسجيل دخول أخرى. سجّل الدخول بتلك الطريقة أولًا، ثم اربط {provider}.",
+  "cloudSyncErrorFailed": "فشل تسجيل الدخول عبر {provider} ({detail}).",
+  "cloudSyncErrorTimeout": "يستغرق تسجيل الدخول وقتًا طويلًا. تحقق من اتصالك وحاول مرة أخرى.",
+  "cloudSyncErrorGeneric": "فشل تسجيل الدخول. حاول مرة أخرى.",
+  "plainHttpTitle": "اتصال غير مشفّر",
+  "plainHttpMessage": "يبدأ عنوان الخادم بـ ‎http://‎. ستُرسَل تجزئة كلمة المرور الرئيسية ورموز تسجيل الدخول والموافقات دون تشفير، ويمكن لأي شخص على الشبكة قراءتها أو تغييرها. استخدم ‎https://‎ ما لم تكن تثق بهذه الشبكة تمامًا.",
+  "plainHttpContinue": "المتابعة على أي حال",
+  "ok": "حسنًا",
+  "demoAddRequest": "إضافة طلب تجريبي",
 
   "pinTab": "PIN",
   "pinTitle": "أدوات PIN",
@@ -768,13 +846,6 @@
   "pinYkLedgerProblemAscii8": "يجب أن تكون المحارف الثمانية المختارة من ASCII القابلة للطباعة دون مسافات — فرمز PIN يُكتب في مربعات حوار النظام حيث تخطيط لوحة المفاتيح غير مضمون.",
   "pinYkLedgerProblemAscii": "محارف خارج ASCII القابلة للطباعة.",
   "pinYkLedgerProblemCsv": "يحتوي فاصلة أو علامة اقتباس أو مسافة طرفية أو = + - @ في البداية، ولا يستطيع CSV غير المقتبس حملها.",
-  "pinYkWarnPivInOther": "رمز PIV PIN جزء من الحقل {field} ‏({name}) من إدخال Ledger نفسه: كتابة PIV PIN كثيرًا تكشف 8 من محارفه. اقبل ذلك عن وعي أو خذ ذلك الرمز من إدخال آخر.",
-  "@pinYkWarnPivInOther": {
-    "placeholders": {
-      "field": { "type": "String" },
-      "name": { "type": "String" }
-    }
-  },
   "pinYkWarnAdminShares": "رمز Admin PIN يأتي من الإدخال المشترك ‎-pins، أي أنه يساوي رمزي User وFIDO2 اللذين يُكتبان يوميًا. فعّل «إدخال منفصل للمسؤول» إذا لم يكن ذلك مقبولًا.",
   "pinYkCopyCsv": "نسخ بصيغة CSV لمدير كلمات المرور (لا يستورده Bitwarden مباشرة)",
   "pinYkCopyCsvCaption": "الصيغة folder,name,field,value — سطر لكل سر، مثل yk-batch-secrets.py --bitwarden. لا يستطيع Bitwarden استيراد هذا التخطيط مباشرة: استخدمه قائمة تحقق لحقول NN في العنصر، أو حوّله أولًا.",
@@ -868,5 +939,46 @@
   "pinHideField": "إخفاء {field}",
   "pinCopyField": "نسخ {field}",
   "pinSecretHiddenSemantics": "{label}: {count, plural, zero{0 محارف} one{محرف واحد} two{محرفان} few{{count} محارف} many{{count} محرفًا} other{{count} محرف}}، لا يُقرأ بصوت عالٍ — فعّل مفتاح الإظهار لسماعه",
-  "pinLegacyMaskZeroHint": "يجب أن يكون كل رقم في القناع من ‎1–9‎: الصفر غير مسموح."
+  "pinLegacyMaskZeroHint": "يجب أن يكون كل رقم في القناع من ‎1–9‎: الصفر غير مسموح.",
+  "pinYkWarnPivInFields": "{count, plural, one{رمز PIV PIN جزء من الحقل {fields} من إدخال Ledger نفسه: كتابة PIV PIN كثيرًا تكشف 8 من محارفه. اقبل ذلك عن وعي أو خذ ذلك الرمز من إدخال آخر.} two{رمز PIV PIN جزء من الحقلين {fields} من إدخال Ledger نفسه: كتابة PIV PIN كثيرًا تكشف 8 من محارفهما. اقبل ذلك عن وعي أو خذ هذين الرمزين من إدخال آخر.} few{رمز PIV PIN جزء من الحقول {fields} من إدخال Ledger نفسه: كتابة PIV PIN كثيرًا تكشف 8 من محارفها. اقبل ذلك عن وعي أو خذ تلك الرموز من إدخالات أخرى.} many{رمز PIV PIN جزء من الحقول {fields} من إدخال Ledger نفسه: كتابة PIV PIN كثيرًا تكشف 8 من محارفها. اقبل ذلك عن وعي أو خذ تلك الرموز من إدخالات أخرى.} other{رمز PIV PIN جزء من الحقول {fields} من إدخال Ledger نفسه: كتابة PIV PIN كثيرًا تكشف 8 من محارفها. اقبل ذلك عن وعي أو خذ تلك الرموز من إدخالات أخرى.}}",
+  "@pinYkWarnPivInFields": {
+    "placeholders": {
+      "count": { "type": "int" },
+      "fields": { "type": "String" }
+    }
+  },
+  "pinHiddenLastCharNote": "تُظهر الحقول المخفية آخر حرف تكتبه لبرهة، كما تفعل حقول كلمات المرور في النظام. لا يوفّر Flutter مفتاحًا لذلك لكل حقل: على Android يتبع إعداد النظام «إظهار كلمات المرور»، ويفعل iOS ذلك دائمًا. النص الملصق لا يُعرض أبدًا.",
+  "pin24ImportTitle": "قائمة الأسماء المستعارة من نسخة احتياطية (اختياري)",
+  "pin24ImportHelp": "اختر نسخة احتياطية من Ledger Passwords ‏(.json، كما يحفظها passwords.ledger.com) لتختار الاسم المستعار ومجموعات أحرفه من قائمة بدل كتابتها. لا يُقرأ سوى الأسماء المستعارة ومجموعات الأحرف، وتبقى القائمة في الذاكرة فقط وتُمسح مع كل شيء آخر.",
+  "pin24ImportFile": "استيراد القائمة من ملف",
+  "pin24ImportBlocked": "استورد القائمة قبل إدخال عبارة البذرة: يرسل منتقي الملفات التطبيق إلى الخلفية، ويجب ألّا تبقى البذرة في الذاكرة خلال ذلك. امسح البذرة لتتمكن من الاستيراد.",
+  "pin24ImportLoaded": "عدد الأسماء المستعارة في القائمة: {count}",
+  "@pin24ImportLoaded": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "pin24ImportSkipped": "تعذّرت قراءة بعض الإدخالات فتم تخطيها (العدد: {count}).",
+  "@pin24ImportSkipped": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "pin24ImportChoose": "اختيار اسم مستعار",
+  "pin24ImportForget": "نسيان القائمة",
+  "pin24ImportChooseTitle": "اسم مستعار من القائمة",
+  "pin24ImportErrorRead": "تعذّرت قراءة الملف. اختر نسخة احتياطية من Ledger Passwords ‏(.json).",
+  "pin24ImportErrorTooLarge": "حجم الملف أكبر من 1 ميغابايت، لذا فهو ليس نسخة احتياطية لقائمة الأسماء المستعارة.",
+  "pin24ImportErrorEmpty": "لا يحتوي الملف على أسماء مستعارة قابلة للاستخدام.",
+  "pin24ImportReplaceTitle": "استبدال الاسم المستعار؟",
+  "pin24ImportReplaceBody": "يحتوي حقل الاسم المستعار على نص بالفعل. هل تريد استبدال ما كتبته بالاسم المستعار من القائمة؟",
+  "pin24ImportReplaceConfirm": "استبدال",
+  "pin24ImportRawMask": "يستخدم هذا الإدخال مجموعات أحرف لا تستطيع المفاتيح الخمسة التعبير عنها: {sets}. تُشتق كلمة المرور بهذه المجموعات تمامًا.",
+  "@pin24ImportRawMask": {
+    "placeholders": {
+      "sets": { "type": "String" }
+    }
+  },
+  "pin24ImportUseToggles": "استخدام المفاتيح",
+  "demoRibbon": "تجريبي"
 }

@@ -1,0 +1,111 @@
+# Local end-to-end stack for VaultApprover server tests. See tool/e2e/README.md.
+#
+#   tool/e2e/gen-pki.sh                                  # once: throwaway CA + certs + .p12
+#   docker compose -f tool/e2e/compose.yaml up -d --wait
+#   docker compose -p va-e2e down -v                     # teardown (drops all accounts)
+#
+# Everything binds to 127.0.0.1 only:
+#   18080  va-e2e-vw     Vaultwarden 1.37.1, plain HTTP, direct (no proxy)
+#   18081  va-e2e-vw137  Vaultwarden 1.37.3, plain HTTP, direct (regression checks)
+#   18443  va-e2e-caddy  Caddy 2.11.4 TLS + mandatory mTLS in front of va-e2e-vw
+#                        (mirror of the vault-test.ilia.ae stand)
+name: va-e2e
+
+x-vw-env: &vw-env
+  # The mTLS front is the canonical origin (the stand's DOMAIN is its Caddy URL).
+  DOMAIN: https://localhost:18443
+  DATABASE_URL: sqlite:///data/db.sqlite3
+  ROCKET_ADDRESS: 0.0.0.0
+  ROCKET_PORT: "8080"
+  ENABLE_WEBSOCKET: "true"
+  SIGNUPS_ALLOWED: "true"
+  SIGNUPS_VERIFY: "false"
+  INVITATIONS_ALLOWED: "false"
+  SHOW_PASSWORD_HINT: "false"
+  PASSWORD_HINTS_ALLOWED: "false"
+  EMERGENCY_ACCESS_ALLOWED: "false"
+  EXPERIMENTAL_CLIENT_FEATURE_FLAGS: mutual-tls
+  DISABLE_ICON_DOWNLOAD: "true"
+  ICON_CACHE_TTL: "0"
+  # X-Real-IP is honoured from private addresses: Caddy sets it on 18443; on the direct ports
+  # a test may send its own X-Real-IP to simulate different requester IPs.
+  IP_HEADER: X-Real-IP
+  IP_HEADER_TRUSTED_PROXIES: local
+  SSO_ENABLED: "false"
+  PUSH_ENABLED: "false"
+  # No SMTP on purpose: no email 2FA, no new-device mails, no signup verification.
+  # Plain-text admin token (VW prints a notice) - /admin is reachable only via 127.0.0.1.
+  ADMIN_TOKEN: ${VA_E2E_ADMIN_TOKEN:-va-e2e-admin-token}
+  # Generous limits so repeated test runs from one IP never trip 429. Lower them per run to
+  # exercise rate limiting (e.g. VA_E2E_UNAUTH_BURST=3 on va-e2e-vw137).
+  LOGIN_RATELIMIT_SECONDS: ${VA_E2E_LOGIN_RL_SECONDS:-1}
+  LOGIN_RATELIMIT_MAX_BURST: ${VA_E2E_LOGIN_BURST:-1000}
+  ADMIN_RATELIMIT_SECONDS: ${VA_E2E_ADMIN_RL_SECONDS:-1}
+  ADMIN_RATELIMIT_MAX_BURST: ${VA_E2E_ADMIN_BURST:-1000}
+  UNAUTHENTICATED_RATELIMIT_SECONDS: ${VA_E2E_UNAUTH_RL_SECONDS:-1}
+  UNAUTHENTICATED_RATELIMIT_MAX_BURST: ${VA_E2E_UNAUTH_BURST:-1000}
+  LOG_LEVEL: info
+  EXTENDED_LOGGING: "true"
+
+x-log: &log
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  va-e2e-vw:
+    image: vaultwarden/server:1.37.1
+    container_name: va-e2e-vw
+    restart: unless-stopped
+    environment: *vw-env
+    volumes:
+      - vw-data:/data
+    ports:
+      - "127.0.0.1:18080:8080"
+    # test inherited from the image (/healthcheck.sh -> /alive); only faster intervals here
+    healthcheck:
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    logging: *log
+
+  va-e2e-vw137:
+    image: vaultwarden/server:1.37.3
+    container_name: va-e2e-vw137
+    restart: unless-stopped
+    environment:
+      <<: *vw-env
+      DOMAIN: http://localhost:18081
+    volumes:
+      - vw137-data:/data
+    ports:
+      - "127.0.0.1:18081:8080"
+    healthcheck:
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    logging: *log
+
+  va-e2e-caddy:
+    image: caddy:2.11.4
+    container_name: va-e2e-caddy
+    restart: unless-stopped
+    depends_on:
+      va-e2e-vw:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:18443:18443"
+      - "127.0.0.1:18443:18443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./.pki:/etc/caddy/pki:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    logging: *log
+
+volumes:
+  vw-data:
+  vw137-data:
+  caddy-data:
+  caddy-config:

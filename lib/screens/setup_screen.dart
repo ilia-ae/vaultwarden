@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -5,11 +7,59 @@ import 'package:package_info_plus/package_info_plus.dart';
 
 import '../app.dart';
 import '../demo_fixtures.dart';
+import '../glass.dart';
 import '../l10n/app_localizations.dart';
+import '../models/server_environment.dart';
 import '../providers/service_providers.dart';
 import '../providers/session_provider.dart';
 import '../services/vault_api.dart';
 import '../utils/error_formatter.dart';
+import '../widgets/client_cert_section.dart';
+import '../widgets/login_dialogs.dart';
+import '../widgets/server_selector.dart';
+
+/// Inputs of one login attempt. Snapshotted when the user taps "Set Up", so
+/// the 2FA / new-device retries always repeat the same request.
+class _LoginAttempt {
+  const _LoginAttempt({
+    required this.serverUrl,
+    required this.email,
+    required this.password,
+    this.twoFactorToken,
+    this.twoFactorProvider,
+    this.rememberTwoFactor = true,
+    this.newDeviceOtp,
+  });
+
+  final String serverUrl;
+  final String email;
+  final String password;
+  final String? twoFactorToken;
+  final int? twoFactorProvider;
+  final bool rememberTwoFactor;
+  final String? newDeviceOtp;
+
+  _LoginAttempt withTwoFactor(String token, int provider, bool remember) =>
+      _LoginAttempt(
+        serverUrl: serverUrl,
+        email: email,
+        password: password,
+        twoFactorToken: token,
+        twoFactorProvider: provider,
+        rememberTwoFactor: remember,
+        newDeviceOtp: newDeviceOtp,
+      );
+
+  _LoginAttempt withNewDeviceOtp(String otp) => _LoginAttempt(
+        serverUrl: serverUrl,
+        email: email,
+        password: password,
+        twoFactorToken: twoFactorToken,
+        twoFactorProvider: twoFactorProvider,
+        rememberTwoFactor: rememberTwoFactor,
+        newDeviceOtp: otp,
+      );
+}
 
 class SetupScreen extends ConsumerStatefulWidget {
   const SetupScreen({super.key});
@@ -24,25 +74,40 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
 
+  /// Bitwarden cloud (US/EU) or a self-hosted URL (F16).
+  ServerRegion _region = ServerRegion.selfHosted;
+
   bool _isLoading = false;
-  String _statusMessage = '';
+  SetupStep? _step;
+  String? _statusMessage;
   bool _obscurePassword = true;
   bool _demoTotpShown = false;
+
+  /// The server demanded (or rejected) a client certificate (F1).
+  bool _certHighlight = false;
+
+  /// Server URL handed to the certificate row, debounced while typing.
+  String _certUrl = '';
+  Timer? _certUrlDebounce;
 
   // Build-version footer + hidden 5-tap demo gesture (for testers).
   String _appVersion = '';
   int _demoTapCount = 0;
   DateTime? _lastDemoTap;
 
+  AppLocalizations get _l => AppLocalizations.of(context)!;
+
   @override
   void initState() {
     super.initState();
+    _certUrl = _serverUrlController.text;
+    _serverUrlController.addListener(_onServerUrlChanged);
     _loadVersion();
     if (demoMode == 'totp') {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted && !_demoTotpShown) {
           _demoTotpShown = true;
-          _showTotpDialog([0]);
+          _showDemoTotpDialog();
         }
       });
     }
@@ -79,37 +144,103 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
 
   void _activateDemo() {
     HapticFeedback.mediumImpact();
-    demoRuntime.value = true;
-    // Bypass the lock gate (no real key) and rebuild the session so the app
-    // routes straight into the fixture-backed RequestsScreen.
-    ref.read(isLockedProvider.notifier).state = false;
-    ref.invalidate(sessionProvider);
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Demo mode — sample data, not a real account'),
-          duration: Duration(seconds: 3),
-        ),
-      );
-    }
+    // Stops and forgets everything real (storage untouched), then the App
+    // moves the whole UI into the demo's own provider container — which
+    // starts unlocked on fixtures and shows the "demo mode" notice (F7).
+    ref.read(sessionProvider.notifier).enterRuntimeDemo();
+  }
+
+  void _onServerUrlChanged() {
+    if (_certHighlight) setState(() => _certHighlight = false);
+    _certUrlDebounce?.cancel();
+    _certUrlDebounce = Timer(const Duration(milliseconds: 400), () {
+      if (mounted && _certUrl != _serverUrlController.text) {
+        setState(() => _certUrl = _serverUrlController.text);
+      }
+    });
   }
 
   @override
   void dispose() {
+    _certUrlDebounce?.cancel();
+    _serverUrlController.removeListener(_onServerUrlChanged);
     _serverUrlController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
 
-  Future<void> _submit({String? twoFactorToken, int? twoFactorProvider}) async {
-    if (!_formKey.currentState!.validate()) return;
+  /// The server URL for the selected region.
+  String get _serverUrl => switch (_region) {
+        ServerRegion.us => ServerEnvironment.us.baseUrl,
+        ServerRegion.eu => ServerEnvironment.eu.baseUrl,
+        ServerRegion.selfHosted => _serverUrlController.text.trim(),
+      };
 
-    // Check biometrics before proceeding
+  // ── Login flow ──
+
+  Future<void> _submit() async {
+    FocusScope.of(context).unfocus();
+    // Screenshot builds (DEMO_MODE=setup/totp) show this screen with the
+    // real providers: never reach a server or the keychain from there.
+    if (demoActive) return;
+    if (!_formKey.currentState!.validate()) return;
+    if (!await _confirmPlainHttp()) return;
+    if (!await _ensureBiometrics()) return;
+    if (!mounted) return;
+    await _attemptLogin(_LoginAttempt(
+      serverUrl: _serverUrl,
+      email: _emailController.text.trim(),
+      password: _passwordController.text,
+    ));
+  }
+
+  /// `http://` to anything but this device sends the master-password hash,
+  /// tokens and approvals in the clear: sign in only after a warning.
+  Future<bool> _confirmPlainHttp() async {
+    if (_region != ServerRegion.selfHosted) return true;
+    try {
+      if (!ServerEnvironment.isPlaintextRemote(_serverUrl)) return true;
+    } on FormatException {
+      return true; // the validator already reported it
+    }
+    final l = _l;
+    final proceed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        icon: Icon(Icons.no_encryption_outlined,
+            color: Theme.of(ctx).colorScheme.error),
+        title: Text(l.plainHttpTitle),
+        content: Text(l.plainHttpMessage),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text(l.cancel),
+          ),
+          Semantics(
+            identifier: 'btn_plain_http_continue',
+            child: TextButton(
+              style: TextButton.styleFrom(
+                foregroundColor: Theme.of(ctx).colorScheme.error,
+              ),
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: Text(l.plainHttpContinue),
+            ),
+          ),
+        ],
+      ),
+    );
+    return proceed == true && mounted;
+  }
+
+  /// The app stores the keys behind biometrics: refuse to set up without.
+  Future<bool> _ensureBiometrics() async {
     final biometric = ref.read(biometricServiceProvider);
-    final available = await biometric.isAvailable();
-    if (!available && mounted) {
-      final l = AppLocalizations.of(context)!;
+    while (mounted) {
+      final available = await biometric.isAvailable();
+      if (available) return true;
+      if (!mounted) return false;
+      final l = _l;
       final retry = await showDialog<bool>(
         context: context,
         barrierDismissible: false,
@@ -128,49 +259,270 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
           ],
         ),
       );
-      if (retry == true) {
-        return _submit(
-          twoFactorToken: twoFactorToken,
-          twoFactorProvider: twoFactorProvider,
-        );
-      }
-      return;
+      if (retry != true) return false;
     }
+    return false;
+  }
 
+  void _setLoading(bool loading, {String? status}) {
+    if (!mounted) return;
     setState(() {
-      _isLoading = true;
-      _statusMessage = '';
+      _isLoading = loading;
+      _statusMessage = status;
+      if (!loading) _step = null;
     });
+  }
 
+  /// One password grant with [attempt]. Success replaces this screen (the
+  /// App follows the session). Throws the typed server errors.
+  Future<void> _runSetup(_LoginAttempt attempt) async {
+    await ref.read(sessionProvider.notifier).setup(
+          serverUrl: attempt.serverUrl,
+          email: attempt.email,
+          masterPassword: attempt.password,
+          onProgress: (_) {},
+          onStep: (step) {
+            if (mounted) setState(() => _step = step);
+          },
+          twoFactorToken: attempt.twoFactorToken,
+          twoFactorProvider: attempt.twoFactorProvider,
+          rememberTwoFactor: attempt.rememberTwoFactor,
+          newDeviceOtp: attempt.newDeviceOtp,
+        );
+  }
+
+  Future<void> _attemptLogin(_LoginAttempt attempt) async {
+    _setLoading(true);
     try {
-      await ref.read(sessionProvider.notifier).setup(
-            serverUrl: _serverUrlController.text.trim(),
-            email: _emailController.text.trim(),
-            masterPassword: _passwordController.text,
-            onProgress: (status) {
-              if (mounted) setState(() => _statusMessage = status);
-            },
-            twoFactorToken: twoFactorToken,
-            twoFactorProvider: twoFactorProvider,
-          );
-      // Navigation handled by app.dart watching sessionProvider
+      await _runSetup(attempt);
     } on TwoFactorRequiredException catch (e) {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-          _statusMessage = '';
-        });
-        _showTotpDialog(e.availableProviders);
-      }
+      _setLoading(false);
+      await _twoFactorFlow(e, attempt);
+    } on NewDeviceVerificationRequiredException {
+      _setLoading(false);
+      await _newDeviceFlow(attempt);
     } catch (e) {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-          _statusMessage = '';
-        });
-        _showError(_formatError(e));
+      _setLoading(false);
+      _cancelPendingLogin();
+      _showLoginError(e);
+    }
+  }
+
+  void _cancelPendingLogin() {
+    if (!mounted) return;
+    ref.read(sessionProvider.notifier).cancelPendingLogin();
+  }
+
+  void _noteCertificateError(Object e) {
+    if (isClientCertificateError(e) &&
+        _region == ServerRegion.selfHosted &&
+        mounted) {
+      setState(() => _certHighlight = true);
+    }
+  }
+
+  void _showLoginError(Object e) {
+    if (!mounted) return;
+    _noteCertificateError(e);
+    _showError(formatError(e, _l));
+  }
+
+  /// Submits a code from the 2FA / new-device dialog. Wrong codes stay in
+  /// the dialog (A3/A4); a different server demand closes it.
+  Future<CodeSubmitResult> _submitCode(
+    _LoginAttempt attempt, {
+    required bool newDevice,
+  }) async {
+    final l = _l;
+    try {
+      await _runSetup(attempt);
+      return const CodeAccepted();
+    } on InvalidTwoFactorCodeException catch (e) {
+      return CodeRejected(formatError(e, l));
+    } on InvalidNewDeviceOtpException catch (e) {
+      return CodeRejected(formatError(e, l));
+    } on NewDeviceVerificationRequiredException catch (e) {
+      if (newDevice) return CodeRejected(formatError(e, l));
+      return CodeFlowChanged(e);
+    } on TwoFactorRequiredException catch (e) {
+      // After a 2FA code this means the code/provider was not accepted.
+      if (!newDevice) {
+        final m = e.serverMessage;
+        return CodeRejected(
+            m == null || m.toLowerCase() == 'two factor required.'
+                ? l.errorInvalidTwoFactorCode
+                : m);
+      }
+      return CodeFlowChanged(e);
+    } catch (e) {
+      _noteCertificateError(e);
+      return CodeRejected(formatError(e, l));
+    } finally {
+      if (mounted) setState(() => _step = null);
+    }
+  }
+
+  /// POST send-email-login (F12): null on success, else the error text.
+  Future<String?> _sendEmailCode(_LoginAttempt attempt) async {
+    final l = _l;
+    try {
+      await ref.read(sessionProvider.notifier).sendEmailLoginCode(
+            serverUrl: attempt.serverUrl,
+            email: attempt.email,
+            masterPassword: attempt.password,
+          );
+      return null;
+    } catch (e) {
+      return formatError(e, l);
+    }
+  }
+
+  Future<String?> _resendNewDeviceOtp(_LoginAttempt attempt) async {
+    final l = _l;
+    try {
+      await ref.read(sessionProvider.notifier).resendNewDeviceOtp(
+            serverUrl: attempt.serverUrl,
+            email: attempt.email,
+            masterPassword: attempt.password,
+          );
+      return null;
+    } catch (e) {
+      return formatError(e, l);
+    }
+  }
+
+  /// Provider picker → (e-mail: send code) → code dialog (F12, A4, A6).
+  Future<void> _twoFactorFlow(
+    TwoFactorRequiredException e,
+    _LoginAttempt base,
+  ) async {
+    final choices = TwoFactorProvider.choices(e.availableProviders);
+    int? provider = TwoFactorProvider.automaticChoice(choices);
+    while (true) {
+      if (!mounted) return;
+      provider ??= await showTwoFactorProviderPicker(
+        context,
+        choices: choices,
+        obscuredEmail: e.obscuredEmail,
+      );
+      if (!mounted) return;
+      if (provider == null) {
+        _cancelPendingLogin();
+        return;
+      }
+      final chosen = provider;
+      final l = _l;
+
+      String? initialError;
+      String? initialInfo;
+      if (chosen == TwoFactorProvider.email) {
+        _setLoading(true, status: l.sendingCode);
+        initialError = await _sendEmailCode(base);
+        _setLoading(false);
+        if (!mounted) return;
+        if (initialError == null) {
+          final to = e.obscuredEmail;
+          initialInfo = to == null ? l.codeSent : l.codeSentTo(to);
+        }
+      }
+
+      var last = base;
+      final result = await showVerificationCodeDialog(
+        context,
+        kind: switch (chosen) {
+          TwoFactorProvider.email => VerificationCodeKind.email,
+          TwoFactorProvider.yubiKey => VerificationCodeKind.yubiKey,
+          TwoFactorProvider.recoveryCode => VerificationCodeKind.recoveryCode,
+          _ => VerificationCodeKind.totp,
+        },
+        title: twoFactorProviderName(chosen, l),
+        message: switch (chosen) {
+          TwoFactorProvider.email => e.obscuredEmail == null
+              ? l.twoFactorPromptEmail
+              : l.twoFactorPromptEmailTo(e.obscuredEmail!),
+          TwoFactorProvider.yubiKey => l.twoFactorPromptYubiKey,
+          TwoFactorProvider.recoveryCode => l.twoFactorPromptRecoveryCode,
+          _ => l.twoFactorPrompt,
+        },
+        showRemember: chosen != TwoFactorProvider.recoveryCode,
+        offerAnotherMethod: choices.length > 1,
+        initialError: initialError,
+        initialInfo: initialInfo,
+        onResend: chosen == TwoFactorProvider.email
+            ? () => _sendEmailCode(base)
+            : null,
+        onSubmit: (code, remember) {
+          last = base.withTwoFactor(code, chosen, remember);
+          return _submitCode(last, newDevice: false);
+        },
+      );
+      if (!mounted) return;
+      switch (result.outcome) {
+        case VerificationDialogOutcome.accepted:
+          return;
+        case VerificationDialogOutcome.cancelled:
+          _cancelPendingLogin();
+          return;
+        case VerificationDialogOutcome.anotherMethod:
+          provider = null;
+        case VerificationDialogOutcome.flowChanged:
+          final error = result.error;
+          if (error is NewDeviceVerificationRequiredException) {
+            await _newDeviceFlow(last);
+          } else if (error != null) {
+            _showLoginError(error);
+          }
+          return;
       }
     }
+  }
+
+  /// bitwarden.com new-device verification (F6): the e-mailed code is sent
+  /// back with the same device id; a wrong code keeps the dialog open (A3).
+  Future<void> _newDeviceFlow(_LoginAttempt base) async {
+    if (!mounted) return;
+    final l = _l;
+    var last = base;
+    final result = await showVerificationCodeDialog(
+      context,
+      kind: VerificationCodeKind.newDeviceOtp,
+      title: l.newDeviceTitle,
+      message: l.newDevicePrompt,
+      onResend: () => _resendNewDeviceOtp(base),
+      onSubmit: (code, _) {
+        last = base.withNewDeviceOtp(code);
+        return _submitCode(last, newDevice: true);
+      },
+    );
+    if (!mounted) return;
+    switch (result.outcome) {
+      case VerificationDialogOutcome.accepted:
+        return;
+      case VerificationDialogOutcome.cancelled:
+      case VerificationDialogOutcome.anotherMethod:
+        _cancelPendingLogin();
+        return;
+      case VerificationDialogOutcome.flowChanged:
+        final error = result.error;
+        if (error is TwoFactorRequiredException) {
+          await _twoFactorFlow(error, last);
+        } else if (error != null) {
+          _showLoginError(error);
+        }
+    }
+  }
+
+  /// Store screenshots (DEMO_MODE=totp): the code dialog over the form.
+  void _showDemoTotpDialog() {
+    final l = _l;
+    showVerificationCodeDialog(
+      context,
+      kind: VerificationCodeKind.totp,
+      title: l.twoFactorTitle,
+      message: l.twoFactorPrompt,
+      showRemember: true,
+      onSubmit: (_, __) async => CodeRejected(l.errorInvalidTwoFactorCode),
+    );
   }
 
   void _showError(String message) {
@@ -178,100 +530,25 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
       SnackBar(
         content: Text(message),
         backgroundColor: Theme.of(context).colorScheme.error,
-        duration: const Duration(seconds: 5),
+        duration: const Duration(seconds: 6),
       ),
     );
   }
 
-  Future<void> _showTotpDialog(List<int> providers) async {
-    final totpController = TextEditingController();
-    String? errorText;
-
-    final code = await showDialog<String>(
-      context: context,
-      barrierDismissible: false,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: Text(AppLocalizations.of(context)!.twoFactorTitle),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(AppLocalizations.of(context)!.twoFactorPrompt),
-              const SizedBox(height: 16),
-              Semantics(
-                identifier: 'input_totp',
-                child: TextField(
-                controller: totpController,
-                autofocus: true,
-                keyboardType: TextInputType.number,
-                textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 24, letterSpacing: 8),
-                inputFormatters: [
-                  FilteringTextInputFormatter.digitsOnly,
-                  LengthLimitingTextInputFormatter(6),
-                ],
-                decoration: InputDecoration(
-                  hintText: AppLocalizations.of(context)!.twoFactorHint,
-                  border: const OutlineInputBorder(),
-                  errorText: errorText,
-                ),
-                onChanged: (v) {
-                  if (errorText != null) {
-                    setDialogState(() => errorText = null);
-                  }
-                  // Auto-submit when 6 digits entered or pasted
-                  if (v.length == 6) {
-                    Navigator.of(dialogContext).pop(v);
-                  }
-                },
-                onSubmitted: (v) {
-                  if (v.length == 6) {
-                    Navigator.of(dialogContext).pop(v);
-                  } else {
-                    setDialogState(() => errorText = AppLocalizations.of(context)!.twoFactorCodeError);
-                  }
-                },
-              ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(null),
-              child: Text(AppLocalizations.of(context)!.cancel),
-            ),
-            Semantics(
-              identifier: 'btn_totp_verify',
-              child: FilledButton(
-                onPressed: () {
-                  final v = totpController.text.trim();
-                  if (v.length == 6) {
-                    Navigator.of(dialogContext).pop(v);
-                  } else {
-                    setDialogState(() => errorText = AppLocalizations.of(context)!.twoFactorCodeError);
-                  }
-                },
-                child: Text(AppLocalizations.of(context)!.verify),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-
-    final capturedCode = code;
-    Future.delayed(const Duration(milliseconds: 300), totpController.dispose);
-
-    if (capturedCode != null && capturedCode.length == 6) {
-      // Use TOTP provider (0) by default; pick first available if TOTP not in list
-      final provider = providers.contains(0) ? 0 : (providers.isNotEmpty ? providers.first : 0);
-      await _submit(twoFactorToken: capturedCode, twoFactorProvider: provider);
-    }
+  String _progressLabel(AppLocalizations l) {
+    final status = _statusMessage;
+    if (status != null) return status;
+    return switch (_step) {
+      SetupStep.serverParameters => l.setupStepServerParameters,
+      SetupStep.derivingKey => l.setupStepDerivingKey,
+      SetupStep.authenticating => l.setupStepAuthenticating,
+      SetupStep.decryptingKey => l.setupStepDecryptingKey,
+      SetupStep.securingKeys => l.setupStepSecuringKeys,
+      null => l.settingUp,
+    };
   }
 
-  String _formatError(Object e) {
-    return formatError(e, AppLocalizations.of(context)!);
-  }
+  // ── UI ──
 
   Widget _buildThemeToggle() {
     final mode = ref.watch(themeModeProvider);
@@ -286,12 +563,13 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
     }
     return IconButton(
       icon: Icon(icon),
-      tooltip: AppLocalizations.of(context)!.themeTooltip(mode.name),
+      tooltip: _l.themeTooltip(mode.name),
       onPressed: () {
         final isCurrentlyDark =
             MediaQuery.platformBrightnessOf(context) == Brightness.dark;
         final next = switch (mode) {
-          ThemeMode.system => isCurrentlyDark ? ThemeMode.light : ThemeMode.dark,
+          ThemeMode.system =>
+            isCurrentlyDark ? ThemeMode.light : ThemeMode.dark,
           ThemeMode.light => ThemeMode.system,
           ThemeMode.dark => ThemeMode.system,
         };
@@ -300,15 +578,136 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
     );
   }
 
+  /// F11/A9: why the user is back here (also shown once as a SnackBar).
+  Widget _buildSessionNotice(ThemeData theme, SessionEndNotice notice) {
+    final l = _l;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 20),
+      child: ContentCard(
+        padding: const EdgeInsets.all(14),
+        borderColor: theme.colorScheme.error.withValues(alpha: 0.6),
+        borderWidth: 1,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(Icons.info_outline, color: theme.colorScheme.error),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                switch (notice) {
+                  SessionEndNotice.sessionEnded => l.sessionEndedOnServer,
+                  SessionEndNotice.signedOutByServer => l.signedOutByServer,
+                },
+                style: theme.textTheme.bodyMedium,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildServerSection(ThemeData theme) {
+    final l = _l;
+    final cloud = switch (_region) {
+      ServerRegion.us => ServerEnvironment.us,
+      ServerRegion.eu => ServerEnvironment.eu,
+      ServerRegion.selfHosted => null,
+    };
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          l.serverSection,
+          style: theme.textTheme.labelLarge?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+        const SizedBox(height: 8),
+        ServerSelector(
+          region: _region,
+          enabled: !_isLoading,
+          onChanged: (r) => setState(() {
+            _region = r;
+            _certHighlight = false;
+          }),
+        ),
+        const SizedBox(height: 16),
+        if (cloud != null)
+          Row(
+            children: [
+              Icon(
+                Icons.cloud_outlined,
+                size: 18,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  l.serverCloudCaption(Uri.parse(cloud.baseUrl).host),
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+            ],
+          )
+        else ...[
+          Semantics(
+            identifier: 'input_server_url',
+            child: TextFormField(
+              controller: _serverUrlController,
+              decoration: InputDecoration(
+                labelText: l.serverUrlLabel,
+                hintText: l.serverUrlHint,
+                prefixIcon: const Icon(Icons.dns_outlined),
+                border: const OutlineInputBorder(),
+              ),
+              keyboardType: TextInputType.url,
+              autocorrect: false,
+              enabled: !_isLoading,
+              onEditingComplete: () {
+                setState(() => _certUrl = _serverUrlController.text);
+                FocusScope.of(context).nextFocus();
+              },
+              validator: (v) {
+                final value = v?.trim() ?? '';
+                if (value.isEmpty || value == 'https://') {
+                  return l.serverUrlRequired;
+                }
+                try {
+                  ServerEnvironment.normalizeBaseUrl(value);
+                } on FormatException {
+                  return l.serverUrlInvalid;
+                }
+                return null;
+              },
+            ),
+          ),
+          // Not in demo builds: importing would write the real keychain.
+          if (!demoActive) ...[
+            const SizedBox(height: 12),
+            ClientCertificateSection(
+              serverUrl: _certUrl,
+              enabled: !_isLoading,
+              highlight: _certHighlight,
+              onChanged: () => setState(() => _certHighlight = false),
+            ),
+          ],
+        ],
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l = _l;
+    final notice = ref.watch(sessionEndNoticeProvider);
 
     return Scaffold(
       appBar: AppBar(
-        actions: [
-          _buildThemeToggle(),
-        ],
+        actions: [_buildThemeToggle()],
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
@@ -319,128 +718,127 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
               child: Center(
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.all(24),
-                  child: Form(
-                    key: _formKey,
-                    child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.shield_outlined,
-                    size: 64,
-                    color: theme.colorScheme.primary,
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    AppLocalizations.of(context)!.appTitle,
-                    style: theme.textTheme.headlineSmall,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    AppLocalizations.of(context)!.setupSubtitle,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                  const SizedBox(height: 32),
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 480),
+                    child: Form(
+                      key: _formKey,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Icon(
+                            Icons.shield_outlined,
+                            size: 64,
+                            color: theme.colorScheme.primary,
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            l.appTitle,
+                            style: theme.textTheme.headlineSmall,
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            l.setupSubtitle,
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 32),
+                          if (notice != null)
+                            _buildSessionNotice(theme, notice),
+                          _buildServerSection(theme),
+                          const SizedBox(height: 16),
 
-                  // Server URL
-                  TextFormField(
-                    controller: _serverUrlController,
-                    decoration: InputDecoration(
-                      labelText: AppLocalizations.of(context)!.serverUrlLabel,
-                      hintText: AppLocalizations.of(context)!.serverUrlHint,
-                      prefixIcon: const Icon(Icons.dns_outlined),
-                      border: const OutlineInputBorder(),
-                    ),
-                    keyboardType: TextInputType.url,
-                    autocorrect: false,
-                    enabled: !_isLoading,
-                    validator: (v) {
-                      if (v == null || v.trim().isEmpty || v.trim() == 'https://') {
-                        return AppLocalizations.of(context)!.serverUrlRequired;
-                      }
-                      final uri = Uri.tryParse(v.trim());
-                      if (uri == null || !uri.hasScheme) return AppLocalizations.of(context)!.serverUrlInvalid;
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
+                          // Email
+                          TextFormField(
+                            controller: _emailController,
+                            decoration: InputDecoration(
+                              labelText: l.emailLabel,
+                              prefixIcon: const Icon(Icons.email_outlined),
+                              border: const OutlineInputBorder(),
+                            ),
+                            keyboardType: TextInputType.emailAddress,
+                            autocorrect: false,
+                            enabled: !_isLoading,
+                            validator: (v) {
+                              if (v == null || v.trim().isEmpty) {
+                                return l.emailRequired;
+                              }
+                              if (!v.contains('@')) return l.emailInvalid;
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 16),
 
-                  // Email
-                  TextFormField(
-                    controller: _emailController,
-                    decoration: InputDecoration(
-                      labelText: AppLocalizations.of(context)!.emailLabel,
-                      prefixIcon: const Icon(Icons.email_outlined),
-                      border: const OutlineInputBorder(),
-                    ),
-                    keyboardType: TextInputType.emailAddress,
-                    autocorrect: false,
-                    enabled: !_isLoading,
-                    validator: (v) {
-                      if (v == null || v.trim().isEmpty) return AppLocalizations.of(context)!.emailRequired;
-                      if (!v.contains('@')) return AppLocalizations.of(context)!.emailInvalid;
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Master Password
-                  TextFormField(
-                    controller: _passwordController,
-                    decoration: InputDecoration(
-                      labelText: AppLocalizations.of(context)!.masterPasswordLabel,
-                      prefixIcon: const Icon(Icons.lock_outlined),
-                      border: const OutlineInputBorder(),
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          _obscurePassword
-                              ? Icons.visibility_off
-                              : Icons.visibility,
-                        ),
-                        onPressed: () {
-                          setState(() => _obscurePassword = !_obscurePassword);
-                        },
-                      ),
-                    ),
-                    obscureText: _obscurePassword,
-                    enabled: !_isLoading,
-                    validator: (v) {
-                      if (v == null || v.isEmpty) return AppLocalizations.of(context)!.masterPasswordRequired;
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 24),
-
-                  // Submit button
-                  Semantics(
-                    identifier: 'btn_submit_setup',
-                    child: SizedBox(
-                    width: double.infinity,
-                    height: 48,
-                    child: FilledButton(
-                      onPressed: _isLoading ? null : () => _submit(),
-                      child: _isLoading
-                          ? Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const SizedBox(
-                                  width: 18,
-                                  height: 18,
-                                  child:
-                                      CircularProgressIndicator(strokeWidth: 2),
+                          // Master Password
+                          TextFormField(
+                            controller: _passwordController,
+                            decoration: InputDecoration(
+                              labelText: l.masterPasswordLabel,
+                              prefixIcon: const Icon(Icons.lock_outlined),
+                              border: const OutlineInputBorder(),
+                              suffixIcon: IconButton(
+                                icon: Icon(
+                                  _obscurePassword
+                                      ? Icons.visibility_off
+                                      : Icons.visibility,
                                 ),
-                                const SizedBox(width: 12),
-                                Text(_statusMessage.isNotEmpty
-                                    ? _statusMessage
-                                    : AppLocalizations.of(context)!.settingUp),
-                              ],
-                            )
-                          : Text(AppLocalizations.of(context)!.setUp),
-                    ),
-                  ),
-                  ),
-                ],
+                                onPressed: () {
+                                  setState(() =>
+                                      _obscurePassword = !_obscurePassword);
+                                },
+                              ),
+                            ),
+                            obscureText: _obscurePassword,
+                            enabled: !_isLoading,
+                            onFieldSubmitted: (_) {
+                              if (!_isLoading) _submit();
+                            },
+                            validator: (v) {
+                              if (v == null || v.isEmpty) {
+                                return l.masterPasswordRequired;
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 24),
+
+                          // Submit button
+                          Semantics(
+                            identifier: 'btn_submit_setup',
+                            child: SizedBox(
+                              width: double.infinity,
+                              height: 48,
+                              child: FilledButton(
+                                onPressed: _isLoading ? null : _submit,
+                                child: _isLoading
+                                    ? Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          const SizedBox(
+                                            width: 18,
+                                            height: 18,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 12),
+                                          Flexible(
+                                            child: Text(
+                                              _progressLabel(l),
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ),
+                                        ],
+                                      )
+                                    : Text(l.setUp),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),

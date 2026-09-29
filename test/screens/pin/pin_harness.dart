@@ -48,15 +48,24 @@ class PrivacyChannelLog {
 }
 
 /// Mocks the in-app privacy channels like the native side: every method
-/// succeeds, the screen is not captured.
-PrivacyChannelLog mockPrivacyChannel(WidgetTester tester) {
+/// succeeds, the screen is not captured and, unless
+/// [systemShowsCopyConfirmation] (Android 13+), the system does not confirm
+/// copies itself (iOS, older Android).
+PrivacyChannelLog mockPrivacyChannel(
+  WidgetTester tester, {
+  bool systemShowsCopyConfirmation = false,
+}) {
   final log = PrivacyChannelLog();
   final messenger = tester.binding.defaultBinaryMessenger;
   messenger.setMockMethodCallHandler(
     const MethodChannel(PrivacyService.channelName),
     (call) async {
       log.calls.add(call);
-      return call.method != 'isScreenCaptured';
+      return switch (call.method) {
+        'isScreenCaptured' => false,
+        'systemShowsCopyConfirmation' => systemShowsCopyConfirmation,
+        _ => true,
+      };
     },
   );
   messenger.setMockMethodCallHandler(

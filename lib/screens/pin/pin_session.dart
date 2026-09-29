@@ -12,7 +12,8 @@
 /// The session also keeps what must outlive a single tool: the "a pasted
 /// secret is still on the clipboard" flag (it survives wipes, so the reminder
 /// is back after a background wipe), the YubiKey tool's non-secret settings,
-/// and the open PIN dialogs (a full wipe closes them).
+/// PIN 24's imported nickname list, and the open PIN dialogs (a full wipe
+/// closes them).
 ///
 /// Nothing here is persisted. Provider values never render their secrets in
 /// `toString`, so a `ProviderObserver` cannot log them.
@@ -25,6 +26,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pointycastle/digests/sha256.dart';
 
+import 'nickname_backup.dart';
 import 'pin24_engine.dart';
 import 'yubikey_engine.dart';
 
@@ -151,6 +153,11 @@ class PinSession {
   /// The YubiKey tool's settings (no secrets), kept across tool switches.
   final YkSettings yk = YkSettings();
 
+  /// Nicknames and charsets imported into PIN 24 from a Ledger Passwords
+  /// backup. Not secret, but they tell which services someone uses: kept
+  /// only here, in memory, and dropped by every full wipe and on dispose.
+  NicknameBackup? nicknameBackup;
+
   /// Set when a tool sent the user to PIN 24 to enter the seed; PIN 24 then
   /// scrolls to the seed field and offers a way back.
   PinTool? returnTo;
@@ -179,8 +186,10 @@ class PinSession {
     return () => _probes.remove(hasContent);
   }
 
-  /// Whether any tool holds input/output or a seed is cached.
-  bool get hasContent => seed.hasSeed || _probes.any((p) => p());
+  /// Whether any tool holds input/output, a seed is cached or a nickname
+  /// list is loaded.
+  bool get hasContent =>
+      seed.hasSeed || nicknameBackup != null || _probes.any((p) => p());
 
   /// Registers a callback telling whether a tool holds values that exist
   /// nowhere else (YubiKey random values), so leaving it asks first.
@@ -222,6 +231,7 @@ class PinSession {
     if (scope == PinWipeScope.all) {
       yk.serials = '';
       returnTo = null;
+      nicknameBackup = null;
       for (final close in List.of(_dialogClosers)) {
         close();
       }
@@ -243,6 +253,7 @@ class PinSession {
     _unsavedProbes.clear();
     _dialogClosers.clear();
     onUserCleanup = null;
+    nicknameBackup = null;
     seed.wipe();
     seed.dispose();
     _wipes.dispose();

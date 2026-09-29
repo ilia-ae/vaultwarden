@@ -777,7 +777,7 @@ class _PinShiftViewState extends ConsumerState<PinShiftView> {
           identifier: 'pin_shift_threat',
           children: [
             Text(
-              l.pinShiftThreatBody(_length),
+              '${l.pinShiftThreatBody(_length)}\n• ${l.pinHiddenLastCharNote}',
               style: theme.textTheme.bodySmall?.copyWith(height: 1.4),
             ),
             section(l.pinShiftUseTitle, l.pinShiftUseBody),

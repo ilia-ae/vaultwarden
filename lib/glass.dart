@@ -47,9 +47,8 @@ class _PressableState extends State<Pressable> {
       onPointerCancel: (_) => setState(() => _down = false),
       child: AnimatedScale(
         scale: _down ? 0.97 : 1.0,
-        duration: instant
-            ? Duration.zero
-            : Duration(milliseconds: _down ? 90 : 350),
+        duration:
+            instant ? Duration.zero : Duration(milliseconds: _down ? 90 : 350),
         curve: appSpring,
         child: widget.child,
       ),

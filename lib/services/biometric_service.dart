@@ -13,6 +13,8 @@ class BiometricService {
     return _auth.getAvailableBiometrics();
   }
 
+  /// Callers pass the localized `biometricReason`; the English default is
+  /// only a fallback for code without a BuildContext.
   Future<bool> authenticate({
     String reason = 'Authenticate to access Vault Approver',
   }) async {

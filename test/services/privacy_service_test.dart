@@ -178,6 +178,46 @@ void main() {
       expect(await service.isScreenshotsAllowedBuild(), isFalse);
     });
 
+    test('systemShowsCopyConfirmation relays the platform (Android 13+)',
+        () async {
+      // A fresh service per answer: a real answer is remembered.
+      final calls = _nativeRecording(
+        (call) => call.method == 'systemShowsCopyConfirmation' ? true : null,
+      );
+      final android13 = PrivacyService();
+      addTearDown(android13.dispose);
+      expect(await android13.systemShowsCopyConfirmation(), isTrue);
+      expect(await android13.systemShowsCopyConfirmation(), isTrue);
+      expect(calls.map((c) => c.method), ['systemShowsCopyConfirmation'],
+          reason: 'asked once');
+      expect(calls.single.arguments, isNull);
+
+      // iOS and Android 12 and older answer false.
+      _nativeRecording((_) => false);
+      final older = PrivacyService();
+      addTearDown(older.dispose);
+      expect(await older.systemShowsCopyConfirmation(), isFalse);
+
+      // No answer, a malformed one, an error or no channel: keep our own
+      // message (false), and ask again next time.
+      for (final reply in <Object? Function(MethodCall)>[
+        (_) => null,
+        (_) => 'yes',
+        (_) => throw PlatformException(code: 'privacy_failed'),
+      ]) {
+        final calls = _nativeRecording(reply);
+        final s = PrivacyService();
+        addTearDown(s.dispose);
+        expect(await s.systemShowsCopyConfirmation(), isFalse);
+        expect(await s.systemShowsCopyConfirmation(), isFalse);
+        expect(calls, hasLength(2));
+      }
+      _nativeMissing();
+      final missing = PrivacyService();
+      addTearDown(missing.dispose);
+      expect(await missing.systemShowsCopyConfirmation(), isFalse);
+    });
+
     test('setSecureScreen calls nest', () async {
       final calls = _nativeRecording();
 

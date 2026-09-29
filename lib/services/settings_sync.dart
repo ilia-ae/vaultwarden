@@ -17,8 +17,8 @@ final firebaseAuthProvider =
 final firestoreProvider =
     Provider<FirebaseFirestore>((_) => FirebaseFirestore.instance);
 
-final authServiceProvider =
-    Provider<AuthService>((ref) => AuthService(ref.watch(firebaseAuthProvider)));
+final authServiceProvider = Provider<AuthService>(
+    (ref) => AuthService(ref.watch(firebaseAuthProvider)));
 
 /// Current signed-in user (null = signed out). Drives the account UI.
 /// userChanges (not authStateChanges) so provider-linking is reflected live —
@@ -37,10 +37,18 @@ class SettingsSyncService {
   DocumentReference<Map<String, dynamic>> _doc(String uid) =>
       _db.collection('users').doc(uid);
 
-  Future<void> push(String uid, SettingsSnapshot s) => _doc(uid).set({
+  /// Merge-writes [s] (see [documentFor]).
+  Future<void> push(String uid, SettingsSnapshot s) =>
+      _doc(uid).set(documentFor(s), SetOptions(merge: true));
+
+  /// The fields [push] writes: the synced values plus a server timestamp.
+  /// A local "never lock" is not synced, so `lockTimeout` is then absent
+  /// and the merge keeps whatever other devices synced (A15/K6).
+  @visibleForTesting
+  static Map<String, dynamic> documentFor(SettingsSnapshot s) => {
         ...s.toMap(),
         'updatedAt': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
+      };
 
   Stream<SettingsSnapshot?> watch(String uid) =>
       _doc(uid).snapshots().map((snap) {
@@ -57,6 +65,11 @@ final settingsSyncServiceProvider = Provider<SettingsSyncService>(
 /// Keeps the local settings providers and the Firestore document in sync
 /// while a user is signed in. Loop-safe: a locally-applied remote snapshot
 /// is remembered as [_lastRemote] and never echoed back as a push.
+///
+/// "Never lock" (lockTimeout -1) is local-only (A15): it is never uploaded
+/// (the field is omitted, so the document keeps the last synced value) and
+/// never applied from the cloud; while it is set locally, remote lock
+/// timeouts are ignored on this device.
 class SettingsSyncCoordinator {
   SettingsSyncCoordinator(this._ref) {
     _ref.listen<AsyncValue<User?>>(
@@ -105,14 +118,22 @@ class SettingsSyncCoordinator {
   void _applyRemote(SettingsSnapshot s) {
     _ref.read(themeModeProvider.notifier).state = _parseTheme(s.themeMode);
     _ref.read(localeProvider.notifier).state = _parseLocale(s.locale);
-    _ref.read(lockTimeoutProvider.notifier).state = s.lockTimeout;
-    _ref.read(pollIntervalProvider.notifier).state = s.pollInterval;
+    // "Never lock" is per device (A15): a remote value never replaces it,
+    // and a remote "never" is never applied (fromMap drops it).
+    final lock = s.lockTimeout;
+    if (lock != null && _ref.read(lockTimeoutProvider) != kLockTimeoutNever) {
+      _ref.read(lockTimeoutProvider.notifier).state = lock;
+    }
+    _ref.read(pollIntervalProvider.notifier).state =
+        sanitizePollInterval(s.pollInterval);
   }
 
   void _onLocalChange() {
     if (_uid == null) return;
     final current = _currentSnapshot();
-    if (current == _lastRemote) return; // nothing new vs the cloud
+    final last = _lastRemote;
+    // Nothing new vs the cloud (a local-only "never" is not a difference).
+    if (last != null && current.sameSyncedValues(last)) return;
     _pushDebounce?.cancel();
     _pushDebounce =
         Timer(const Duration(milliseconds: 800), () => _pushNow(current));
@@ -125,11 +146,12 @@ class SettingsSyncCoordinator {
     _ref.read(settingsSyncServiceProvider).push(uid, s).catchError((_) {});
   }
 
+  /// The local settings as synced: a local "never lock" is not uploaded.
   SettingsSnapshot _currentSnapshot() => SettingsSnapshot(
         themeMode: _ref.read(themeModeProvider).name,
         locale: _ref.read(localeProvider)?.toLanguageTag(),
-        lockTimeout: _ref.read(lockTimeoutProvider),
-        pollInterval: _ref.read(pollIntervalProvider),
+        lockTimeout: syncedLockTimeout(_ref.read(lockTimeoutProvider)),
+        pollInterval: sanitizePollInterval(_ref.read(pollIntervalProvider)),
       );
 
   static ThemeMode _parseTheme(String s) => switch (s) {

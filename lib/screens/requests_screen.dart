@@ -11,13 +11,18 @@ import '../app.dart';
 import '../demo_runtime.dart';
 import '../glass.dart';
 import '../l10n/app_localizations.dart';
+import '../models/server_environment.dart';
 import '../providers/auth_requests_provider.dart';
 import '../providers/session_provider.dart';
 import '../services/privacy_service.dart';
 import '../services/settings_sync.dart';
 import '../utils/error_formatter.dart';
 import '../widgets/auth_request_card.dart';
+import '../widgets/client_cert_section.dart';
+import '../widgets/device_icon.dart';
+import '../widgets/server_selector.dart';
 import '../widgets/glass_top_bar.dart';
+import '../widgets/option_pills.dart';
 import 'pin/pin_section.dart';
 
 class RequestsScreen extends ConsumerStatefulWidget {
@@ -41,14 +46,19 @@ class _RequestsScreenState extends ConsumerState<RequestsScreen>
   bool _pinSecureHeld = false;
   late final PrivacyService _privacy = ref.read(privacyServiceProvider);
 
+  /// Read once: `ref` must not be used in dispose().
+  late final AuthRequestsNotifier _requests =
+      ref.read(authRequestsProvider.notifier);
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _tabController.addListener(_onTabChanged);
     _tabController.animation!.addListener(_onTabChanged);
-    // Start polling + aggressive refresh on unlock.
-    ref.read(authRequestsProvider.notifier).resume();
+    // Start polling + refresh burst on unlock (the provider's first build
+    // already connected the hub and is fetching — no second connect).
+    _requests.resume();
   }
 
   @override
@@ -56,6 +66,8 @@ class _RequestsScreenState extends ConsumerState<RequestsScreen>
     WidgetsBinding.instance.removeObserver(this);
     _tabController.animation!.removeListener(_onTabChanged);
     _tabController.removeListener(_onTabChanged);
+    // Locked or logged out: stop polling and the WebSocket (R3).
+    _requests.pause();
     _tabController.dispose();
     if (_pinSecureHeld) unawaited(_privacy.setSecureScreen(false));
     super.dispose();
@@ -65,8 +77,8 @@ class _RequestsScreenState extends ConsumerState<RequestsScreen>
   /// of the PIN tab is on screen (including mid-swipe).
   void _onTabChanged() {
     final index = _tabController.index;
-    final pinVisible = index == _pinTab ||
-        _tabController.animation!.value > _pinTab - 1;
+    final pinVisible =
+        index == _pinTab || _tabController.animation!.value > _pinTab - 1;
     if (pinVisible != _pinSecureHeld) {
       _pinSecureHeld = pinVisible;
       unawaited(_privacy.setSecureScreen(pinVisible));
@@ -78,9 +90,9 @@ class _RequestsScreenState extends ConsumerState<RequestsScreen>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.paused) {
-      ref.read(authRequestsProvider.notifier).pause();
+      _requests.pause();
     } else if (state == AppLifecycleState.resumed) {
-      ref.read(authRequestsProvider.notifier).resume();
+      _requests.resume();
     }
   }
 
@@ -93,7 +105,8 @@ class _RequestsScreenState extends ConsumerState<RequestsScreen>
       await ref.read(authRequestsProvider.notifier).approve(request);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(AppLocalizations.of(context)!.requestApproved)),
+          SnackBar(
+              content: Text(AppLocalizations.of(context)!.requestApproved)),
         );
       }
     } catch (e) {
@@ -134,6 +147,8 @@ class _RequestsScreenState extends ConsumerState<RequestsScreen>
   }
 
   Future<void> _logout() async {
+    // The Settings sheet can outlive this screen (session ended meanwhile).
+    if (!mounted) return;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -215,7 +230,7 @@ class _RequestsScreenState extends ConsumerState<RequestsScreen>
               identifier: 'btn_add_demo',
               child: FloatingActionButton(
                 heroTag: 'demo_add',
-                tooltip: 'Add demo request',
+                tooltip: l.demoAddRequest,
                 onPressed: () =>
                     ref.read(authRequestsProvider.notifier).addDemoRequest(),
                 child: const Icon(Icons.add),
@@ -281,13 +296,10 @@ class _PendingTab extends ConsumerWidget {
     required this.onDeny,
   });
 
-  /// Check last history entry for this IP: true=approved, false=denied, null=unknown.
-  bool? _ipTrustStatus(String ip, List<HistoryEntry> history) {
-    for (final entry in history) {
-      if (entry.ipAddress == ip) return entry.approved;
-    }
-    return null;
-  }
+  /// Check last history entry for this IP: true=approved, false=denied,
+  /// null=unknown (always for an empty IP, R5).
+  bool? _ipTrustStatus(String ip, List<HistoryEntry> history) =>
+      ipTrustStatus(ip, history);
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -303,56 +315,54 @@ class _PendingTab extends ConsumerWidget {
 
         return RefreshIndicator(
           edgeOffset: MediaQuery.of(context).padding.top,
-          onRefresh: () =>
-              ref.read(authRequestsProvider.notifier).refresh(),
+          onRefresh: () => ref.read(authRequestsProvider.notifier).refresh(),
           child: _CenteredPlaceholder(
             child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 32),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          isNetwork
-                              ? Icons.cloud_off_outlined
-                              : isAuth
-                                  ? Icons.lock_clock_outlined
-                                  : Icons.error_outline,
-                          size: 64,
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          isNetwork
-                              ? l.errorNoConnection
-                              : formatError(error, l),
-                          style: Theme.of(context).textTheme.titleMedium,
-                          textAlign: TextAlign.center,
-                        ),
-                        if (isNetwork) ...[
-                          const SizedBox(height: 8),
-                          Text(
-                            l.errorNoConnectionSubtitle,
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                                ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ],
-                        const SizedBox(height: 8),
-                        Text(
-                          l.pullDownToRefresh,
-                          style: Theme.of(context).textTheme.bodySmall,
-                        ),
-                        const SizedBox(height: 24),
-                        FilledButton.icon(
-                          onPressed: () =>
-                              ref.read(authRequestsProvider.notifier).refresh(),
-                          icon: const Icon(Icons.refresh, size: 18),
-                          label: Text(l.retry),
-                        ),
-                      ],
-                    ),
+              padding: const EdgeInsets.symmetric(horizontal: 32),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    isNetwork
+                        ? Icons.cloud_off_outlined
+                        : isAuth
+                            ? Icons.lock_clock_outlined
+                            : Icons.error_outline,
+                    size: 64,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
+                  const SizedBox(height: 16),
+                  Text(
+                    isNetwork ? l.errorNoConnection : formatError(error, l),
+                    style: Theme.of(context).textTheme.titleMedium,
+                    textAlign: TextAlign.center,
+                  ),
+                  if (isNetwork) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      l.errorNoConnectionSubtitle,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color:
+                                Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                  const SizedBox(height: 8),
+                  Text(
+                    l.pullDownToRefresh,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                  const SizedBox(height: 24),
+                  FilledButton.icon(
+                    onPressed: () =>
+                        ref.read(authRequestsProvider.notifier).refresh(),
+                    icon: const Icon(Icons.refresh, size: 18),
+                    label: Text(l.retry),
+                  ),
+                ],
+              ),
+            ),
           ),
         );
       },
@@ -360,8 +370,7 @@ class _PendingTab extends ConsumerWidget {
         if (requests.isEmpty) {
           return RefreshIndicator(
             edgeOffset: MediaQuery.of(context).padding.top,
-            onRefresh: () =>
-                ref.read(authRequestsProvider.notifier).refresh(),
+            onRefresh: () => ref.read(authRequestsProvider.notifier).refresh(),
             child: _CenteredPlaceholder(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -369,8 +378,7 @@ class _PendingTab extends ConsumerWidget {
                   Icon(
                     Icons.check_circle_outline,
                     size: 64,
-                    color:
-                        Theme.of(context).colorScheme.onSurfaceVariant,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                   const SizedBox(height: 16),
                   Text(
@@ -391,8 +399,7 @@ class _PendingTab extends ConsumerWidget {
         return RefreshIndicator(
           // Body extends behind the glass bar; start the spinner below it.
           edgeOffset: MediaQuery.of(context).padding.top,
-          onRefresh: () =>
-              ref.read(authRequestsProvider.notifier).refresh(),
+          onRefresh: () => ref.read(authRequestsProvider.notifier).refresh(),
           child: ListView.builder(
             padding: EdgeInsets.only(
                 top: MediaQuery.of(context).padding.top + 8,
@@ -403,6 +410,7 @@ class _PendingTab extends ConsumerWidget {
               final request = requests[index];
               return AuthRequestCard(
                 request: request,
+                clock: ref.read(requestClockProvider),
                 isLoading: loadingRequestId == request.id,
                 ipTrust: _ipTrustStatus(request.requestIpAddress, history),
                 onApprove: () => onApprove(request.id),
@@ -531,87 +539,89 @@ class _HistoryTab extends ConsumerWidget {
             margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
             padding: const EdgeInsets.all(12),
             child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(
-                        entry.approved ? Icons.check_circle : Icons.cancel,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      entry.approved ? Icons.check_circle : Icons.cancel,
+                      color: entry.approved
+                          ? Colors.green
+                          : theme.colorScheme.error,
+                      size: 24,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      entry.approved
+                          ? AppLocalizations.of(context)!.approved
+                          : AppLocalizations.of(context)!.denied,
+                      style: theme.textTheme.titleSmall?.copyWith(
                         color: entry.approved
                             ? Colors.green
                             : theme.colorScheme.error,
-                        size: 24,
                       ),
-                      const SizedBox(width: 8),
-                      Text(
-                        entry.approved ? AppLocalizations.of(context)!.approved : AppLocalizations.of(context)!.denied,
-                        style: theme.textTheme.titleSmall?.copyWith(
-                          color: entry.approved
-                              ? Colors.green
-                              : theme.colorScheme.error,
-                        ),
+                    ),
+                    const Spacer(),
+                    Text(
+                      ago,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
                       ),
-                      const Spacer(),
-                      Text(
-                        ago,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Icon(deviceIconFor(entry.deviceType),
+                        size: 16, color: theme.colorScheme.onSurfaceVariant),
+                    const SizedBox(width: 6),
+                    Text(entry.deviceType, style: theme.textTheme.bodyMedium),
+                    const SizedBox(width: 16),
+                    Icon(Icons.language,
+                        size: 16, color: theme.colorScheme.onSurfaceVariant),
+                    const SizedBox(width: 6),
+                    Text(entry.ipAddress, style: theme.textTheme.bodyMedium),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    Icon(Icons.timer_outlined,
+                        size: 16, color: theme.colorScheme.onSurfaceVariant),
+                    const SizedBox(width: 6),
+                    Text(
+                      AppLocalizations.of(context)!.respondedIn(responseStr),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Icon(Icons.devices, size: 16,
-                          color: theme.colorScheme.onSurfaceVariant),
-                      const SizedBox(width: 6),
-                      Text(entry.deviceType, style: theme.textTheme.bodyMedium),
-                      const SizedBox(width: 16),
-                      Icon(Icons.language, size: 16,
-                          color: theme.colorScheme.onSurfaceVariant),
-                      const SizedBox(width: 6),
-                      Text(entry.ipAddress, style: theme.textTheme.bodyMedium),
-                    ],
-                  ),
+                    ),
+                  ],
+                ),
+                if (entry.fingerprint != null) ...[
                   const SizedBox(height: 4),
                   Row(
                     children: [
-                      Icon(Icons.timer_outlined, size: 16,
-                          color: theme.colorScheme.onSurfaceVariant),
+                      Icon(Icons.fingerprint,
+                          size: 16, color: theme.colorScheme.onSurfaceVariant),
                       const SizedBox(width: 6),
-                      Text(
-                        AppLocalizations.of(context)!.respondedIn(responseStr),
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
+                      Expanded(
+                        child: Text(
+                          entry.fingerprint!,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                            fontFamily: 'monospace',
+                            fontSize: 11,
+                          ),
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                     ],
                   ),
-                  if (entry.fingerprint != null) ...[
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        Icon(Icons.fingerprint, size: 16,
-                            color: theme.colorScheme.onSurfaceVariant),
-                        const SizedBox(width: 6),
-                        Expanded(
-                          child: Text(
-                            entry.fingerprint!,
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant,
-                              fontFamily: 'monospace',
-                              fontSize: 11,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
                 ],
-              ),
+              ],
             ),
+          ),
         );
       },
     );
@@ -637,21 +647,23 @@ class _SettingsSheet extends ConsumerWidget {
     required this.scrollController,
   });
 
-  static List<({int value, String label})> _timeoutOptions(AppLocalizations l) => [
-    (value: 0, label: l.timeoutImmediately),
-    (value: 15, label: l.timeoutFifteenSeconds),
-    (value: 60, label: l.timeoutOneMinute),
-    (value: 300, label: l.timeoutFiveMinutes),
-    (value: 900, label: l.timeoutFifteenMinutes),
-    (value: -1, label: l.timeoutNever),
-  ];
+  static List<({int value, String label})> _timeoutOptions(
+          AppLocalizations l) =>
+      [
+        (value: 0, label: l.timeoutImmediately),
+        (value: 15, label: l.timeoutFifteenSeconds),
+        (value: 60, label: l.timeoutOneMinute),
+        (value: 300, label: l.timeoutFiveMinutes),
+        (value: 900, label: l.timeoutFifteenMinutes),
+        (value: -1, label: l.timeoutNever),
+      ];
 
   static List<({int value, String label})> _pollOptions(AppLocalizations l) => [
-    (value: 5, label: l.pollFiveSeconds),
-    (value: 15, label: l.pollFifteenSeconds),
-    (value: 30, label: l.pollThirtySeconds),
-    (value: 60, label: l.pollOneMinute),
-  ];
+        (value: 5, label: l.pollFiveSeconds),
+        (value: 15, label: l.pollFifteenSeconds),
+        (value: 30, label: l.pollThirtySeconds),
+        (value: 60, label: l.pollOneMinute),
+      ];
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -666,114 +678,179 @@ class _SettingsSheet extends ConsumerWidget {
       controller: scrollController,
       padding: const EdgeInsets.symmetric(vertical: 16),
       children: [
-            // Handle
-            Center(
-              child: Container(
-                width: 32,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.onSurfaceVariant.withAlpha(64),
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
+        // Handle
+        Center(
+          child: Container(
+            width: 32,
+            height: 4,
+            decoration: BoxDecoration(
+              color: theme.colorScheme.onSurfaceVariant.withAlpha(64),
+              borderRadius: BorderRadius.circular(2),
             ),
-            const SizedBox(height: 12),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Text(l.settings, style: theme.textTheme.titleLarge),
-            ),
-            const SizedBox(height: 20),
+          ),
+        ),
+        const SizedBox(height: 12),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Text(l.settings, style: theme.textTheme.titleLarge),
+        ),
+        const SizedBox(height: 20),
 
-            // Theme
-            _sectionHeader(theme, l.themeSection),
-            const SizedBox(height: 4),
-            _buildOptionChips<ThemeMode>(
-              context: context,
-              options: [
-                (value: ThemeMode.system, label: l.themeAuto),
-                (value: ThemeMode.light, label: l.themeLight),
-                (value: ThemeMode.dark, label: l.themeDark),
-              ],
-              selected: currentTheme,
-              onSelected: (v) => ref.read(themeModeProvider.notifier).state = v,
-            ),
-            const SizedBox(height: 20),
+        // Server (read-only) + client certificate of this server
+        ..._serverSection(context, ref, theme, l),
 
-            // Language
-            _sectionHeader(theme, l.languageSection),
-            const SizedBox(height: 4),
-            _buildOptionChips<Locale?>(
-              context: context,
-              options: [
-                (value: null, label: l.languageSystem),
-                (value: const Locale('en'), label: 'English'),
-                (value: const Locale('ru'), label: 'Русский'),
-                (value: const Locale('ar'), label: 'العربية'),
-                (
-                  value: const Locale.fromSubtags(
-                      languageCode: 'zh', scriptCode: 'Hans'),
-                  label: '简体中文'
-                ),
-              ],
-              selected: currentLocale,
-              onSelected: (v) => ref.read(localeProvider.notifier).state = v,
-            ),
-            const SizedBox(height: 20),
-
-            // Lock timeout
-            _sectionHeader(theme, l.lockTimeoutSection),
-            const SizedBox(height: 4),
-            _buildOptionChips<int>(
-              context: context,
-              options: _timeoutOptions(l),
-              selected: currentTimeout,
-              onSelected: (v) =>
-                  ref.read(lockTimeoutProvider.notifier).state = v,
-            ),
-            const SizedBox(height: 20),
-
-            // Poll interval
-            _sectionHeader(theme, l.autoRefreshSection),
-            const SizedBox(height: 4),
-            _buildOptionChips<int>(
-              context: context,
-              options: _pollOptions(l),
-              selected: currentPoll,
-              onSelected: (v) =>
-                  ref.read(pollIntervalProvider.notifier).state = v,
-            ),
-
-            if (firebaseReady) _accountSection(context, ref, theme),
-
-            const Divider(height: 32),
-
-            // Logout
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: SizedBox(
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: theme.colorScheme.error,
-                    side: BorderSide(color: theme.colorScheme.error.withAlpha(128)),
-                  ),
-                  onPressed: () {
-                    Navigator.pop(context);
-                    onLogout();
-                  },
-                  icon: const Icon(Icons.logout, size: 18),
-                  label: Text(l.logout),
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
+        // Theme
+        SectionHeader(l.themeSection),
+        const SizedBox(height: 4),
+        OptionPills<ThemeMode>(
+          options: [
+            (value: ThemeMode.system, label: l.themeAuto),
+            (value: ThemeMode.light, label: l.themeLight),
+            (value: ThemeMode.dark, label: l.themeDark),
           ],
+          selected: currentTheme,
+          onSelected: (v) => ref.read(themeModeProvider.notifier).state = v,
+        ),
+        const SizedBox(height: 20),
+
+        // Language
+        SectionHeader(l.languageSection),
+        const SizedBox(height: 4),
+        OptionPills<Locale?>(
+          options: [
+            (value: null, label: l.languageSystem),
+            (value: const Locale('en'), label: 'English'),
+            (value: const Locale('ru'), label: 'Русский'),
+            (value: const Locale('ar'), label: 'العربية'),
+            (
+              value: const Locale.fromSubtags(
+                  languageCode: 'zh', scriptCode: 'Hans'),
+              label: '简体中文'
+            ),
+          ],
+          selected: currentLocale,
+          onSelected: (v) => ref.read(localeProvider.notifier).state = v,
+        ),
+        const SizedBox(height: 20),
+
+        // Lock timeout
+        SectionHeader(l.lockTimeoutSection),
+        const SizedBox(height: 4),
+        OptionPills<int>(
+          options: _timeoutOptions(l),
+          selected: currentTimeout,
+          onSelected: (v) => ref.read(lockTimeoutProvider.notifier).state = v,
+        ),
+        const SizedBox(height: 20),
+
+        // Poll interval
+        SectionHeader(l.autoRefreshSection),
+        const SizedBox(height: 4),
+        OptionPills<int>(
+          options: _pollOptions(l),
+          selected: currentPoll,
+          onSelected: (v) => ref.read(pollIntervalProvider.notifier).state = v,
+        ),
+
+        if (firebaseReady) _accountSection(context, ref, theme),
+
+        const Divider(height: 32),
+
+        // Logout
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(
+                foregroundColor: theme.colorScheme.error,
+                side: BorderSide(color: theme.colorScheme.error.withAlpha(128)),
+              ),
+              onPressed: () {
+                Navigator.pop(context);
+                onLogout();
+              },
+              icon: const Icon(Icons.logout, size: 18),
+              label: Text(l.logout),
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+      ],
     );
   }
 
+  // ── Server ──
+
+  /// Where this session signs in (read-only) and, for a self-hosted server,
+  /// its client certificate (view / replace / remove, F1 + A14). The demo
+  /// shows no certificate row: nothing in it may touch the real keychain.
+  List<Widget> _serverSection(
+    BuildContext context,
+    WidgetRef ref,
+    ThemeData theme,
+    AppLocalizations l,
+  ) {
+    final session = ref.watch(sessionProvider).valueOrNull;
+    if (session == null) return const [];
+    ServerEnvironment? env;
+    try {
+      env = session.environment;
+    } on FormatException {
+      env = null;
+    }
+    final secondary = theme.textTheme.bodySmall
+        ?.copyWith(color: theme.colorScheme.onSurfaceVariant);
+    return [
+      SectionHeader(l.serverSection),
+      const SizedBox(height: 8),
+      Semantics(
+        identifier: 'text_server_info',
+        container: true,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(
+                env?.isCloud ?? false
+                    ? Icons.cloud_outlined
+                    : Icons.dns_outlined,
+                size: 20,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      env == null
+                          ? session.serverUrl
+                          : serverRegionLabel(env.region, l),
+                      style: theme.textTheme.bodyMedium,
+                    ),
+                    if (env != null) Text(env.baseUrl, style: secondary),
+                    Text(l.signedInAs(session.email), style: secondary),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+      if (env != null && !env.isCloud && !demoActive) ...[
+        const SizedBox(height: 12),
+        ClientCertificateSection(
+          serverUrl: env.baseUrl,
+          margin: const EdgeInsets.symmetric(horizontal: 16),
+        ),
+      ],
+      const SizedBox(height: 20),
+    ];
+  }
+
   // ── Cloud sync (Firebase) account section ──
-  // TODO(l10n): strings here are inline English pending translation once the
-  // feature is verified end-to-end (needs the Google provider enabled).
 
   Widget _accountSection(BuildContext context, WidgetRef ref, ThemeData theme) {
     final authState = ref.watch(authStateProvider);
@@ -781,7 +858,7 @@ class _SettingsSheet extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Divider(height: 32),
-        _sectionHeader(theme, 'Cloud sync'),
+        SectionHeader(AppLocalizations.of(context)!.cloudSyncSection),
         const SizedBox(height: 8),
         authState.when(
           loading: () => const Padding(
@@ -814,8 +891,7 @@ class _SettingsSheet extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Sign in to sync your settings (theme, language, timers) across '
-            'your devices. Your vault keys never leave this device.',
+            AppLocalizations.of(context)!.cloudSyncSignedOutHint,
             style: theme.textTheme.bodySmall
                 ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
           ),
@@ -823,10 +899,11 @@ class _SettingsSheet extends ConsumerWidget {
           SizedBox(
             width: double.infinity,
             child: OutlinedButton.icon(
-              onPressed: () => _handleSignIn(
-                  context, () => ref.read(authServiceProvider).signInWithGoogle()),
+              onPressed: () => _handleSignIn(context,
+                  () => ref.read(authServiceProvider).signInWithGoogle()),
               icon: const Icon(Icons.login, size: 18),
-              label: const Text('Continue with Google'),
+              label:
+                  Text(AppLocalizations.of(context)!.cloudSyncContinueGoogle),
             ),
           ),
           if (isApplePlatform) ...[
@@ -837,7 +914,8 @@ class _SettingsSheet extends ConsumerWidget {
                 onPressed: () => _handleSignIn(context,
                     () => ref.read(authServiceProvider).signInWithApple()),
                 icon: const Icon(Icons.apple, size: 18),
-                label: const Text('Continue with Apple'),
+                label:
+                    Text(AppLocalizations.of(context)!.cloudSyncContinueApple),
               ),
             ),
           ],
@@ -855,11 +933,14 @@ class _SettingsSheet extends ConsumerWidget {
         children: [
           Row(
             children: [
-              Icon(Icons.cloud_done, size: 18, color: theme.colorScheme.primary),
+              Icon(Icons.cloud_done,
+                  size: 18, color: theme.colorScheme.primary),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  user.email ?? user.displayName ?? 'Signed in',
+                  user.email ??
+                      user.displayName ??
+                      AppLocalizations.of(context)!.cloudSyncSignedIn,
                   style: theme.textTheme.bodyMedium,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -868,7 +949,7 @@ class _SettingsSheet extends ConsumerWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            'Settings sync across your devices.',
+            AppLocalizations.of(context)!.cloudSyncSignedInHint,
             style: theme.textTheme.bodySmall
                 ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
           ),
@@ -885,7 +966,8 @@ class _SettingsSheet extends ConsumerWidget {
                 onPressed: () => _handleSignIn(context,
                     () => ref.read(authServiceProvider).signInWithApple()),
                 icon: const Icon(Icons.apple, size: 18),
-                label: const Text('Connect Apple'),
+                label:
+                    Text(AppLocalizations.of(context)!.cloudSyncConnectApple),
               ),
             ),
             const SizedBox(height: 8),
@@ -895,7 +977,7 @@ class _SettingsSheet extends ConsumerWidget {
             child: OutlinedButton.icon(
               onPressed: () => ref.read(authServiceProvider).signOut(),
               icon: const Icon(Icons.logout, size: 18),
-              label: const Text('Sign out of sync'),
+              label: Text(AppLocalizations.of(context)!.cloudSyncSignOut),
             ),
           ),
         ],
@@ -911,12 +993,16 @@ class _SettingsSheet extends ConsumerWidget {
     try {
       await action().timeout(const Duration(seconds: 30));
       if (context.mounted) {
-        _showResultDialog(context, 'Signed in ✓', 'Settings will sync now.');
+        final l = AppLocalizations.of(context)!;
+        _showResultDialog(context, l.cloudSyncSignInSuccessTitle,
+            l.cloudSyncSignInSuccessBody);
       }
     } catch (e) {
-      if (context.mounted) {
-        _showResultDialog(context, 'Sign-in result', e.toString());
-      }
+      if (!context.mounted) return;
+      final l = AppLocalizations.of(context)!;
+      final message = describeCloudSyncError(e, l);
+      if (message == null) return; // cancelled: nothing to report
+      _showResultDialog(context, l.cloudSyncSignInResultTitle, message);
     }
   }
 
@@ -929,87 +1015,9 @@ class _SettingsSheet extends ConsumerWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('OK'),
+            child: Text(AppLocalizations.of(ctx)!.ok),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _sectionHeader(ThemeData theme, String title) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Text(
-        title,
-        style: theme.textTheme.labelLarge?.copyWith(
-          color: theme.colorScheme.onSurfaceVariant,
-        ),
-      ),
-    );
-  }
-
-  /// Selection pills shared by every settings group. iOS-26 grammar to match
-  /// the app's Approve/Deny/tab language: selected = a soft accent stadium
-  /// (no Material checkmark), unselected = a hairline-outlined stadium. Press
-  /// gives the app-wide spring squish + a selection haptic.
-  Widget _buildOptionChips<T>({
-    required BuildContext context,
-    required List<({T value, String label})> options,
-    required T selected,
-    required ValueChanged<T> onSelected,
-  }) {
-    final theme = Theme.of(context);
-    final cs = theme.colorScheme;
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Wrap(
-        spacing: 8,
-        runSpacing: 8,
-        children: options.map((opt) {
-          final isSelected = opt.value == selected;
-          return Pressable(
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: () {
-                HapticFeedback.selectionClick();
-                onSelected(opt.value);
-              },
-              child: Semantics(
-                button: true,
-                selected: isSelected,
-                child: Container(
-                  // No `alignment` here: a Container with alignment expands to
-                  // the parent's max width, which in a Wrap stretches every
-                  // pill full-width. Padding alone keeps them content-sized.
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-                  decoration: ShapeDecoration(
-                    color: isSelected
-                        ? cs.primaryContainer
-                        : Colors.transparent,
-                    shape: StadiumBorder(
-                      side: isSelected
-                          ? BorderSide.none
-                          : BorderSide(
-                              color: cs.outlineVariant.withValues(alpha: 0.6),
-                            ),
-                    ),
-                  ),
-                  child: Text(
-                    opt.label,
-                    style: theme.textTheme.labelLarge?.copyWith(
-                      color: isSelected
-                          ? cs.onPrimaryContainer
-                          : cs.onSurfaceVariant,
-                      fontWeight:
-                          isSelected ? FontWeight.w600 : FontWeight.w500,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          );
-        }).toList(),
       ),
     );
   }

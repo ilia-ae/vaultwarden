@@ -135,6 +135,9 @@ class MainActivity : FlutterFragmentActivity() {
  *   FLAG_SECURE blanks recordings instead.
  * - `isScreenshotsAllowedBuild` -> Boolean: BuildConfig.ALLOW_SCREENSHOTS,
  *   true only in `-Pallow-screenshots=true` builds (no FLAG_SECURE at all).
+ * - `systemShowsCopyConfirmation` -> Boolean: true on Android 13+ (API 33),
+ *   where the system confirms every clipboard write with its own overlay, so
+ *   the app skips its "Copied" SnackBar there.
  *
  * Event channel `com.vaultapprover.app/privacy/captured`: `"screenshot"` on
  * Android 14+ when a screenshot is taken (none while FLAG_SECURE blocks it).
@@ -187,6 +190,8 @@ private class PrivacyChannel(
                 }
                 "isScreenCaptured" -> result.success(false)
                 "isScreenshotsAllowedBuild" -> result.success(BuildConfig.ALLOW_SCREENSHOTS)
+                "systemShowsCopyConfirmation" ->
+                    result.success(Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
                 else -> result.notImplemented()
             }
         } catch (e: RuntimeException) {

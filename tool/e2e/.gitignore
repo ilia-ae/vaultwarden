@@ -1,0 +1,6 @@
+# Throwaway PKI, harness state and local Python env - never commit.
+.pki/
+.state/
+.venv/
+__pycache__/
+*.pyc

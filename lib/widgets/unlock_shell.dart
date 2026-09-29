@@ -171,6 +171,11 @@ class LockSkeleton extends StatelessWidget {
 /// delayed auto-prompt, NotInteractive retry, unavailable fallback).
 /// Failure plays the Apple-style horizontal shake: 3 oscillations, 8px,
 /// decaying.
+///
+/// When the keychain holds a session but no encrypted user key (or unlock
+/// fails with 'Setup not completed'), unlocking can never succeed, so the
+/// overlay offers "Log out" (F7). A relock during the reveal animation
+/// re-arms the automatic biometric prompt (R8).
 class _LockOverlay extends ConsumerStatefulWidget {
   const _LockOverlay({required this.active});
 
@@ -186,26 +191,79 @@ class _LockOverlayState extends ConsumerState<_LockOverlay>
   bool _authenticating = false;
   bool _biometricUnavailable = false;
   bool _pendingUnlock = false;
+  bool _keyMissing = false;
 
-  late final AnimationController _shake =
-      AnimationController(vsync: this, duration: const Duration(milliseconds: 500));
+  /// Completes once the stored-key check ran (no Face ID prompt for an
+  /// account whose key is gone).
+  Future<void> _keyCheck = Future<void>.value();
+
+  late final AnimationController _shake = AnimationController(
+      vsync: this, duration: const Duration(milliseconds: 500));
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     if (demoActive) return; // screenshots / demo capture the lock UI itself
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      // Only prompt biometrics when iOS confirms the app is fully active;
-      // calling earlier triggers "User interaction required".
-      if (WidgetsBinding.instance.lifecycleState ==
-          AppLifecycleState.resumed) {
+    _keyCheck = _checkStoredKey();
+    _scheduleAutoUnlock();
+  }
+
+  @override
+  void didUpdateWidget(_LockOverlay oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // R8: relocked while the reveal animation was still playing — this
+    // overlay was never rebuilt, so arm the automatic prompt again.
+    if (widget.active && !oldWidget.active && !demoActive) {
+      _scheduleAutoUnlock();
+    }
+  }
+
+  /// Prompt biometrics after this frame — only when iOS confirms the app is
+  /// fully active (earlier triggers "User interaction required"); otherwise
+  /// on the next resume.
+  void _scheduleAutoUnlock() {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await _keyCheck;
+      if (!mounted || !widget.active || _keyMissing) return;
+      if (WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed) {
         _tryUnlock();
       } else {
         _pendingUnlock = true;
       }
     });
+  }
+
+  Future<void> _checkStoredKey() async {
+    final present = await ref.read(sessionProvider.notifier).hasStoredUserKey();
+    if (mounted && !present) setState(() => _keyMissing = true);
+  }
+
+  static bool _isSetupIncomplete(Object e) =>
+      e is StateError && e.message == 'Setup not completed';
+
+  Future<void> _logout() async {
+    final l = AppLocalizations.of(context)!;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l.logoutTitle),
+        content: Text(l.logoutConfirmation),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(l.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(l.logout),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) {
+      await ref.read(sessionProvider.notifier).logout();
+    }
   }
 
   @override
@@ -232,8 +290,9 @@ class _LockOverlayState extends ConsumerState<_LockOverlay>
       (e.details?.toString().contains('LocalAuthentication') ?? false);
 
   Future<void> _tryUnlock() async {
-    if (_authenticating || !widget.active) return;
+    if (_authenticating || !widget.active || _keyMissing) return;
     _authenticating = true;
+    final reason = AppLocalizations.of(context)!.biometricReason;
     try {
       final biometric = ref.read(biometricServiceProvider);
       final available = await biometric.isAvailable();
@@ -251,7 +310,9 @@ class _LockOverlayState extends ConsumerState<_LockOverlay>
       // Retry once if iOS reports "not interactive" (UI not yet ready).
       for (var attempt = 0; attempt < 2; attempt++) {
         try {
-          await ref.read(sessionProvider.notifier).unlockWithBiometrics();
+          await ref
+              .read(sessionProvider.notifier)
+              .unlockWithBiometrics(reason: reason);
           break;
         } catch (e) {
           if (attempt == 0 && _isNotInteractiveError(e)) {
@@ -267,6 +328,11 @@ class _LockOverlayState extends ConsumerState<_LockOverlay>
         ref.read(isLockedProvider.notifier).state = false;
       }
     } catch (e) {
+      if (_isSetupIncomplete(e)) {
+        // No stored key: unlocking can never work — offer "Log out".
+        if (mounted) setState(() => _keyMissing = true);
+        return;
+      }
       final msg = e.toString();
       final userCancelled =
           msg.contains('UserCancelled') || msg.contains('PasscodeNotSet');
@@ -301,32 +367,48 @@ class _LockOverlayState extends ConsumerState<_LockOverlay>
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(
-                _biometricUnavailable
-                    ? Icons.fingerprint_outlined
-                    : Icons.lock_outlined,
+                _keyMissing
+                    ? Icons.key_off_outlined
+                    : _biometricUnavailable
+                        ? Icons.fingerprint_outlined
+                        : Icons.lock_outlined,
                 size: 64,
-                color: _biometricUnavailable
+                color: _keyMissing || _biometricUnavailable
                     ? theme.colorScheme.error
                     : theme.colorScheme.primary,
               ),
               const SizedBox(height: 16),
               Text(
-                _biometricUnavailable ? l.biometricUnavailable : l.locked,
+                _keyMissing
+                    ? l.lockKeyMissing
+                    : _biometricUnavailable
+                        ? l.biometricUnavailable
+                        : l.locked,
                 textAlign: TextAlign.center,
                 style: theme.textTheme.titleMedium,
               ),
               const SizedBox(height: 20),
-              Semantics(
-                identifier: 'btn_unlock',
-                child: FilledButton.icon(
-                  onPressed: _tryUnlock,
-                  icon: Icon(_biometricUnavailable
-                      ? Icons.refresh
-                      : Icons.fingerprint),
-                  label: Text(
-                      _biometricUnavailable ? l.biometricRetry : l.unlock),
+              if (_keyMissing)
+                Semantics(
+                  identifier: 'btn_lock_logout',
+                  child: FilledButton.icon(
+                    onPressed: widget.active ? _logout : null,
+                    icon: const Icon(Icons.logout),
+                    label: Text(l.logout),
+                  ),
+                )
+              else
+                Semantics(
+                  identifier: 'btn_unlock',
+                  child: FilledButton.icon(
+                    onPressed: _tryUnlock,
+                    icon: Icon(_biometricUnavailable
+                        ? Icons.refresh
+                        : Icons.fingerprint),
+                    label: Text(
+                        _biometricUnavailable ? l.biometricRetry : l.unlock),
+                  ),
                 ),
-              ),
             ],
           ),
         ),

@@ -27,7 +27,6 @@
   "errorEndpointNotFound": "未找到服务器 — 请检查地址",
   "errorTooManyAttempts": "尝试次数过多 — 请稍后再试",
   "errorServerRetry": "服务器错误（{status}）— 请稍后再试",
-  "errorServerWithData": "服务器错误（{status}）：{data}",
   "errorServer": "服务器错误（{status}）",
   "errorConnectionTimeout": "连接超时 — 请检查服务器地址",
   "errorCannotConnect": "无法连接到服务器",
@@ -54,7 +53,6 @@
   "authRequestsTitle": "认证请求",
   "pendingTab": "待处理",
   "historyTab": "历史",
-  "errorGeneric": "错误：{error}",
   "retry": "重试",
   "noPendingRequests": "暂无待处理请求",
   "pullDownToRefresh": "下拉刷新",
@@ -72,8 +70,6 @@
   "minutesAgo": "{minutes} 分钟前",
   "hoursAgo": "{hours} 小时前",
   "daysAgo": "{days} 天前",
-  "ipAddress": "IP:{ip}",
-  "minutesLeft": "剩余 {minutes} 分钟",
   "fingerprintLabel": "指纹短语:",
   "deny": "拒绝",
   "approve": "批准",
@@ -116,16 +112,6 @@
       }
     }
   },
-  "@errorServerWithData": {
-    "placeholders": {
-      "status": {
-        "type": "int"
-      },
-      "data": {
-        "type": "String"
-      }
-    }
-  },
   "@errorServer": {
     "placeholders": {
       "status": {
@@ -148,13 +134,6 @@
     }
   },
   "@denyFailedMessage": {
-    "placeholders": {
-      "error": {
-        "type": "String"
-      }
-    }
-  },
-  "@errorGeneric": {
     "placeholders": {
       "error": {
         "type": "String"
@@ -196,20 +175,119 @@
       }
     }
   },
-  "@ipAddress": {
-    "placeholders": {
-      "ip": {
-        "type": "String"
-      }
-    }
-  },
-  "@minutesLeft": {
-    "placeholders": {
-      "minutes": {
-        "type": "int"
-      }
-    }
-  },
+
+  "demoModeNotice": "演示模式 — 示例数据，并非真实账户",
+  "sessionEndedOnServer": "您的会话已在服务器上结束。请重新登录。",
+  "signedOutByServer": "服务器已将此设备退出登录（密码或安全设置已更改）。请重新登录。",
+  "storageErrorTitle": "无法读取安全存储",
+  "storageErrorMessage": "无法从设备钥匙串读取已保存的登录信息。请解锁设备后重试。",
+  "lockKeyMissing": "此设备上缺少该账户的加密密钥。请退出登录并重新设置。",
+
+  "serverSection": "服务器",
+  "serverRegionUs": "bitwarden.com",
+  "serverRegionEu": "bitwarden.eu",
+  "serverRegionSelfHosted": "自托管",
+  "serverCloudCaption": "Bitwarden 云：{host}",
+  "signedInAs": "已登录：{email}",
+  "setupStepServerParameters": "正在获取服务器参数…",
+  "setupStepDerivingKey": "正在派生主密钥…",
+  "setupStepAuthenticating": "正在登录…",
+  "setupStepDecryptingKey": "正在解密加密密钥…",
+  "setupStepSecuringKeys": "正在保护密钥…",
+  "sendingCode": "正在发送验证码…",
+  "clientCertTitle": "客户端证书 (mTLS)",
+  "clientCertNone": "未设置。仅在服务器要求时需要。",
+  "clientCertNeedsUrl": "请先输入服务器 URL",
+  "clientCertImport": "导入 .p12 / .pfx",
+  "clientCertReplace": "替换",
+  "clientCertRemove": "移除",
+  "clientCertRemoveTitle": "移除客户端证书？",
+  "clientCertRemoveMessage": "应用将不再向 {server} 出示证书。如果服务器要求证书，登录和更新将无法使用。",
+  "clientCertRemoved": "已移除客户端证书",
+  "clientCertImported": "已导入客户端证书",
+  "clientCertUnnamed": "未命名证书",
+  "clientCertIssuedBy": "颁发者：{issuer}",
+  "clientCertValidUntil": "有效期至 {date}",
+  "clientCertExpiresSoon": "{days} 天后过期（{date}）。请导入续期后的证书。",
+  "clientCertExpired": "已于 {date} 过期。请导入新证书。",
+  "clientCertPasswordTitle": "证书密码",
+  "clientCertPasswordPrompt": "请输入 {file} 的密码。",
+  "clientCertPasswordLabel": "密码",
+  "clientCertImportAction": "导入",
+  "clientCertPickFailed": "无法打开文件",
+  "errorClientCertRequired": "此服务器要求客户端证书 (mTLS)。请在“客户端证书”中导入 .p12/.pfx 文件。",
+  "errorClientCertRejected": "服务器拒绝了客户端证书（CA 不符、已过期或已吊销）。请导入有效的证书。",
+  "errorClientCertMaybeRequired": "服务器关闭了安全连接，可能需要客户端证书 (mTLS)：请在“客户端证书”中导入。",
+  "errorClientCertBadPassword": "证书密码错误",
+  "errorClientCertUnsupported": "不是包含私钥的有效 .p12/.pfx 客户端证书",
+  "errorClientCertInvalidCa": "无法加载 CA 证书",
+  "errorNewDeviceVerificationRequired": "需要验证新设备：请输入发送到您邮箱的验证码",
+  "errorInvalidNewDeviceOtp": "验证码无效或已过期",
+  "errorAuthRequestSuperseded": "此设备有更新的请求。请刷新并批准最新的请求。",
+  "errorAuthRequestAlreadyAnswered": "此请求已在其他设备上处理",
+  "errorAuthRequestNotFound": "此请求已不存在（已过期或已在别处处理）",
+  "errorClientVersionRejected": "服务器拒绝了此应用版本。请更新 Vault Approver。",
+  "errorMissingUserKey": "服务器未返回此账户的主密码密钥。不支持通过 SSO、受信任设备或 Key Connector 解锁的账户。",
+  "errorKdfTooWeak": "服务器发送了不安全的密钥派生参数。为保护您的主密码，已拒绝登录。",
+  "errorUnsupportedKdf": "服务器使用了本应用不支持的密钥派生方法",
+  "errorTooManyAttemptsWait": "尝试次数过多。请在 {seconds} 秒后重试。",
+  "errorRequestExpired": "此请求已过期。请让另一台设备重新发送请求。",
+  "errorFingerprintUnavailable": "无法验证此请求：无法计算指纹短语",
+  "twoFactorChooseTitle": "选择两步登录方式",
+  "twoFactorProviderAuthenticator": "身份验证器应用",
+  "twoFactorProviderAuthenticatorHint": "身份验证器应用中的 6 位验证码",
+  "twoFactorProviderEmail": "电子邮件",
+  "twoFactorProviderEmailHint": "验证码将发送到您的邮箱",
+  "twoFactorProviderEmailHintTo": "验证码将发送到 {email}",
+  "twoFactorProviderYubiKey": "YubiKey 一次性密码",
+  "twoFactorProviderYubiKeyHint": "触摸 YubiKey 以输入验证码",
+  "twoFactorProviderRecoveryCode": "恢复代码",
+  "twoFactorProviderRecoveryCodeHint": "将关闭您账户的两步登录",
+  "twoFactorProviderDuo": "Duo Security",
+  "twoFactorProviderWebAuthn": "通行密钥或安全密钥 (FIDO2)",
+  "twoFactorProviderU2f": "FIDO U2F 安全密钥",
+  "twoFactorProviderUnknown": "方式 {id}",
+  "twoFactorNotSupported": "本应用不支持。请使用其他方式。",
+  "twoFactorNoSupportedMethod": "此账户的两步登录方式均无法在本应用中使用。请在网页密码库中添加身份验证器应用或电子邮件，或使用恢复代码。",
+  "twoFactorPromptEmail": "请输入发送到您邮箱的验证码。",
+  "twoFactorPromptEmailTo": "请输入发送到 {email} 的验证码。",
+  "twoFactorPromptYubiKey": "插入 YubiKey 并触摸以输入验证码，或将验证码粘贴到此处。",
+  "twoFactorPromptRecoveryCode": "请输入恢复代码。此账户的两步登录将被关闭，之后请在网页密码库中重新设置。",
+  "twoFactorRemember": "记住此设备",
+  "twoFactorAnotherMethod": "使用其他方式",
+  "resendCode": "重新发送验证码",
+  "codeSent": "验证码已发送",
+  "codeSentTo": "验证码已发送至 {email}",
+  "codeIncomplete": "请输入完整的验证码",
+  "newDeviceTitle": "验证新设备",
+  "newDevicePrompt": "Bitwarden 已向您的邮箱发送验证码。输入验证码以完成在此设备上的登录。",
+  "requestTimeLeft": "剩余 {time}",
+  "requestExpired": "已过期",
+  "requestExpiredHint": "此请求已过期，无法再批准。请让另一台设备重新发送请求。",
+  "fingerprintUnavailable": "无法验证此请求：无法根据其密钥计算指纹短语。请勿批准。",
+  "cloudSyncSection": "云同步",
+  "cloudSyncSignedOutHint": "登录以在您的设备间同步设置（主题、语言、计时器）。您的密码库密钥永远不会离开此设备。",
+  "cloudSyncContinueGoogle": "使用 Google 继续",
+  "cloudSyncContinueApple": "使用 Apple 继续",
+  "cloudSyncSignedIn": "已登录",
+  "cloudSyncSignedInHint": "设置会在您的设备间同步。",
+  "cloudSyncConnectApple": "关联 Apple",
+  "cloudSyncSignOut": "退出同步",
+  "cloudSyncSignInSuccessTitle": "已登录 ✓",
+  "cloudSyncSignInSuccessBody": "设置现在开始同步。",
+  "cloudSyncSignInResultTitle": "登录结果",
+  "cloudSyncErrorNotConfigured": "此版本的应用尚未配置 Google 登录。",
+  "cloudSyncErrorUnsupported": "此设备不支持 {provider} 登录。",
+  "cloudSyncErrorNoToken": "{provider} 未确认登录。请重试。",
+  "cloudSyncErrorEmailInUse": "此电子邮件已用于其他登录方式。请先使用该方式登录，然后再关联 {provider}。",
+  "cloudSyncErrorFailed": "{provider} 登录失败（{detail}）。",
+  "cloudSyncErrorTimeout": "登录耗时过长。请检查网络连接后重试。",
+  "cloudSyncErrorGeneric": "登录失败。请重试。",
+  "plainHttpTitle": "未加密的连接",
+  "plainHttpMessage": "该服务器地址以 http:// 开头。您的主密码哈希、登录令牌和批准操作将以未加密方式传输，网络中的任何人都可能读取或篡改。除非您完全信任此网络，否则请使用 https://。",
+  "plainHttpContinue": "仍然继续",
+  "ok": "确定",
+  "demoAddRequest": "添加演示请求",
 
   "pinTab": "PIN",
   "pinTitle": "PIN 工具",
@@ -768,13 +846,6 @@
   "pinYkLedgerProblemAscii8": "选出的 8 个字符必须是不含空格的可打印 ASCII——PIN 要在键盘布局无法控制的系统对话框中输入。",
   "pinYkLedgerProblemAscii": "含有可打印 ASCII 以外的字符。",
   "pinYkLedgerProblemCsv": "含有逗号、引号、首尾空格或开头的 = + - @，不加引号的 CSV 无法承载。",
-  "pinYkWarnPivInOther": "PIV PIN 是同一 Ledger 条目中字段 {field}（{name}）的一部分：频繁输入 PIV PIN 会暴露其中 8 个字符。请有意识地接受，或者从其他条目获取该 PIN。",
-  "@pinYkWarnPivInOther": {
-    "placeholders": {
-      "field": { "type": "String" },
-      "name": { "type": "String" }
-    }
-  },
   "pinYkWarnAdminShares": "Admin PIN 来自共用的 -pins 条目，因此与每天输入的 User PIN 和 FIDO2 PIN 相同。如果无法接受，请打开“单独的管理员条目”。",
   "pinYkCopyCsv": "复制为 CSV 供密码管理器使用（Bitwarden 无法直接导入）",
   "pinYkCopyCsvCaption": "格式为 folder,name,field,value——每个秘密一行，与 yk-batch-secrets.py --bitwarden 相同。Bitwarden 无法直接导入这种布局：可把它当作填写条目 NN 字段的清单，或先进行转换。",
@@ -868,5 +939,46 @@
   "pinHideField": "隐藏{field}",
   "pinCopyField": "复制{field}",
   "pinSecretHiddenSemantics": "{label}：{count} 个字符，不会朗读——打开显示开关即可听到",
-  "pinLegacyMaskZeroHint": "掩码的每一位必须是 1–9：不允许 0。"
+  "pinLegacyMaskZeroHint": "掩码的每一位必须是 1–9：不允许 0。",
+  "pinYkWarnPivInFields": "{count, plural, one{PIV PIN 是同一 Ledger 条目中字段 {fields} 的一部分：频繁输入 PIV PIN 会暴露其中 8 个字符。请有意识地接受，或者从其他条目获取该 PIN。} other{PIV PIN 是同一 Ledger 条目中字段 {fields} 的一部分：频繁输入 PIV PIN 会暴露它们的 8 个字符。请有意识地接受，或者从其他条目获取这些 PIN。}}",
+  "@pinYkWarnPivInFields": {
+    "placeholders": {
+      "count": { "type": "int" },
+      "fields": { "type": "String" }
+    }
+  },
+  "pinHiddenLastCharNote": "隐藏输入框会短暂显示您刚输入的最后一个字符，与系统密码框相同。Flutter 没有按输入框关闭它的开关：在 Android 上取决于系统设置“显示密码”，iOS 则始终如此。粘贴的文本从不显示。",
+  "pin24ImportTitle": "从备份导入 nickname 列表（可选）",
+  "pin24ImportHelp": "选择一个 Ledger Passwords 备份（.json，即 passwords.ledger.com 保存的文件），即可从列表中选取 nickname 及其字符集，而无需手动输入。只读取 nickname 和字符集；列表仅保存在内存中，并会与其他内容一起清除。",
+  "pin24ImportFile": "从文件导入列表",
+  "pin24ImportBlocked": "请在输入助记词之前导入列表：文件选择器会让应用进入后台，而此时种子不应留在内存中。清除种子后即可导入。",
+  "pin24ImportLoaded": "列表中有 {count} 个 nickname",
+  "@pin24ImportLoaded": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "pin24ImportSkipped": "有 {count} 个条目无法读取，已跳过。",
+  "@pin24ImportSkipped": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "pin24ImportChoose": "选择 nickname",
+  "pin24ImportForget": "忘记列表",
+  "pin24ImportChooseTitle": "从列表中选择 nickname",
+  "pin24ImportErrorRead": "无法读取该文件。请选择 Ledger Passwords 备份（.json）。",
+  "pin24ImportErrorTooLarge": "该文件大于 1 MB，不是 nickname 备份。",
+  "pin24ImportErrorEmpty": "该文件中没有可用的 nickname。",
+  "pin24ImportReplaceTitle": "替换 nickname？",
+  "pin24ImportReplaceBody": "nickname 输入框中已有文字。要用列表中的 nickname 替换您输入的内容吗？",
+  "pin24ImportReplaceConfirm": "替换",
+  "pin24ImportRawMask": "此条目使用的字符集无法用五个开关表示：{sets}。密码将严格按这些字符集计算。",
+  "@pin24ImportRawMask": {
+    "placeholders": {
+      "sets": { "type": "String" }
+    }
+  },
+  "pin24ImportUseToggles": "改用开关",
+  "demoRibbon": "演示"
 }

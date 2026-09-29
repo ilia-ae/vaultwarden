@@ -52,8 +52,7 @@ class _SceneState extends State<_Scene> {
   Future<void> _loadNoise() async {
     if (_noise != null) return;
     final data = await rootBundle.load('assets/textures/noise128.png');
-    final codec =
-        await ui.instantiateImageCodec(data.buffer.asUint8List());
+    final codec = await ui.instantiateImageCodec(data.buffer.asUint8List());
     final frame = await codec.getNextFrame();
     if (mounted) setState(() => _noise = frame.image);
     codec.dispose();

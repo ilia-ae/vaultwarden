@@ -407,13 +407,9 @@ class _YubikeyViewState extends ConsumerState<YubikeyView> {
 
   Future<void> _copyValue(String value) async {
     _session.touch();
-    final l = AppLocalizations.of(context)!;
     final ok = await _privacy.copySensitive(value, ttl: _copyTtl);
     if (!mounted) return;
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-          SnackBar(content: Text(ok ? l.pinCopiedTtl : l.pinCopyFailed)));
+    await showPinCopyResult(context, _privacy, ok: ok);
   }
 
   /// Why the current result cannot be exported, or `null` if it can. Builds
@@ -507,10 +503,7 @@ class _YubikeyViewState extends ConsumerState<YubikeyView> {
     }
     final ok = await _privacy.copySensitive(csv, ttl: _copyTtl);
     if (!mounted) return;
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-          SnackBar(content: Text(ok ? l.pinCopiedTtl : l.pinCopyFailed)));
+    await showPinCopyResult(context, _privacy, ok: ok);
   }
 
   // ── Build ──
@@ -1088,12 +1081,32 @@ class _YubikeyViewState extends ConsumerState<YubikeyView> {
     };
   }
 
-  String _warning(AppLocalizations l, YkLedgerWarning w) => switch (w.kind) {
-        YkLedgerWarningKind.pivPinPartOfOtherSecret => l.pinYkWarnPivInOther(
-            ltrIsolate(w.otherField ?? ''),
-            ltrIsolate(ykFields[w.otherField]?.name ?? '')),
-        YkLedgerWarningKind.adminSharesPinsEntry => l.pinYkWarnAdminShares,
-      };
+  /// The row's warnings. "The PIV PIN is part of field …" comes once per
+  /// other field (usually 23, 24 and 34 at once), so those are merged into
+  /// one warning that lists the fields.
+  List<String> _warnings(AppLocalizations l, List<YkLedgerWarning> all) {
+    final pivIn = [
+      for (final w in all)
+        if (w.kind == YkLedgerWarningKind.pivPinPartOfOtherSecret &&
+            w.otherField != null)
+          w.otherField!,
+    ];
+    return [
+      if (pivIn.isNotEmpty)
+        l.pinYkWarnPivInFields(
+          pivIn.length,
+          ltrIsolate([
+            for (final f in pivIn) '$f (${ykFields[f]?.name ?? ''})',
+          ].join(', ')),
+        ),
+      for (final w in all)
+        if (w.kind != YkLedgerWarningKind.pivPinPartOfOtherSecret)
+          switch (w.kind) {
+            YkLedgerWarningKind.adminSharesPinsEntry => l.pinYkWarnAdminShares,
+            YkLedgerWarningKind.pivPinPartOfOtherSecret => '', // merged above
+          },
+    ];
+  }
 
   Widget _valueRow(
       AppLocalizations l, ThemeData theme, YkKeyResult k, String field) {
@@ -1107,10 +1120,8 @@ class _YubikeyViewState extends ConsumerState<YubikeyView> {
       for (final p in k.ledgerProblems[field] ?? const <YkLedgerProblem>[])
         _ledgerProblem(l, p),
     ];
-    final warnings = [
-      for (final w in k.warnings[field] ?? const <YkLedgerWarning>[])
-        _warning(l, w),
-    ];
+    final warnings =
+        _warnings(l, k.warnings[field] ?? const <YkLedgerWarning>[]);
     final valueStyle = pinMono(
       context,
       size: 17,
@@ -1288,7 +1299,8 @@ class _YubikeyViewState extends ConsumerState<YubikeyView> {
                 identifier: 'yk_policy_note'),
             section(l.pinYkDerivedTitle, l.pinYkDerivedNote),
             section(l.pinYkOtpTitle, l.pinYkOtpNote),
-            section(l.pinYkMasterTitle, l.pinYkMasterNeverStored),
+            section(l.pinYkMasterTitle,
+                '${l.pinYkMasterNeverStored}\n${l.pinHiddenLastCharNote}'),
             section(l.pinYkDesktopTitle, l.pinYkDesktopOnlyNote,
                 identifier: 'yk_desktop_note'),
           ],
