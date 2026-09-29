@@ -39,6 +39,18 @@ class GlassTopBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    // The list scrolls UNDER the bar, and glass does not take hits: without
+    // this a tap or drag on an empty part of the bar (status-bar strip,
+    // beside the title, the tab row's margins) reached whatever card was
+    // scrolled beneath it — e.g. its Approve button. Like a UIKit bar, the
+    // whole bar now takes its own pointers.
+    return Listener(
+      behavior: HitTestBehavior.opaque,
+      child: _bar(theme),
+    );
+  }
+
+  Widget _bar(ThemeData theme) {
     return GlassContainer(
       // Square shape: the bar bleeds edge-to-edge, no corner rounding.
       shape: const LiquidRoundedRectangle(borderRadius: 0),
@@ -138,11 +150,14 @@ class _GlassTabs extends StatelessWidget {
                 child: FractionallySizedBox(
                   widthFactor: 1 / n,
                   heightFactor: 1,
-                  child: GlassContainer(
-                    shape: const LiquidRoundedSuperellipse(borderRadius: 21),
+                  // Grouped glass inside the bar's own layer: it renders
+                  // with the bar's settings (barGlassFor). Per-widget
+                  // settings would be ignored here (the package applies
+                  // them only with useOwnLayer), so none are passed.
+                  child: const GlassContainer(
+                    shape: LiquidRoundedSuperellipse(borderRadius: 21),
                     quality: GlassQuality.standard,
-                    settings: appGlassFor(theme.brightness),
-                    child: const SizedBox.expand(),
+                    child: SizedBox.expand(),
                   ),
                 ),
               );

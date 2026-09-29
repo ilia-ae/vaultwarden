@@ -183,6 +183,32 @@ void main() {
     await _finish(tester, h);
   });
 
+  testWidgets('settings: Log out clears the home indicator at the sheet end',
+      (tester) async {
+    final (h, _) = await _pump(tester);
+    // An 844-pt iPhone with a 34-pt home indicator.
+    tester.view.padding = const FakeViewPadding(top: 47 * 3, bottom: 34 * 3);
+    await tester.pump();
+    await _openSettings(tester);
+    final sheet = find
+        .descendant(
+            of: find.byType(DraggableScrollableSheet),
+            matching: find.byType(Scrollable))
+        .first;
+    await tester.scrollUntilVisible(find.text(_l.logout), 200,
+        scrollable: sheet);
+    // Scrolled to the very end.
+    await tester.drag(find.text(_l.logout), const Offset(0, -400));
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 1));
+    final logout = tester.getRect(find.ancestor(
+      of: find.text(_l.logout),
+      matching: find.byWidgetPredicate((w) => w is OutlinedButton),
+    ));
+    expect(logout.bottom, lessThanOrEqualTo(844 - 34 - 16));
+    await _finish(tester, h);
+  });
+
   testWidgets('dispose pauses the requests notifier (R3)', (tester) async {
     final spy = _SpyRequests();
     final (h, _) = await _pump(tester, overrides: [

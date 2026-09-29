@@ -10,6 +10,7 @@ import '../../pin_tools/python_text.dart' show hasLoneSurrogate;
 import '../../pin_tools/yubikey_ledger.dart';
 import '../../pin_tools/yubikey_secrets.dart';
 import '../../services/privacy_service.dart';
+import '../../widgets/control_id.dart';
 import '../../widgets/option_pills.dart';
 import 'pin24_engine.dart';
 import 'pin_session.dart';
@@ -458,8 +459,8 @@ class _YubikeyViewState extends ConsumerState<YubikeyView> {
             child: Text(refusal),
           ),
           actions: [
-            Semantics(
-              identifier: 'yk_csv_refused_ok',
+            ControlId(
+              'yk_csv_refused_ok',
               child: TextButton(
                 onPressed: () => Navigator.pop(context),
                 child: Text(MaterialLocalizations.of(context).okButtonLabel),

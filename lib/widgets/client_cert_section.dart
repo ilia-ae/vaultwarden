@@ -12,6 +12,7 @@ import '../providers/service_providers.dart';
 import '../services/client_cert_service.dart';
 import '../utils/error_formatter.dart';
 import '../utils/external_picker.dart';
+import 'control_id.dart';
 
 /// A certificate file chosen by the user.
 class PickedCertificateFile {
@@ -621,8 +622,8 @@ class _CertificatePasswordDialogState extends State<CertificatePasswordDialog> {
           onPressed: _busy ? null : () => Navigator.of(context).pop(),
           child: Text(l.cancel),
         ),
-        Semantics(
-          identifier: 'btn_cert_password_import',
+        ControlId(
+          'btn_cert_password_import',
           child: FilledButton(
             onPressed: _busy ? null : _submit,
             child: _busy

@@ -21,6 +21,8 @@ import '../../l10n/app_localizations.dart';
 import '../../pin_tools/bip39.dart';
 import '../../pin_tools/python_text.dart' show hasLoneSurrogate;
 import '../../services/privacy_service.dart';
+import '../../widgets/control_id.dart';
+import '../../widgets/keyboard_dismiss.dart';
 import 'pin_session.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -123,6 +125,9 @@ TextStyle pinMono(BuildContext context,
 ///   the text engine cannot lay out, and reports it via
 ///   [onBrokenCharactersRemoved]. Masked fields keep them (they render as
 ///   bullets), so the derivation reports them as an error instead.
+/// * A keyboard without a return key (the iOS number pad) gets a Done pill
+///   from the enclosing [KeyboardDismissRegion]; the field keeps clear of it
+///   when the keyboard scrolls it into view.
 class PinSecretField extends StatefulWidget {
   const PinSecretField({
     super.key,
@@ -276,6 +281,8 @@ class _PinSecretFieldState extends State<PinSecretField> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final secret = widget.pasteOnlyMenu ?? widget.obscure;
+    final keyboardType = widget.keyboardType ??
+        (widget.obscure ? TextInputType.text : TextInputType.visiblePassword);
     final field = TextField(
       // A new key per generation: a fresh EditableText and UndoHistory.
       key: ValueKey<int>(widget.wipeGeneration),
@@ -288,8 +295,13 @@ class _PinSecretFieldState extends State<PinSecretField> {
       maxLines: widget.obscure ? 1 : widget.maxLines,
       minLines: 1,
       textDirection: widget.textDirection,
-      keyboardType: widget.keyboardType ??
-          (widget.obscure ? TextInputType.text : TextInputType.visiblePassword),
+      keyboardType: keyboardType,
+      // Default 20, plus the Done pill over a return-less iOS keyboard.
+      scrollPadding: defaultTargetPlatform == TargetPlatform.iOS &&
+              keyboardLacksReturnKey(keyboardType)
+          ? const EdgeInsets.fromLTRB(
+              20, 20, 20, 20 + KeyboardDismissRegion.reservedHeight)
+          : const EdgeInsets.all(20),
       textCapitalization: TextCapitalization.none,
       autocorrect: false,
       enableSuggestions: false,
@@ -1228,15 +1240,15 @@ Future<bool> confirmPinAction({
         title: Text(title),
         content: Text(body),
         actions: [
-          Semantics(
-            identifier: cancelId,
+          ControlId(
+            cancelId,
             child: TextButton(
               onPressed: () => Navigator.pop(context, false),
               child: Text(l.cancel),
             ),
           ),
-          Semantics(
-            identifier: confirmId,
+          ControlId(
+            confirmId,
             child: FilledButton(
               style: destructive
                   ? FilledButton.styleFrom(

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../l10n/app_localizations.dart';
+import 'control_id.dart';
 
 /// Bitwarden `TwoFactorProviderType` ids.
 abstract final class TwoFactorProvider {
@@ -464,8 +465,8 @@ class _VerificationCodeDialogState extends State<VerificationCodeDialog> {
           ],
           if (widget.showRemember) ...[
             const SizedBox(height: 8),
-            Semantics(
-              identifier: 'chk_remember_device',
+            ControlId(
+              'chk_remember_device',
               child: CheckboxListTile(
                 value: _remember,
                 onChanged: _busy
@@ -484,8 +485,8 @@ class _VerificationCodeDialogState extends State<VerificationCodeDialog> {
               spacing: 8,
               children: [
                 if (widget.onResend != null)
-                  Semantics(
-                    identifier: 'btn_resend_code',
+                  ControlId(
+                    'btn_resend_code',
                     child: TextButton.icon(
                       onPressed: _busy || _resending ? null : _resend,
                       icon: _resending
@@ -499,8 +500,8 @@ class _VerificationCodeDialogState extends State<VerificationCodeDialog> {
                     ),
                   ),
                 if (widget.offerAnotherMethod)
-                  Semantics(
-                    identifier: 'btn_another_method',
+                  ControlId(
+                    'btn_another_method',
                     child: TextButton(
                       onPressed: _busy
                           ? null
@@ -522,8 +523,8 @@ class _VerificationCodeDialogState extends State<VerificationCodeDialog> {
                   VerificationDialogOutcome.cancelled)),
           child: Text(l.cancel),
         ),
-        Semantics(
-          identifier: 'btn_totp_verify',
+        ControlId(
+          'btn_totp_verify',
           child: FilledButton(
             onPressed: _busy ? null : _submit,
             child: _busy

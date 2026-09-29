@@ -15,6 +15,7 @@ import '../providers/session_provider.dart';
 import '../services/vault_api.dart';
 import '../utils/error_formatter.dart';
 import '../widgets/client_cert_section.dart';
+import '../widgets/control_id.dart';
 import '../widgets/login_dialogs.dart';
 import '../widgets/server_selector.dart';
 
@@ -184,7 +185,11 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
     // Screenshot builds (DEMO_MODE=setup/totp) show this screen with the
     // real providers: never reach a server or the keychain from there.
     if (demoActive) return;
-    if (!_formKey.currentState!.validate()) return;
+    final invalid = _formKey.currentState!.validateGranularly();
+    if (invalid.isNotEmpty) {
+      _revealFirstError(invalid);
+      return;
+    }
     if (!await _confirmPlainHttp()) return;
     if (!await _ensureBiometrics()) return;
     if (!mounted) return;
@@ -192,6 +197,27 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
       serverUrl: _serverUrl,
       email: _emailController.text.trim(),
       password: _passwordController.text,
+    ));
+  }
+
+  /// The Set Up button is pinned under the scrolling form, so a field with
+  /// an error may be scrolled out of view: bring the topmost one back.
+  void _revealFirstError(Set<FormFieldState<Object?>> invalid) {
+    double top(FormFieldState<Object?> field) {
+      final box = field.context.findRenderObject();
+      return box is RenderBox && box.attached
+          ? box.localToGlobal(Offset.zero).dy
+          : double.infinity;
+    }
+
+    final first = invalid.reduce((a, b) => top(a) <= top(b) ? a : b);
+    unawaited(Scrollable.ensureVisible(
+      first.context,
+      alignment: 0.2,
+      duration: MediaQuery.disableAnimationsOf(context)
+          ? Duration.zero
+          : const Duration(milliseconds: 350),
+      curve: appSpring,
     ));
   }
 
@@ -217,8 +243,8 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
             onPressed: () => Navigator.of(ctx).pop(false),
             child: Text(l.cancel),
           ),
-          Semantics(
-            identifier: 'btn_plain_http_continue',
+          ControlId(
+            'btn_plain_http_continue',
             child: TextButton(
               style: TextButton.styleFrom(
                 foregroundColor: Theme.of(ctx).colorScheme.error,
@@ -704,6 +730,9 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
     final theme = Theme.of(context);
     final l = _l;
     final notice = ref.watch(sessionEndNoticeProvider);
+    // Read above the Scaffold: its body's MediaQuery has the keyboard
+    // inset removed.
+    final keyboardUp = MediaQuery.viewInsetsOf(context).bottom > 0;
 
     return Scaffold(
       appBar: AppBar(
@@ -717,7 +746,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
             Expanded(
               child: Center(
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(24),
+                  padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 480),
                     child: Form(
@@ -803,40 +832,6 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                               return null;
                             },
                           ),
-                          const SizedBox(height: 24),
-
-                          // Submit button
-                          Semantics(
-                            identifier: 'btn_submit_setup',
-                            child: SizedBox(
-                              width: double.infinity,
-                              height: 48,
-                              child: FilledButton(
-                                onPressed: _isLoading ? null : _submit,
-                                child: _isLoading
-                                    ? Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          const SizedBox(
-                                            width: 18,
-                                            height: 18,
-                                            child: CircularProgressIndicator(
-                                              strokeWidth: 2,
-                                            ),
-                                          ),
-                                          const SizedBox(width: 12),
-                                          Flexible(
-                                            child: Text(
-                                              _progressLabel(l),
-                                              overflow: TextOverflow.ellipsis,
-                                            ),
-                                          ),
-                                        ],
-                                      )
-                                    : Text(l.setUp),
-                              ),
-                            ),
-                          ),
                         ],
                       ),
                     ),
@@ -844,8 +839,55 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                 ),
               ),
             ),
-            _buildVersionFooter(theme),
+            // Primary action pinned under the scrolling form, so it is on
+            // screen on every phone — also with the self-hosted URL and a
+            // certificate card, and above the keyboard.
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 8, 24, 0),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 480),
+                child: _buildSubmitButton(l),
+              ),
+            ),
+            // While typing, the space goes to the form; the footer (and its
+            // 5-tap demo gesture) is back as soon as the keyboard closes.
+            if (keyboardUp)
+              const SizedBox(height: 12)
+            else
+              _buildVersionFooter(theme),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSubmitButton(AppLocalizations l) {
+    return Semantics(
+      identifier: 'btn_submit_setup',
+      child: SizedBox(
+        width: double.infinity,
+        height: 48,
+        child: FilledButton(
+          onPressed: _isLoading ? null : _submit,
+          child: _isLoading
+              ? Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                    const SizedBox(width: 12),
+                    Flexible(
+                      child: Text(
+                        _progressLabel(l),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                )
+              : Text(l.setUp),
         ),
       ),
     );

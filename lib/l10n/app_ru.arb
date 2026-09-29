@@ -923,5 +923,6 @@
     }
   },
   "pin24ImportUseToggles": "Вернуть переключатели",
-  "demoRibbon": "ДЕМО"
+  "demoRibbon": "ДЕМО",
+  "keyboardDone": "Готово"
 }

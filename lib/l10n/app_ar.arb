@@ -980,5 +980,6 @@
     }
   },
   "pin24ImportUseToggles": "استخدام المفاتيح",
-  "demoRibbon": "تجريبي"
+  "demoRibbon": "تجريبي",
+  "keyboardDone": "تم"
 }

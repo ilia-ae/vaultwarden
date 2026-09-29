@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../l10n/app_localizations.dart';
 import '../../services/privacy_service.dart';
 import '../../utils/external_picker.dart';
+import '../../widgets/keyboard_dismiss.dart';
 import '../../widgets/option_pills.dart';
 import 'legacy_mask_view.dart';
 import 'pin24_view.dart';
@@ -304,7 +305,7 @@ class _PinSectionState extends ConsumerState<PinSection>
         ? PinTool.pin24
         : selected;
     final veil = _veil;
-    final media = MediaQuery.of(context);
+    final padding = MediaQuery.paddingOf(context);
 
     final tools = [
       (value: PinTool.pin24, label: l.pinToolPin24),
@@ -313,66 +314,79 @@ class _PinSectionState extends ConsumerState<PinSection>
       if (showLegacy) (value: PinTool.legacyMask, label: l.pinToolLegacy),
     ];
 
-    final content = Listener(
-      onPointerDown: (_) => _session.touch(),
-      child: SingleChildScrollView(
-        padding: EdgeInsets.only(top: media.padding.top + 8, bottom: 40),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            OptionPills<PinTool>(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              options: tools,
-              identifiers: [for (final t in tools) 'pin_tool_${t.value.id}'],
-              selected: tool,
-              onSelected: _selectTool,
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const SizedBox(height: 8),
-                  PinCaption(l.pinOfflineNote),
-                  if (_screenshotsAllowedBuild) ...[
+    // iOS number pads have no return key: a tap outside the fields, a drag
+    // of the list or the Done pill closes the keyboard (unfocus only — the
+    // wipe rules above are unchanged).
+    final content = KeyboardDismissRegion(
+      child: Listener(
+        onPointerDown: (_) => _session.touch(),
+        child: SingleChildScrollView(
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+          // Side insets keep the cards clear of the Dynamic Island / cutout
+          // in landscape; the 20 pt gutters sit on top of them.
+          padding: EdgeInsets.fromLTRB(
+            padding.left,
+            padding.top + 8,
+            padding.right,
+            padding.bottom + 40,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              OptionPills<PinTool>(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                options: tools,
+                identifiers: [for (final t in tools) 'pin_tool_${t.value.id}'],
+                selected: tool,
+                onSelected: _selectTool,
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
                     const SizedBox(height: 8),
-                    Align(
-                      alignment: AlignmentDirectional.centerStart,
-                      child: Semantics(
-                        identifier: 'pin_screenshots_allowed',
-                        child: PinWarningChip(l.pinScreenshotsAllowedBuild),
+                    PinCaption(l.pinOfflineNote),
+                    if (_screenshotsAllowedBuild) ...[
+                      const SizedBox(height: 8),
+                      Align(
+                        alignment: AlignmentDirectional.centerStart,
+                        child: Semantics(
+                          identifier: 'pin_screenshots_allowed',
+                          child: PinWarningChip(l.pinScreenshotsAllowedBuild),
+                        ),
                       ),
-                    ),
+                    ],
+                    // PIN 24 shows its own hint next to the seed field.
+                    if (tool != PinTool.pin24) _SeedInMemoryRow(_session),
+                    // PIN 24 and YubiKey show the reminder next to their field.
+                    if (tool == PinTool.pinShift || tool == PinTool.legacyMask)
+                      PinClipboardReminder(
+                        session: _session,
+                        identifier: 'pin_clear_clipboard',
+                      ),
+                    const SizedBox(height: 6),
                   ],
-                  // PIN 24 shows its own hint next to the seed field.
-                  if (tool != PinTool.pin24) _SeedInMemoryRow(_session),
-                  // PIN 24 and YubiKey show the reminder next to their field.
-                  if (tool == PinTool.pinShift || tool == PinTool.legacyMask)
-                    PinClipboardReminder(
-                      session: _session,
-                      identifier: 'pin_clear_clipboard',
-                    ),
-                  const SizedBox(height: 6),
-                ],
+                ),
               ),
-            ),
-            switch (tool) {
-              PinTool.pin24 => const Pin24View(),
-              PinTool.pinShift => const PinShiftView(),
-              PinTool.yubikey => const YubikeyView(),
-              PinTool.legacyMask => const LegacyMaskView(),
-            },
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
-              child: PinSwitchRow(
-                identifier: 'pin_show_legacy',
-                label: l.pinShowLegacy,
-                caption: l.pinShowLegacyHelp,
-                value: showLegacy,
-                onChanged: (v) => _setShowLegacy(prefs, v),
+              switch (tool) {
+                PinTool.pin24 => const Pin24View(),
+                PinTool.pinShift => const PinShiftView(),
+                PinTool.yubikey => const YubikeyView(),
+                PinTool.legacyMask => const LegacyMaskView(),
+              },
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+                child: PinSwitchRow(
+                  identifier: 'pin_show_legacy',
+                  label: l.pinShowLegacy,
+                  caption: l.pinShowLegacyHelp,
+                  value: showLegacy,
+                  onChanged: (v) => _setShowLegacy(prefs, v),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

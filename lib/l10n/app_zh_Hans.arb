@@ -980,5 +980,6 @@
     }
   },
   "pin24ImportUseToggles": "改用开关",
-  "demoRibbon": "演示"
+  "demoRibbon": "演示",
+  "keyboardDone": "完成"
 }

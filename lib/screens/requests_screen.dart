@@ -253,6 +253,25 @@ class _RequestsScreenState extends ConsumerState<RequestsScreen>
   }
 }
 
+/// Padding of a tab's list. The body extends behind the glass bar, so the
+/// top clears the bar; left/right add the safe-area insets (the Dynamic
+/// Island / cutout in landscape) under the cards' own 16/20 pt gutters, and
+/// the bottom adds the home-indicator inset to [bottom].
+EdgeInsets _listPadding(BuildContext context, {required double bottom}) {
+  final padding = MediaQuery.paddingOf(context);
+  return EdgeInsets.fromLTRB(
+    padding.left,
+    padding.top + 8,
+    padding.right,
+    padding.bottom + bottom,
+  );
+}
+
+/// Room under the last card for the demo '+' FAB: its height (56), the
+/// margin the Scaffold keeps below it (16, on top of the home-indicator
+/// inset that [_listPadding] adds anyway) and a 16 pt gap above it.
+const double _fabClearance = 56 + 16 + 16;
+
 /// Empty/error placeholder anchored to the exact SCREEN center on every tab.
 /// The body fills the whole scaffold (extendBodyBehindAppBar), so centering
 /// in the full viewport height puts the child at the screen's vertical
@@ -272,8 +291,12 @@ class _CenteredPlaceholder extends StatelessWidget {
         // which, under extendBodyBehindAppBar, is the app bar + status bar
         // (~150pt). That shoved the centred child well below the screen
         // middle. Zero padding keeps the box exactly the viewport height so
-        // Center lands on the true screen centre.
-        padding: EdgeInsets.zero,
+        // Center lands on the true screen centre. Side insets only: they
+        // keep the text clear of the Dynamic Island / cutout in landscape.
+        padding: EdgeInsets.only(
+          left: MediaQuery.paddingOf(context).left,
+          right: MediaQuery.paddingOf(context).right,
+        ),
         children: [
           SizedBox(
             height: constraints.maxHeight,
@@ -401,10 +424,12 @@ class _PendingTab extends ConsumerWidget {
           edgeOffset: MediaQuery.of(context).padding.top,
           onRefresh: () => ref.read(authRequestsProvider.notifier).refresh(),
           child: ListView.builder(
-            padding: EdgeInsets.only(
-                top: MediaQuery.of(context).padding.top + 8,
-                // Clear the demo '+' FAB so it never covers the last card.
-                bottom: demoActive ? 96 : 16),
+            padding: _listPadding(
+              context,
+              // The demo '+' FAB floats over the list: let the last card
+              // scroll clear of it (portrait and landscape).
+              bottom: demoActive ? _fabClearance : 16,
+            ),
             itemCount: requests.length,
             itemBuilder: (context, index) {
               final request = requests[index];
@@ -491,8 +516,7 @@ class _HistoryTab extends ConsumerWidget {
 
     // history.length items + 1 "Clear All" footer
     return ListView.builder(
-      padding: EdgeInsets.only(
-          top: MediaQuery.of(context).padding.top + 8, bottom: 32),
+      padding: _listPadding(context, bottom: 32),
       itemCount: history.length + 1,
       itemBuilder: (context, index) {
         // Last item = "Clear All" button
@@ -676,7 +700,12 @@ class _SettingsSheet extends ConsumerWidget {
 
     return ListView(
       controller: scrollController,
-      padding: const EdgeInsets.symmetric(vertical: 16),
+      // The sheet's SafeArea covers top/left/right; the bottom is ours, so
+      // Log out never sits under the home indicator.
+      padding: EdgeInsets.only(
+        top: 16,
+        bottom: 16 + MediaQuery.paddingOf(context).bottom,
+      ),
       children: [
         // Handle
         Center(

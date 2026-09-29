@@ -1157,5 +1157,9 @@
     }
   },
   "pin24ImportUseToggles": "Use the toggles",
-  "demoRibbon": "DEMO"
+  "demoRibbon": "DEMO",
+  "keyboardDone": "Done",
+  "@keyboardDone": {
+    "description": "Button above an iOS number pad (which has no return key) that closes the keyboard."
+  }
 }

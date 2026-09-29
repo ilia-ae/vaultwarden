@@ -9,6 +9,7 @@ import '../../l10n/app_localizations.dart';
 import '../../pin_tools/bip39.dart';
 import '../../pin_tools/ledger_pin24.dart' show kCharsets, kPinMask;
 import '../../services/privacy_service.dart';
+import '../../widgets/control_id.dart';
 import '../../widgets/option_pills.dart';
 import 'nickname_backup.dart';
 import 'nickname_backup_picker.dart';
@@ -485,8 +486,8 @@ class _Pin24ViewState extends ConsumerState<Pin24View> {
           ),
         ),
         actions: [
-          Semantics(
-            identifier: 'pin24_import_choose_cancel',
+          ControlId(
+            'pin24_import_choose_cancel',
             child: TextButton(
               onPressed: () => Navigator.pop(context),
               child: Text(l.cancel),
@@ -1444,8 +1445,8 @@ class _Pin24ViewState extends ConsumerState<Pin24View> {
           ],
         ),
         actions: [
-          Semantics(
-            identifier: 'pin24_specials_ok',
+          ControlId(
+            'pin24_specials_ok',
             child: TextButton(
               onPressed: () => Navigator.pop(context),
               child: Text(MaterialLocalizations.of(context).okButtonLabel),
