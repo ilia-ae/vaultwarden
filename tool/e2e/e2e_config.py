@@ -13,13 +13,17 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 REPO_ROOT = HERE.parent.parent
 PKI_DIR = HERE / ".pki"
-STATE_DIR = HERE / ".state"
 WORDLIST_DART = REPO_ROOT / "lib" / "utils" / "eff_wordlist.dart"
 
 
 def _env(name: str, default: str) -> str:
     value = os.environ.get(name, "").strip()
     return value or default
+
+
+# Harness state (device ids, remember tokens, e2e.env). test/live/live_auth_test.dart points
+# this at test/live/.state so a real account's requester device never mixes with local e2e state.
+STATE_DIR = Path(_env("VA_E2E_STATE_DIR", str(HERE / ".state")))
 
 
 # Direct, plain-HTTP Vaultwarden 1.37.1 (no proxy).
@@ -113,9 +117,12 @@ def env_lines() -> list[str]:
 
 
 def tls_kwargs(base: str) -> dict:
-    """requests.Session settings for a base URL: CA + client cert for the mTLS front."""
+    """requests.Session settings for a base URL: CA + client cert for the mTLS front.
+
+    Without a CA file the system trust store is used (a server with a public certificate).
+    """
     if base.startswith("https://") and base.rstrip("/") == MTLS_BASE.rstrip("/"):
-        return {"verify": str(CA_PEM), "cert": (str(CLIENT_CRT), str(CLIENT_KEY))}
+        return {"verify": str(CA_PEM) if CA_PEM.exists() else True, "cert": (str(CLIENT_CRT), str(CLIENT_KEY))}
     if base.startswith("https://"):
         return {"verify": str(CA_PEM) if CA_PEM.exists() else True, "cert": None}
     return {"verify": True, "cert": None}

@@ -1,0 +1,4 @@
+# Written by live_auth_test.dart: the app device id and requester.py state
+# (device id, "registered", a 2FA remember token on TOTP accounts). Never commit.
+.device_id
+.state/

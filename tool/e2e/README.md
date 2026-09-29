@@ -79,6 +79,7 @@ The 1.37.3 tests are skipped when `VA_E2E_VW137_BASE` is not reachable.
 | `VA_E2E_CLIENT_CRT`, `VA_E2E_CLIENT_KEY` | PEM form of the same identity (`client.crt`, `client.key`) |
 | `VA_E2E_TOTP_SECRET` | `VAE2ETOTPSECRETXVAE2ETOTPSECRETX` (base32, 20 bytes) |
 | `VA_E2E_ADMIN_TOKEN` | `va-e2e-admin-token` (plain-text `/admin` token, local only) |
+| `VA_E2E_STATE_DIR` | `<repo>/tool/e2e/.state` (harness state; `test/live/live_auth_test.dart` uses `test/live/.state`) |
 | `VA_E2E_PBKDF2_EMAIL` / `_PASSWORD` | `pbkdf2@e2e.test` / `E2e-Pbkdf2-Passw0rd!` |
 | `VA_E2E_ARGON_EMAIL` / `_PASSWORD` | `argon@e2e.test` / `E2e-Argon2-Passw0rd!` |
 | `VA_E2E_TOTP_EMAIL` / `_PASSWORD` | `totp@e2e.test` / `E2e-Totp-Passw0rd!` |
