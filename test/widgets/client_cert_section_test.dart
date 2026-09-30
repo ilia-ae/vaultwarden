@@ -173,7 +173,7 @@ void main() {
     );
     final (_, _, c) = await _pump(tester, certs: certs);
     expect(find.text('ilia-ios'), findsOneWidget);
-    expect(find.textContaining('Expires in 10 d'), findsOneWidget);
+    expect(find.textContaining('Expires in 10 days'), findsOneWidget);
     c.dispose();
   });
 

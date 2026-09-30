@@ -25,13 +25,14 @@ import '../widgets/device_icon.dart';
 import '../widgets/server_selector.dart';
 import '../widgets/glass_top_bar.dart';
 import '../widgets/option_pills.dart';
+import '../widgets/segmented_tabs.dart';
 import 'pin/pin_section.dart';
 
-/// What the Vault tab shows, switched by the pills at its top.
+/// What the Vault tab shows, switched by the segmented tabs at its top.
 enum VaultView { pending, history }
 
 /// The main screen: a Vault tab (login-with-device requests, with its
-/// Pending/History pills) and the PIN tools tab.
+/// Pending/History segmented tabs) and the PIN tools tab.
 class RequestsScreen extends ConsumerStatefulWidget {
   const RequestsScreen({super.key});
 
@@ -52,10 +53,15 @@ class _RequestsScreenState extends ConsumerState<RequestsScreen>
   static const _pinTab = 1;
   int _tabIndex = _vaultTab;
 
-  /// The Vault tab's pill. Kept here, not in the tab's page, so it survives
+  /// The Vault tab's segment. Kept here, not in the tab's page, so it survives
   /// a visit to the PIN tab (the page itself is not kept alive); a new
   /// screen (unlock, next launch) starts on Pending.
   VaultView _vaultView = VaultView.pending;
+
+  /// Keeps the Vault picker's state (its gliding droplet) while the list
+  /// under it is swapped: Pending and History are different lists, each
+  /// with the picker as its first item.
+  final _vaultPickerKey = GlobalKey(debugLabel: 'vault_picker');
 
   /// Whether this screen holds a FLAG_SECURE request for the PIN tab.
   bool _pinSecureHeld = false;
@@ -249,6 +255,10 @@ class _RequestsScreenState extends ConsumerState<RequestsScreen>
               child: FloatingActionButton(
                 heroTag: 'demo_add',
                 tooltip: l.demoAddRequest,
+                // Neutral: the accent is kept for Approve.
+                backgroundColor:
+                    Theme.of(context).colorScheme.surfaceContainerHighest,
+                foregroundColor: Theme.of(context).colorScheme.onSurface,
                 onPressed: () =>
                     ref.read(authRequestsProvider.notifier).addDemoRequest(),
                 child: const Icon(Icons.add),
@@ -259,6 +269,7 @@ class _RequestsScreenState extends ConsumerState<RequestsScreen>
         controller: _tabController,
         children: [
           _VaultTab(
+            pickerKey: _vaultPickerKey,
             view: _vaultView,
             onViewChanged: (view) {
               if (view != _vaultView) setState(() => _vaultView = view);
@@ -274,11 +285,18 @@ class _RequestsScreenState extends ConsumerState<RequestsScreen>
   }
 }
 
-/// The Vault tab: Pending/History pills at the top (where the PIN tab has
-/// its tool picker) over the selected list. The pills scroll with the list,
-/// like the PIN picker, so the list still slides under the glass bar.
-class _VaultTab extends StatelessWidget {
+/// The Vault tab: Pending/History segmented tabs at the top (where the PIN
+/// tab has its tool picker, the same control) over the selected list. They
+/// scroll with the list, like the PIN picker, so the list still slides under
+/// the glass bar.
+///
+/// Pending shows how many requests can still be answered ("Pending 1"),
+/// only while there are any. The count drops by itself when a request's
+/// 5-minute window closes (a timer to the next expiry: the demo list keeps
+/// expired requests, and the live list only sweeps them a moment later).
+class _VaultTab extends ConsumerStatefulWidget {
   const _VaultTab({
+    required this.pickerKey,
     required this.view,
     required this.onViewChanged,
     required this.loadingRequestId,
@@ -286,6 +304,7 @@ class _VaultTab extends StatelessWidget {
     required this.onDeny,
   });
 
+  final GlobalKey pickerKey;
   final VaultView view;
   final ValueChanged<VaultView> onViewChanged;
   final String? loadingRequestId;
@@ -293,27 +312,64 @@ class _VaultTab extends StatelessWidget {
   final Future<void> Function(String) onDeny;
 
   @override
+  ConsumerState<_VaultTab> createState() => _VaultTabState();
+}
+
+class _VaultTabState extends ConsumerState<_VaultTab> {
+  Timer? _expiry;
+
+  @override
+  void dispose() {
+    _expiry?.cancel();
+    super.dispose();
+  }
+
+  /// Requests still inside their window; re-arms the rebuild at the next
+  /// expiry among them.
+  int _actionableCount() {
+    final requests = ref.watch(authRequestsProvider).valueOrNull ?? const [];
+    final now = ref.read(requestClockProvider)();
+    var count = 0;
+    Duration? next;
+    for (final r in requests) {
+      if (!r.isActionableAt(now)) continue;
+      count++;
+      final left = r.remaining(now);
+      if (next == null || left < next) next = left;
+    }
+    _expiry?.cancel();
+    _expiry = next == null
+        ? null
+        : Timer(next + const Duration(milliseconds: 50), () {
+            if (mounted) setState(() {});
+          });
+    return count;
+  }
+
+  @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context)!;
-    final pills = OptionPills<VaultView>(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      options: [
+    final pending = _actionableCount();
+    final picker = SegmentedTabs<VaultView>(
+      key: widget.pickerKey,
+      segments: [
         (value: VaultView.pending, label: l.pendingTab),
         (value: VaultView.history, label: l.historyTab),
       ],
+      counts: {VaultView.pending: pending},
       // The store screenshot flows tap these (they were the tabs' ids).
       identifiers: const ['tab_pending', 'tab_history'],
-      selected: view,
-      onSelected: onViewChanged,
+      selected: widget.view,
+      onSelected: widget.onViewChanged,
     );
-    return switch (view) {
+    return switch (widget.view) {
       VaultView.pending => _PendingView(
-          header: pills,
-          loadingRequestId: loadingRequestId,
-          onApprove: onApprove,
-          onDeny: onDeny,
+          header: picker,
+          loadingRequestId: widget.loadingRequestId,
+          onApprove: widget.onApprove,
+          onDeny: widget.onDeny,
         ),
-      VaultView.history => _HistoryView(header: pills),
+      VaultView.history => _HistoryView(header: picker),
     };
   }
 }
@@ -337,9 +393,10 @@ EdgeInsets _listPadding(BuildContext context, {required double bottom}) {
 /// inset that [_listPadding] adds anyway) and a 16 pt gap above it.
 const double _fabClearance = 56 + 16 + 16;
 
-/// The Vault pills as a list's first item. The gap under them plus the
-/// first card's own vertical [cardMargin] is 14 pt, as under the PIN tab's
-/// tool picker.
+/// The Vault picker as a list's first item. The visible gap from its track
+/// to the first card (the picker's own tap margin, this padding and the
+/// card's vertical [cardMargin]) is 14 pt, as under the PIN tab's tool
+/// picker.
 class _ListHeader extends StatelessWidget {
   const _ListHeader(this.header, {required this.cardMargin});
 
@@ -348,17 +405,19 @@ class _ListHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-        padding: EdgeInsets.only(bottom: 14 - cardMargin),
+        padding: EdgeInsets.only(
+          bottom: math.max(0, 14 - cardMargin - SegmentedTabs.tapMargin),
+        ),
         child: header,
       );
 }
 
 /// Empty/error/loading placeholder anchored to the exact SCREEN center on
-/// both Vault views, under the Vault pills ([header]) at the spot where the
+/// both Vault views, under the Vault picker ([header]) at the spot where the
 /// lists show them. The body fills the whole scaffold
 /// (extendBodyBehindAppBar), so centering in the full viewport height puts
 /// the child at the screen's vertical middle — identical on Pending and
-/// History, no bar-height offset. Where the middle would run into the pills
+/// History, no bar-height offset. Where the middle would run into the picker
 /// (landscape, large text) the child sits right below them instead and the
 /// placeholder grows. Stays scrollable so pull-to-refresh keeps working.
 class _CenteredPlaceholder extends StatelessWidget {
@@ -481,7 +540,7 @@ class _RenderHeaderedCenter extends RenderBox
 
 /// Vault › Pending: the requests waiting for an answer, under [header].
 class _PendingView extends ConsumerWidget {
-  /// The Vault pills: the list's first item, above every state.
+  /// The Vault picker: the list's first item, above every state.
   final Widget header;
   final String? loadingRequestId;
   final Future<void> Function(String) onApprove;
@@ -610,7 +669,7 @@ class _PendingView extends ConsumerWidget {
               // scroll clear of it (portrait and landscape).
               bottom: demoActive ? _fabClearance : 16,
             ),
-            // The pills first, then the cards.
+            // The picker first, then the cards.
             itemCount: requests.length + 1,
             itemBuilder: (context, index) {
               if (index == 0) return _ListHeader(header, cardMargin: 8);
@@ -635,7 +694,7 @@ class _PendingView extends ConsumerWidget {
 class _HistoryView extends ConsumerWidget {
   const _HistoryView({required this.header});
 
-  /// The Vault pills: the list's first item, above the empty state too.
+  /// The Vault picker: the list's first item, above the empty state too.
   final Widget header;
 
   Future<void> _clearHistory(BuildContext context, WidgetRef ref) async {
@@ -701,7 +760,7 @@ class _HistoryView extends ConsumerWidget {
       );
     }
 
-    // The pills, history.length entries, a "Clear All" footer.
+    // The picker, history.length entries, a "Clear All" footer.
     return ListView.builder(
       padding: _listPadding(context, bottom: 32),
       itemCount: history.length + 2,
@@ -726,9 +785,11 @@ class _HistoryView extends ConsumerWidget {
         final entry = history[index];
         final ago = _timeAgo(context, entry.respondedAt);
         final responseSeconds = entry.responseTime.inSeconds;
+        final l = AppLocalizations.of(context)!;
         final responseStr = responseSeconds < 60
-            ? '${responseSeconds}s'
-            : '${entry.responseTime.inMinutes}m ${responseSeconds % 60}s';
+            ? l.responseTimeSeconds(responseSeconds)
+            : l.responseTimeMinutes(
+                entry.responseTime.inMinutes, responseSeconds % 60);
 
         return Dismissible(
           key: ValueKey(entry.requestId + entry.respondedAt.toIso8601String()),
@@ -963,17 +1024,7 @@ class _SettingsSheet extends ConsumerWidget {
         SectionHeader(l.languageSection),
         const SizedBox(height: 4),
         OptionPills<Locale?>(
-          options: [
-            (value: null, label: l.languageSystem),
-            (value: const Locale('en'), label: 'English'),
-            (value: const Locale('ru'), label: 'Русский'),
-            (value: const Locale('ar'), label: 'العربية'),
-            (
-              value: const Locale.fromSubtags(
-                  languageCode: 'zh', scriptCode: 'Hans'),
-              label: '简体中文'
-            ),
-          ],
+          options: appLanguageOptions(l),
           selected: currentLocale,
           onSelected: (v) => ref.read(localeProvider.notifier).state = v,
         ),

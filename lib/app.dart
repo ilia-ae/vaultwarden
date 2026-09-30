@@ -1,10 +1,12 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show SystemUiOverlayStyle;
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'demo_fixtures.dart';
+import 'glass.dart';
 import 'l10n/app_localizations.dart';
 import 'models/settings_snapshot.dart';
 import 'models/user_session.dart';
@@ -87,6 +89,21 @@ final localeProvider = StateProvider<Locale?>((ref) {
   if (_demoLocale.isNotEmpty) return _parseAscLocale(_demoLocale);
   return ref.watch(settingsServiceProvider).locale;
 });
+
+/// The language choices for [localeProvider], shared by the settings sheet
+/// and the setup screen: follow the system, then every supported language
+/// in its own name.
+List<({Locale? value, String label})> appLanguageOptions(AppLocalizations l) =>
+    [
+      (value: null, label: l.languageSystem),
+      (value: const Locale('en'), label: 'English'),
+      (value: const Locale('ru'), label: 'Русский'),
+      (value: const Locale('ar'), label: 'العربية'),
+      (
+        value: const Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hans'),
+        label: '简体中文'
+      ),
+    ];
 
 /// Lock timeout in seconds. 0 = immediate, -1 = never. Persisted locally.
 /// A stored value outside [kLockTimeoutOptions] reads as 0 (lock at once).
@@ -339,8 +356,14 @@ class _AppState extends ConsumerState<App> with WidgetsBindingObserver {
       supportedLocales: AppLocalizations.supportedLocales,
       locale: locale,
       builder: (context, child) {
-        // Scene background under every screen (scaffolds are transparent).
-        final content = AppBackground(child: child!);
+        // Scene background under every screen (scaffolds are transparent),
+        // and a status bar that matches the theme on every screen — setup,
+        // lock and requests alike (an AppBar applies the same style via
+        // appBarTheme below, since its own region wins over this one).
+        final content = AnnotatedRegion<SystemUiOverlayStyle>(
+          value: systemOverlayStyleFor(Theme.of(context).brightness),
+          child: AppBackground(child: child!),
+        );
         // Ribbon rebuilds live when a tester flips the runtime demo toggle.
         return ValueListenableBuilder<bool>(
           valueListenable: demoRuntime,
@@ -365,6 +388,11 @@ class _AppState extends ConsumerState<App> with WidgetsBindingObserver {
         // The AppBackground scene shows through every screen.
         scaffoldBackgroundColor: Colors.transparent,
         snackBarTheme: _appSnackBarTheme,
+        // A transparent AppBar would otherwise pick light icons (it reads
+        // its see-through colour as dark): white on the light scene.
+        appBarTheme: AppBarTheme(
+          systemOverlayStyle: systemOverlayStyleFor(Brightness.light),
+        ),
       ),
       darkTheme: ThemeData(
         useMaterial3: true,
@@ -372,6 +400,9 @@ class _AppState extends ConsumerState<App> with WidgetsBindingObserver {
         brightness: Brightness.dark,
         scaffoldBackgroundColor: Colors.transparent,
         snackBarTheme: _appSnackBarTheme,
+        appBarTheme: AppBarTheme(
+          systemOverlayStyle: systemOverlayStyleFor(Brightness.dark),
+        ),
       ),
       home: sessionAsync.when(
         data: (session) {

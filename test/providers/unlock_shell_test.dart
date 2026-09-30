@@ -84,12 +84,12 @@ void main() {
 
     await tester.pumpWidget(_shell(h.container, locked: true));
     await tester.pumpAndSettle();
-    expect(find.text('Logout'), findsOneWidget);
+    expect(find.text('Log out'), findsOneWidget);
     expect(bio.prompts, 0, reason: 'no pointless Face ID prompt');
 
-    await tester.tap(find.text('Logout'));
+    await tester.tap(find.text('Log out'));
     await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(FilledButton, 'Logout').last);
+    await tester.tap(find.widgetWithText(FilledButton, 'Log out').last);
     await tester.pumpAndSettle();
     expect(h.container.read(sessionProvider).value, isNull);
     expect((await h.keychain())[SecureStorageService.keyDeviceId], isNotNull);
@@ -139,7 +139,7 @@ void main() {
       await tester.pump();
       await tester.pump();
       expect(find.text(_keyMissingText), findsNothing);
-      expect(find.text('Logout'), findsNothing);
+      expect(find.text('Log out'), findsNothing);
       expect(bio.prompts, 0, reason: 'no prompt before the app is active');
 
       keychain.locked = false; // didBecomeActive / protected data available
@@ -193,7 +193,7 @@ void main() {
       await tester.pumpWidget(_shell(h.container, locked: true));
       await tester.pumpAndSettle();
       expect(find.text(_keyMissingText), findsOneWidget);
-      expect(find.text('Logout'), findsOneWidget);
+      expect(find.text('Log out'), findsOneWidget);
       expect(find.text('Retry'), findsOneWidget);
       expect(bio.prompts, 0);
 

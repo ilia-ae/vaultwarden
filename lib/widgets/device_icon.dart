@@ -183,7 +183,8 @@ Color? browserBrandColor(BrowserBrand? brand) => switch (brand) {
     };
 
 /// Rounded tile with the device's icon; browsers and extensions are tinted
-/// with their brand colour, everything else with the theme's primary colour.
+/// with their brand colour, everything else neutral (the accent colour is
+/// kept for the Approve button).
 class DeviceIcon extends StatelessWidget {
   const DeviceIcon({
     super.key,
@@ -199,8 +200,8 @@ class DeviceIcon extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final d = describeDevice(deviceName, typeValue);
-    final color =
-        browserBrandColor(d.brand) ?? Theme.of(context).colorScheme.primary;
+    final color = browserBrandColor(d.brand) ??
+        Theme.of(context).colorScheme.onSurfaceVariant;
     return ExcludeSemantics(
       child: Container(
         width: size,

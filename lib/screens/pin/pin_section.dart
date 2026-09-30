@@ -8,7 +8,7 @@ import '../../l10n/app_localizations.dart';
 import '../../services/privacy_service.dart';
 import '../../utils/external_picker.dart';
 import '../../widgets/keyboard_dismiss.dart';
-import '../../widgets/option_pills.dart';
+import '../../widgets/segmented_tabs.dart';
 import 'legacy_mask_view.dart';
 import 'pin24_view.dart';
 import 'pin_prefs.dart';
@@ -369,14 +369,19 @@ class _PinSectionState extends ConsumerState<PinSection>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              OptionPills<PinTool>(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                options: tools,
+              // The same control, at the same spot, as Vault's
+              // Pending/History picker.
+              SegmentedTabs<PinTool>(
+                segments: tools,
                 identifiers: [for (final t in tools) 'pin_tool_${t.value.id}'],
                 selected: tool,
                 onSelected: _selectTool,
               ),
-              if (notesBelow) const SizedBox(height: 7) else notes,
+              // The picker's tap margin is part of the gap under its track.
+              if (notesBelow)
+                const SizedBox(height: 7 - SegmentedTabs.tapMargin)
+              else
+                notes,
               switch (tool) {
                 PinTool.pinShift => const PinShiftView(),
                 PinTool.pin24 => const Pin24View(),

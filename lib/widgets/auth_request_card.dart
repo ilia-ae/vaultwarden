@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 
 import '../glass.dart';
 import '../l10n/app_localizations.dart';
@@ -50,9 +52,24 @@ class AuthRequestCard extends StatefulWidget {
     this.clock,
   });
 
+  /// Width of the trust frame (1.5 before: it outshouted the content).
+  static const double trustFrameWidth = 1;
+
+  /// Opacity of the green/red trust frame.
+  static const double trustFrameAlpha = 0.5;
+
   @override
   State<AuthRequestCard> createState() => _AuthRequestCardState();
 }
+
+/// The card's trust frame colour for [ipTrust] (see [AuthRequestCard]):
+/// green for a previously approved IP, red for a denied one, grey for an
+/// unknown one — all toned down.
+Color trustFrameColor(bool? ipTrust, ColorScheme cs) => switch (ipTrust) {
+      true => kTrustGreen.withValues(alpha: AuthRequestCard.trustFrameAlpha),
+      false => cs.error.withValues(alpha: AuthRequestCard.trustFrameAlpha),
+      null => cs.outlineVariant.withValues(alpha: 0.6),
+    };
 
 class _AuthRequestCardState extends State<AuthRequestCard> {
   Timer? _ticker;
@@ -118,12 +135,10 @@ class _AuthRequestCardState extends State<AuthRequestCard> {
     final canApprove = !expired && fingerprint != null && !widget.isLoading;
 
     // Trust frame replaces the old inline badge: previously-approved IP = green,
-    // previously-denied = red, never-seen = grey.
-    final Color trustBorder = ipTrust == true
-        ? kTrustGreen
-        : ipTrust == false
-            ? cs.error
-            : cs.outlineVariant;
+    // previously-denied = red, never-seen = grey. Toned down (thin, half
+    // alpha) so the request and the decision lead, not the frame; the status
+    // line below says the same in words.
+    final Color trustBorder = trustFrameColor(ipTrust, cs);
 
     final secondary = theme.textTheme.bodySmall?.copyWith(
       color: cs.onSurfaceVariant,
@@ -132,54 +147,68 @@ class _AuthRequestCardState extends State<AuthRequestCard> {
     return ContentCard(
       margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
       borderColor: trustBorder,
-      borderWidth: 1.5,
+      borderWidth: AuthRequestCard.trustFrameWidth,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header: device (left) + timing (right).
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              DeviceIcon(
-                deviceName: request.requestDeviceType,
-                typeValue: request.requestDeviceTypeValue,
-                size: 36,
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.only(top: 6),
-                  child: Text(
-                    request.requestDeviceType,
-                    style: theme.textTheme.titleMedium,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
+          // Header: device (left) + timing (right). The timing takes at
+          // most half the row: with large text it wraps instead of pushing
+          // the row over the card's edge.
+          LayoutBuilder(
+            builder: (context, box) => Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                DeviceIcon(
+                  deviceName: request.requestDeviceType,
+                  typeValue: request.requestDeviceTypeValue,
+                  size: 36,
                 ),
-              ),
-              const SizedBox(width: 8),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  if (request.hasCreationDate)
-                    Text(_timeAgo(l, request.age(now)), style: secondary),
-                  Semantics(
-                    identifier: 'text_request_countdown',
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 6),
                     child: Text(
-                      expired
-                          ? l.requestExpired
-                          : l.requestTimeLeft(formatCountdown(remaining)),
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color:
-                            expired || urgent ? cs.error : cs.onSurfaceVariant,
-                        fontWeight: expired || urgent ? FontWeight.w600 : null,
-                        fontFeatures: const [FontFeature.tabularFigures()],
-                      ),
+                      request.requestDeviceType,
+                      style: theme.textTheme.titleMedium,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                ],
-              ),
-            ],
+                ),
+                const SizedBox(width: 8),
+                ConstrainedBox(
+                  constraints: BoxConstraints(maxWidth: box.maxWidth / 2),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      if (request.hasCreationDate)
+                        Text(
+                          _timeAgo(l, request.age(now)),
+                          style: secondary,
+                          textAlign: TextAlign.end,
+                        ),
+                      Semantics(
+                        identifier: 'text_request_countdown',
+                        child: Text(
+                          expired
+                              ? l.requestExpired
+                              : l.requestTimeLeft(formatCountdown(remaining)),
+                          textAlign: TextAlign.end,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: expired || urgent
+                                ? cs.error
+                                : cs.onSurfaceVariant,
+                            fontWeight:
+                                expired || urgent ? FontWeight.w600 : null,
+                            fontFeatures: const [FontFeature.tabularFigures()],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: 10),
           // IP on its own line so long IPv6 addresses aren't squeezed, plus
@@ -188,24 +217,30 @@ class _AuthRequestCardState extends State<AuthRequestCard> {
           Semantics(
             identifier: 'text_request_ip',
             container: true,
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Icon(Icons.public, size: 16, color: cs.onSurfaceVariant),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: Text(
-                    request.requestIpAddress,
-                    style: secondary,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
+            child: LayoutBuilder(
+              builder: (context, box) => Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(Icons.public, size: 16, color: cs.onSurfaceVariant),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      request.requestIpAddress,
+                      style: secondary,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
-                ),
-                if (ipTrust != null) ...[
-                  const SizedBox(width: 8),
-                  _TrustStatus(trusted: ipTrust),
+                  if (ipTrust != null) ...[
+                    const SizedBox(width: 8),
+                    // At most half the row, wrapping under large text.
+                    ConstrainedBox(
+                      constraints: BoxConstraints(maxWidth: box.maxWidth / 2),
+                      child: _TrustStatus(trusted: ipTrust),
+                    ),
+                  ],
                 ],
-              ],
+              ),
             ),
           ),
           const SizedBox(height: 14),
@@ -238,30 +273,32 @@ class _AuthRequestCardState extends State<AuthRequestCard> {
             ),
             const SizedBox(height: 12),
           ],
-          // Action buttons
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
+          // Deny + Approve: side by side at the end of the card, or stacked
+          // full width when large text leaves no room for both (no
+          // overflow at 2x on a 320-pt phone). Approve is the only accent.
+          _DecisionButtons(
             children: [
               Semantics(
                 identifier: 'btn_deny',
                 child: Pressable(
                   child: OutlinedButton(
                     style: OutlinedButton.styleFrom(
-                      minimumSize: const Size(0, 48),
+                      minimumSize: const Size(48, 48),
                       padding: const EdgeInsets.symmetric(horizontal: 24),
+                      // Neutral: the decision's accent belongs to Approve.
+                      foregroundColor: cs.onSurface,
                     ),
                     onPressed: widget.isLoading ? null : widget.onDeny,
-                    child: Text(l.deny),
+                    child: Text(l.deny, textAlign: TextAlign.center),
                   ),
                 ),
               ),
-              const SizedBox(width: 12),
               Semantics(
                 identifier: 'btn_approve',
                 child: Pressable(
                   child: FilledButton(
                     style: FilledButton.styleFrom(
-                      minimumSize: const Size(0, 48),
+                      minimumSize: const Size(48, 48),
                       padding: const EdgeInsets.symmetric(horizontal: 28),
                     ),
                     onPressed: canApprove ? widget.onApprove : null,
@@ -271,7 +308,7 @@ class _AuthRequestCardState extends State<AuthRequestCard> {
                             height: 16,
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
-                        : Text(l.approve),
+                        : Text(l.approve, textAlign: TextAlign.center),
                   ),
                 ),
               ),
@@ -305,11 +342,13 @@ class _TrustStatus extends StatelessWidget {
             color: color,
           ),
           const SizedBox(width: 4),
-          Text(
-            trusted ? l.ipTrusted : l.ipDenied,
-            style: theme.textTheme.labelSmall?.copyWith(
-              color: color,
-              fontWeight: FontWeight.w600,
+          Flexible(
+            child: Text(
+              trusted ? l.ipTrusted : l.ipDenied,
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: color,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
         ],
@@ -352,4 +391,166 @@ class _Notice extends StatelessWidget {
       ),
     );
   }
+}
+
+/// The decision buttons (Deny, Approve). Side by side at the end of the
+/// card when both fit at their natural width; otherwise — large text on a
+/// narrow phone — stacked, each the full width of the card, in the same
+/// order, so the reading and focus order never change. Mirrors in RTL. The
+/// buttons keep their own 48-pt minimum size in both layouts.
+class _DecisionButtons extends MultiChildRenderObjectWidget {
+  const _DecisionButtons({required super.children});
+
+  @override
+  RenderDecisionButtons createRenderObject(BuildContext context) =>
+      RenderDecisionButtons(textDirection: Directionality.of(context));
+
+  @override
+  void updateRenderObject(
+    BuildContext context,
+    RenderDecisionButtons renderObject,
+  ) =>
+      renderObject.textDirection = Directionality.of(context);
+}
+
+class _DecisionButtonsParentData extends ContainerBoxParentData<RenderBox> {}
+
+/// Render object of the card's decision buttons (public for tests: its
+/// [stacked] says which layout was used).
+class RenderDecisionButtons extends RenderBox
+    with
+        ContainerRenderObjectMixin<RenderBox, _DecisionButtonsParentData>,
+        RenderBoxContainerDefaultsMixin<RenderBox, _DecisionButtonsParentData> {
+  RenderDecisionButtons({required TextDirection textDirection})
+      : _textDirection = textDirection;
+
+  /// Gap between the buttons in a row, and between stacked buttons.
+  static const double spacing = 12;
+  static const double runSpacing = 8;
+
+  TextDirection _textDirection;
+  set textDirection(TextDirection value) {
+    if (value == _textDirection) return;
+    _textDirection = value;
+    markNeedsLayout();
+  }
+
+  /// Whether the last layout stacked the buttons.
+  bool get stacked => _stacked;
+  bool _stacked = false;
+
+  @override
+  void setupParentData(RenderBox child) {
+    if (child.parentData is! _DecisionButtonsParentData) {
+      child.parentData = _DecisionButtonsParentData();
+    }
+  }
+
+  List<RenderBox> get _buttons {
+    final list = <RenderBox>[];
+    var child = firstChild;
+    while (child != null) {
+      list.add(child);
+      child = childAfter(child);
+    }
+    return list;
+  }
+
+  /// Width of the buttons side by side at their natural widths.
+  double get _rowWidth {
+    final buttons = _buttons;
+    if (buttons.isEmpty) return 0;
+    var width = spacing * (buttons.length - 1);
+    for (final b in buttons) {
+      width += b.getMaxIntrinsicWidth(double.infinity);
+    }
+    return width;
+  }
+
+  @override
+  double computeMinIntrinsicWidth(double height) {
+    var width = 0.0;
+    for (final b in _buttons) {
+      width = math.max(width, b.getMinIntrinsicWidth(double.infinity));
+    }
+    return width;
+  }
+
+  @override
+  double computeMaxIntrinsicWidth(double height) => _rowWidth;
+
+  double _intrinsicHeight(double width, double Function(RenderBox) of) {
+    final buttons = _buttons;
+    if (buttons.isEmpty) return 0;
+    if (_rowWidth <= width) return buttons.map(of).reduce(math.max);
+    return buttons.map(of).reduce((a, b) => a + b) +
+        runSpacing * (buttons.length - 1);
+  }
+
+  @override
+  double computeMinIntrinsicHeight(double width) =>
+      _intrinsicHeight(width, (b) => b.getMinIntrinsicHeight(width));
+
+  @override
+  double computeMaxIntrinsicHeight(double width) =>
+      _intrinsicHeight(width, (b) => b.getMaxIntrinsicHeight(width));
+
+  @override
+  Size computeDryLayout(covariant BoxConstraints constraints) =>
+      _layout(constraints, dry: true);
+
+  @override
+  void performLayout() => size = _layout(constraints, dry: false);
+
+  Size _layout(BoxConstraints constraints, {required bool dry}) {
+    final buttons = _buttons;
+    if (buttons.isEmpty) return constraints.smallest;
+    Size lay(RenderBox b, BoxConstraints c) {
+      if (dry) return b.getDryLayout(c);
+      b.layout(c, parentUsesSize: true);
+      return b.size;
+    }
+
+    void place(RenderBox b, Offset offset) {
+      if (!dry) (b.parentData! as _DecisionButtonsParentData).offset = offset;
+    }
+
+    final maxWidth = constraints.maxWidth;
+    final rowWidth = _rowWidth;
+    final rtl = _textDirection == TextDirection.rtl;
+    if (rowWidth <= maxWidth) {
+      if (!dry) _stacked = false;
+      final loose = BoxConstraints(maxWidth: maxWidth);
+      final sizes = [for (final b in buttons) lay(b, loose)];
+      final height = sizes.map((s) => s.height).reduce(math.max);
+      final width = constraints.hasBoundedWidth ? maxWidth : rowWidth;
+      // At the end of the line: right in LTR, left in RTL.
+      var x = width - rowWidth;
+      for (var i = 0; i < buttons.length; i++) {
+        final s = sizes[i];
+        final left = rtl ? width - x - s.width : x;
+        place(buttons[i], Offset(left, (height - s.height) / 2));
+        x += s.width + spacing;
+      }
+      return constraints.constrain(Size(width, height));
+    }
+
+    if (!dry) _stacked = true;
+    final full = BoxConstraints.tightFor(width: maxWidth);
+    var y = 0.0;
+    for (final b in buttons) {
+      final s = lay(b, full);
+      place(b, Offset(0, y));
+      y += s.height + runSpacing;
+    }
+    return constraints.constrain(Size(maxWidth, y - runSpacing));
+  }
+
+  @override
+  void paint(PaintingContext context, Offset offset) =>
+      defaultPaint(context, offset);
+
+  @override
+  bool hitTestChildren(BoxHitTestResult result, {required Offset position}) =>
+      defaultHitTestChildren(result, position: position);
 }

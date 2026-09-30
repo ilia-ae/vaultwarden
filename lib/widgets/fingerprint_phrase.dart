@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+/// The fingerprint phrase, word by word in neutral chips (the accent colour
+/// is kept for the Approve button).
 class FingerprintPhrase extends StatelessWidget {
   final String phrase;
 
@@ -17,7 +19,7 @@ class FingerprintPhrase extends StatelessWidget {
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           decoration: BoxDecoration(
-            color: theme.colorScheme.primaryContainer,
+            color: theme.colorScheme.surfaceContainerHighest,
             borderRadius: BorderRadius.circular(4),
           ),
           child: Text(
@@ -25,7 +27,7 @@ class FingerprintPhrase extends StatelessWidget {
             style: TextStyle(
               fontSize: 12,
               fontFamily: 'monospace',
-              color: theme.colorScheme.onPrimaryContainer,
+              color: theme.colorScheme.onSurface,
             ),
           ),
         );

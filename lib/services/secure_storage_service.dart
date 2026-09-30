@@ -9,6 +9,7 @@ import 'package:uuid/uuid.dart';
 
 import '../models/server_environment.dart';
 import '../models/user_session.dart';
+import 'pin_shift_vector_store.dart';
 
 /// Reading the keychain / keystore failed (device locked, keystore reset…).
 /// Distinct from "no session stored" (R4).
@@ -31,7 +32,12 @@ class SecureStorageReadException implements Exception {
 /// | 2FA remember tokens            | deleted (opt.)   | deleted  |
 /// | device_id                      | kept             | kept (opt.) |
 /// | client certificates (`client_cert|*`, `client_ca|*`) | kept | deleted |
+/// | PIN Shift vector (`pin_shift_vector`) | kept      | deleted  |
 /// | install marker                 | kept             | deleted  |
+///
+/// The PIN Shift vector is device data the user chose to remember on this
+/// device, not vault account data: a sign-out keeps it; a full reset and a
+/// reinstall ([wipeIfReinstalled]) remove it. Never in SharedPreferences.
 ///
 /// Preferences live in SharedPreferences; the only one used here is the
 /// install marker of [wipeIfReinstalled].
@@ -53,7 +59,7 @@ class SecureStorageReadException implements Exception {
 /// plugin's availability event. A write that fails anyway is owed too. A
 /// sign-out that could not run is also recorded in the preferences
 /// ([prefsPendingSignOut]) so it still happens after the process ends.
-class SecureStorageService {
+class SecureStorageService implements PinShiftVectorStore {
   SecureStorageService({
     FlutterSecureStorage? storage,
     FlutterSecureStorage? legacyDefaultStorage,
@@ -89,6 +95,9 @@ class SecureStorageService {
   static const keyEncryptedUserKey = 'encrypted_user_key';
   static const keyBiometricStorageKey = 'biometric_storage_key';
   static const keyDeviceId = 'device_id';
+
+  /// PIN Shift's remembered vector (see [PinShiftVectorStore]).
+  static const keyPinShiftVector = 'pin_shift_vector';
 
   /// History keys: `auth_request_history|<scope>|<email>`; the legacy
   /// unscoped key `auth_request_history` (written with default options by
@@ -188,6 +197,21 @@ class SecureStorageService {
     }
     return id;
   }
+
+  // ── PIN Shift vector (device data, kept by sign-out) ──
+
+  /// Held in memory while the keychain cannot take it, like every write.
+  @override
+  Future<void> saveShiftVector(String vector) =>
+      _change(keyPinShiftVector, vector);
+
+  /// Null only when no vector is saved; throws [SecureStorageReadException]
+  /// when the keychain cannot be read (see [_readRequired]).
+  @override
+  Future<String?> loadShiftVector() => _readRequired(keyPinShiftVector);
+
+  @override
+  Future<void> deleteShiftVector() => _change(keyPinShiftVector, null);
 
   // ── 2FA "remember this device" tokens (per server + email) ──
 
@@ -328,8 +352,9 @@ class SecureStorageService {
   // ── Clearing ──
 
   /// Logout / session end (A13): deletes session, keys, history and (unless
-  /// [keepTwoFactorRemember]) 2FA remember tokens. KEEPS `device_id` and the
-  /// per-server client certificates. Preferences are not in this store.
+  /// [keepTwoFactorRemember]) 2FA remember tokens. KEEPS `device_id`, the
+  /// per-server client certificates and the PIN Shift vector (device data).
+  /// Preferences are not in this store.
   ///
   /// [session] (default: the stored one) names the account whose history
   /// and remember token are deleted by key even when listing the store
@@ -400,7 +425,8 @@ class SecureStorageService {
   }
 
   /// Full reset: everything in the secure store including client
-  /// certificates. `device_id` survives unless [keepDeviceId] is false.
+  /// certificates and the PIN Shift vector. `device_id` survives unless
+  /// [keepDeviceId] is false.
   /// Throws [SecureStorageReadException] without touching anything while
   /// the keychain cannot take it (iOS: protected data unavailable).
   Future<void> clearAll({bool keepDeviceId = true}) async {

@@ -587,20 +587,67 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
       case ThemeMode.dark:
         icon = Icons.dark_mode;
     }
-    return IconButton(
-      icon: Icon(icon),
-      tooltip: _l.themeTooltip(mode.name),
-      onPressed: () {
-        final isCurrentlyDark =
-            MediaQuery.platformBrightnessOf(context) == Brightness.dark;
-        final next = switch (mode) {
-          ThemeMode.system =>
-            isCurrentlyDark ? ThemeMode.light : ThemeMode.dark,
-          ThemeMode.light => ThemeMode.system,
-          ThemeMode.dark => ThemeMode.system,
-        };
-        ref.read(themeModeProvider.notifier).state = next;
-      },
+    return ControlId(
+      'btn_theme',
+      child: IconButton(
+        icon: Icon(icon),
+        // The mode's localised name (the settings sheet's labels), not the
+        // enum's English identifier.
+        tooltip: _l.themeTooltip(switch (mode) {
+          ThemeMode.system => _l.themeAuto,
+          ThemeMode.light => _l.themeLight,
+          ThemeMode.dark => _l.themeDark,
+        }),
+        onPressed: () {
+          final isCurrentlyDark =
+              MediaQuery.platformBrightnessOf(context) == Brightness.dark;
+          final next = switch (mode) {
+            ThemeMode.system =>
+              isCurrentlyDark ? ThemeMode.light : ThemeMode.dark,
+            ThemeMode.light => ThemeMode.system,
+            ThemeMode.dark => ThemeMode.system,
+          };
+          ref.read(themeModeProvider.notifier).state = next;
+        },
+      ),
+    );
+  }
+
+  /// Language menu next to the theme toggle: the settings sheet's choices,
+  /// stored the same way ([localeProvider], persisted by the App), so the
+  /// form switches at once and the choice carries into the signed-in app.
+  Widget _buildLanguageMenu() {
+    final l = _l;
+    final current = ref.watch(localeProvider);
+    final options = appLanguageOptions(l);
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    return ControlId(
+      'btn_language',
+      child: PopupMenuButton<int>(
+        icon: const Icon(Icons.translate),
+        tooltip: l.languageSection,
+        position: PopupMenuPosition.under,
+        // The content cards' opaque surface and superellipse geometry.
+        color: dark ? const Color(0xFF1C1D26) : Colors.white,
+        shape: RoundedSuperellipseBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        onSelected: (i) {
+          HapticFeedback.selectionClick();
+          ref.read(localeProvider.notifier).state = options[i].value;
+        },
+        itemBuilder: (context) => [
+          for (var i = 0; i < options.length; i++)
+            CheckedPopupMenuItem<int>(
+              value: i,
+              checked: options[i].value == current,
+              child: ControlId(
+                'lang_${options[i].value?.toLanguageTag() ?? 'system'}',
+                child: Text(options[i].label),
+              ),
+            ),
+        ],
+      ),
     );
   }
 
@@ -736,7 +783,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        actions: [_buildThemeToggle()],
+        actions: [_buildLanguageMenu(), _buildThemeToggle()],
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),

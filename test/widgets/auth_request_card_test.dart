@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:vault_approver/l10n/app_localizations.dart';
 import 'package:vault_approver/models/auth_request.dart';
@@ -34,25 +35,61 @@ Future<_Taps> _pump(
   AuthRequest request, {
   bool? ipTrust,
   DateTime Function()? clock,
+  Locale locale = const Locale('en'),
+  double textScale = 1,
+  Brightness brightness = Brightness.light,
 }) async {
   final taps = _Taps();
   await tester.pumpWidget(MaterialApp(
+    // The app's themes: Material 3, blue seed.
+    theme: ThemeData(colorSchemeSeed: Colors.blue, brightness: brightness),
+    locale: locale,
     localizationsDelegates: AppLocalizations.localizationsDelegates,
     supportedLocales: AppLocalizations.supportedLocales,
-    home: Scaffold(
-      body: SingleChildScrollView(
-        child: AuthRequestCard(
-          request: request,
-          ipTrust: ipTrust,
-          clock: clock ?? () => _t0,
-          onApprove: () => taps.approve++,
-          onDeny: () => taps.deny++,
+    home: Builder(
+      builder: (context) => MediaQuery(
+        data: MediaQuery.of(context)
+            .copyWith(textScaler: TextScaler.linear(textScale)),
+        child: Scaffold(
+          body: SingleChildScrollView(
+            child: AuthRequestCard(
+              request: request,
+              ipTrust: ipTrust,
+              clock: clock ?? () => _t0,
+              onApprove: () => taps.approve++,
+              onDeny: () => taps.deny++,
+            ),
+          ),
         ),
       ),
     ),
   ));
   return taps;
 }
+
+/// A phone [width] pt wide (3x).
+void _phone(WidgetTester tester, double width) {
+  tester.view.physicalSize = Size(width * 3, 900 * 3);
+  tester.view.devicePixelRatio = 3;
+  addTearDown(tester.view.reset);
+}
+
+Rect _button(WidgetTester tester, String id) =>
+    tester.getRect(find.bySemanticsIdentifier(id));
+
+/// The card's frame (its ContentCard border).
+BorderSide _frame(WidgetTester tester) {
+  final container = tester.widget<Container>(find
+      .descendant(
+          of: find.byType(AuthRequestCard), matching: find.byType(Container))
+      .first);
+  final shape = (container.decoration! as ShapeDecoration).shape
+      as RoundedSuperellipseBorder;
+  return shape.side;
+}
+
+ColorScheme _cs(WidgetTester tester) =>
+    Theme.of(tester.element(find.byType(AuthRequestCard))).colorScheme;
 
 FilledButton _approveButton(WidgetTester tester) => tester.widget<FilledButton>(
       find.ancestor(
@@ -215,5 +252,126 @@ void main() {
       handle.dispose();
       await _dispose(tester);
     });
+  });
+
+  group('AuthRequestCard (look)', () {
+    testWidgets('the trust frame is toned down but keeps its colours',
+        (tester) async {
+      await _pump(tester, _request(), ipTrust: true);
+      var frame = _frame(tester);
+      expect(frame.width, AuthRequestCard.trustFrameWidth);
+      expect(frame.width, lessThan(1.5), reason: 'thinner than before');
+      expect(frame.color, kTrustGreen.withValues(alpha: 0.5));
+
+      await _pump(tester, _request(), ipTrust: false);
+      frame = _frame(tester);
+      expect(frame.width, 1);
+      expect(frame.color, _cs(tester).error.withValues(alpha: 0.5));
+      // The status stays in words.
+      expect(find.text(_l.ipDenied), findsOneWidget);
+
+      await _pump(tester, _request());
+      frame = _frame(tester);
+      expect(frame.width, 1);
+      expect(frame.color, _cs(tester).outlineVariant.withValues(alpha: 0.6));
+      await _dispose(tester);
+    });
+
+    for (final brightness in Brightness.values) {
+      testWidgets('the accent is Approve\'s alone (${brightness.name})',
+          (tester) async {
+        await _pump(tester, _request(), brightness: brightness);
+        final cs = _cs(tester);
+        final context = tester.element(find.text(_l.deny));
+        // Deny: neutral text on the outline.
+        final deny = _denyButton(tester);
+        expect(deny.style!.foregroundColor!.resolve({}), cs.onSurface);
+        expect(DefaultTextStyle.of(context).style.color, cs.onSurface);
+        // Approve: the accent fill.
+        final approveContext = tester.element(find.text(_l.approve));
+        final approveMaterial = tester.widget<Material>(find
+            .ancestor(
+                of: find.text(_l.approve), matching: find.byType(Material))
+            .first);
+        expect(approveMaterial.color, cs.primary);
+        expect(DefaultTextStyle.of(approveContext).style.color, cs.onPrimary);
+        // Fingerprint words: neutral chips.
+        final chip = tester.widget<Container>(find
+            .ancestor(
+                of: find.text('childless'), matching: find.byType(Container))
+            .first);
+        final chipColor = (chip.decoration! as BoxDecoration).color;
+        expect(chipColor, cs.surfaceContainerHighest);
+        expect(chipColor, isNot(cs.primaryContainer));
+        await _dispose(tester);
+      });
+    }
+
+    testWidgets('normal text: Deny and Approve side by side at the end',
+        (tester) async {
+      _phone(tester, 402);
+      await _pump(tester, _request());
+      final deny = _button(tester, 'btn_deny');
+      final approve = _button(tester, 'btn_approve');
+      final render = tester.renderObject<RenderDecisionButtons>(
+          find.byWidgetPredicate(
+              (w) => w.runtimeType.toString() == '_DecisionButtons'));
+      expect(render.stacked, isFalse);
+      expect(deny.center.dy, moreOrLessEquals(approve.center.dy));
+      expect(deny.right, lessThan(approve.left));
+      // Card 20-pt margin + 1-pt frame + 16-pt padding.
+      expect(approve.right, moreOrLessEquals(402 - 37));
+      expect(deny.height, greaterThanOrEqualTo(48));
+      expect(approve.height, greaterThanOrEqualTo(48));
+      await _dispose(tester);
+    });
+
+    testWidgets('RTL: the pair sits at the end on the left, mirrored',
+        (tester) async {
+      _phone(tester, 402);
+      await _pump(tester, _request(), locale: const Locale('ar'));
+      final deny = _button(tester, 'btn_deny');
+      final approve = _button(tester, 'btn_approve');
+      expect(approve.left, moreOrLessEquals(37));
+      expect(approve.right, lessThan(deny.left));
+      await _dispose(tester);
+    });
+
+    for (final locale in const [Locale('en'), Locale('ru'), Locale('ar')]) {
+      testWidgets(
+          'text scale 2.0 at 320 pt: the buttons stack full width, no '
+          'overflow (${locale.languageCode})', (tester) async {
+        _phone(tester, 320);
+        final taps = await _pump(tester, _request(),
+            locale: locale, textScale: 2, ipTrust: true);
+        expect(tester.takeException(), isNull, reason: 'no overflow');
+        final render = tester.renderObject<RenderDecisionButtons>(
+            find.byWidgetPredicate(
+                (w) => w.runtimeType.toString() == '_DecisionButtons'));
+        expect(render.stacked, isTrue);
+        final deny = _button(tester, 'btn_deny');
+        final approve = _button(tester, 'btn_approve');
+        // Same order as the row: Deny, then Approve under it.
+        expect(approve.top, greaterThan(deny.bottom));
+        for (final b in [deny, approve]) {
+          expect(b.left, moreOrLessEquals(37));
+          expect(b.right, moreOrLessEquals(320 - 37));
+          expect(b.height, greaterThanOrEqualTo(48));
+        }
+        // The labels are not clipped.
+        for (final label in [_l.deny, _l.approve]) {
+          final text = find.text(label == _l.deny
+              ? lookupAppLocalizations(locale).deny
+              : lookupAppLocalizations(locale).approve);
+          final paragraph = tester.renderObject<RenderParagraph>(text);
+          expect(paragraph.didExceedMaxLines, isFalse);
+        }
+        await tester.tap(find.bySemanticsIdentifier('btn_approve'));
+        await tester.tap(find.bySemanticsIdentifier('btn_deny'));
+        expect(taps.approve, 1);
+        expect(taps.deny, 1);
+        await _dispose(tester);
+      });
+    }
   });
 }

@@ -1,11 +1,16 @@
+import 'dart:math' as math;
+import 'dart:ui' show lerpDouble;
+
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart' show SemanticsRole;
 import 'package:flutter/services.dart' show HapticFeedback;
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 
 import '../glass.dart';
 
-/// Glass navigation bar: screen-centered title, right-side actions and a
-/// segmented tab switcher with a glass droplet indicator.
+/// Glass navigation bar: screen-centered title, right-side actions and the
+/// screen's primary tabs (text labels with an accent underline, see
+/// [_TextTabs]).
 ///
 /// Title centering: the title lives in a full-width [Stack] layer with
 /// SYMMETRIC horizontal padding, so its center is the screen's center —
@@ -31,7 +36,12 @@ class GlassTopBar extends StatelessWidget implements PreferredSizeWidget {
   final List<Widget>? actions;
 
   static const double toolbarHeight = 52;
-  static const double tabsHeight = 54;
+
+  /// The tab row. Each tab takes the whole height of it (≥ 48 pt targets).
+  static const double tabsHeight = 48;
+
+  /// The active tab's underline (tests find it by this key).
+  static const Key underlineKey = ValueKey<String>('GlassTopBar.underline');
 
   @override
   Size get preferredSize => const Size.fromHeight(toolbarHeight + tabsHeight);
@@ -103,7 +113,7 @@ class GlassTopBar extends StatelessWidget implements PreferredSizeWidget {
             ),
             SizedBox(
               height: tabsHeight,
-              child: _GlassTabs(
+              child: _TextTabs(
                 controller: controller,
                 labels: tabs,
                 identifiers: tabIdentifiers,
@@ -116,10 +126,21 @@ class GlassTopBar extends StatelessWidget implements PreferredSizeWidget {
   }
 }
 
-/// Segmented switcher: labels in an even row, a glass droplet glides to the
-/// active tab following [TabController.animation] (so swipes track too).
-class _GlassTabs extends StatelessWidget {
-  const _GlassTabs({
+/// The screen's primary tabs: plain text labels on the bar's glass, the
+/// active one bright and the others muted, and a short accent underline
+/// under the active label. No droplet, no frame: this level reads as
+/// screen navigation, while the neutral [SegmentedTabs]-style control below
+/// it switches content inside a tab.
+///
+/// The underline follows [TabController.animation]: a tap glides it with
+/// [appSpring] (instantly under Reduce Motion), a swipe of the pages drags
+/// it along. It is as wide as the label it sits under (never under
+/// [_minUnderline]) and changes width on the way to the next one.
+///
+/// Every tab is a full cell of the row ([GlassTopBar.tabsHeight] tall, half
+/// the width for two tabs), so the tap target is well over 48 × 48 pt.
+class _TextTabs extends StatelessWidget {
+  const _TextTabs({
     required this.controller,
     required this.labels,
     this.identifiers,
@@ -129,91 +150,178 @@ class _GlassTabs extends StatelessWidget {
   final List<String> labels;
   final List<String>? identifiers;
 
+  static const double _labelSize = 15;
+  static const double _margin = 16;
+  static const double _hPad = 12;
+  static const double _underlineHeight = 3;
+
+  /// Gap between the underline and the bottom edge of the bar.
+  static const double _underlineBottom = 7;
+
+  /// The label is centred in the row above this strip, so the underline
+  /// sits close under its baseline.
+  static const double _labelBottom = 6;
+  static const double _minUnderline = 24;
+
+  /// Muted (inactive) label: the active colour at this opacity — still
+  /// ≥ 4.5:1 on the bar's glass in both themes.
+  static const double _mutedAlpha = 0.64;
+
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final cs = Theme.of(context).colorScheme;
     final n = labels.length;
     final animation = controller.animation!;
+    // One weight for every state: selecting a tab never reflows its label,
+    // so the underline measured below always matches it.
+    final style = DefaultTextStyle.of(context).style.merge(const TextStyle(
+          fontSize: _labelSize,
+          fontWeight: FontWeight.w600,
+          // A tight line box: the label sits close above its underline.
+          height: 1.2,
+        ));
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 2, 16, 10),
-      child: Stack(
-        children: [
-          // Glass droplet indicator.
-          AnimatedBuilder(
-            animation: animation,
-            builder: (context, _) {
-              final t = n == 1 ? 0.0 : animation.value / (n - 1);
-              return Align(
-                // Directional: in RTL tab 0 sits on the RIGHT, so the
-                // droplet must resolve against text direction too.
-                alignment: AlignmentDirectional(t * 2 - 1, 0),
-                child: FractionallySizedBox(
-                  widthFactor: 1 / n,
-                  heightFactor: 1,
-                  // Grouped glass inside the bar's own layer: it renders
-                  // with the bar's settings (barGlassFor). Per-widget
-                  // settings would be ignored here (the package applies
-                  // them only with useOwnLayer), so none are passed.
-                  child: const GlassContainer(
-                    shape: LiquidRoundedSuperellipse(borderRadius: 21),
-                    quality: GlassQuality.standard,
-                    child: SizedBox.expand(),
+      padding: const EdgeInsets.symmetric(horizontal: _margin),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final cell = constraints.maxWidth / n;
+          final box = Size(
+            math.max(cell - 2 * _hPad, 1),
+            math.max(constraints.maxHeight - _labelBottom, 1),
+          );
+          final widths = [
+            for (final label in labels) _labelWidth(context, label, style, box),
+          ];
+          return Stack(
+            children: [
+              ListenableBuilder(
+                // The selected state follows the index.
+                listenable: controller,
+                builder: (context, _) => Semantics(
+                  container: true,
+                  role: SemanticsRole.tabBar,
+                  explicitChildNodes: true,
+                  child: Row(
+                    children: [
+                      for (var i = 0; i < n; i++)
+                        Expanded(child: _tab(context, i, style, cs)),
+                    ],
                   ),
                 ),
-              );
-            },
-          ),
-          Row(
-            children: [
-              for (var i = 0; i < n; i++)
-                Expanded(
-                  child: Semantics(
-                    identifier: identifiers != null && i < identifiers!.length
-                        ? identifiers![i]
-                        : null,
-                    button: true,
-                    child: GestureDetector(
-                      behavior: HitTestBehavior.opaque,
-                      onTap: () {
-                        HapticFeedback.selectionClick();
-                        controller.animateTo(
-                          i,
-                          duration: MediaQuery.disableAnimationsOf(context)
-                              ? Duration.zero
-                              : const Duration(milliseconds: 450),
-                          curve: appSpring,
-                        );
-                      },
-                      child: Center(
-                        child: AnimatedBuilder(
-                          animation: animation,
-                          builder: (context, _) {
-                            // 1 at the active tab, fades with distance.
-                            final active = (1 - (animation.value - i).abs())
-                                .clamp(0.0, 1.0);
-                            return Text(
-                              labels[i],
-                              style: TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.lerp(
-                                    FontWeight.w500, FontWeight.w700, active),
-                                color: Color.lerp(
-                                  theme.colorScheme.onSurfaceVariant,
-                                  theme.colorScheme.onSurface,
-                                  active,
-                                ),
-                              ),
-                            );
-                          },
+              ),
+              AnimatedBuilder(
+                animation: animation,
+                builder: (context, _) {
+                  final value = animation.value.clamp(0.0, n - 1.0);
+                  final from = value.floor();
+                  final to = math.min(from + 1, n - 1);
+                  final width = lerpDouble(
+                    math.max(widths[from], _minUnderline),
+                    math.max(widths[to], _minUnderline),
+                    value - from,
+                  )!;
+                  // Directional: in RTL the first tab sits on the right, and
+                  // the underline must follow it there.
+                  return PositionedDirectional(
+                    key: GlassTopBar.underlineKey,
+                    start: (value + 0.5) * cell - width / 2,
+                    bottom: _underlineBottom,
+                    width: width,
+                    height: _underlineHeight,
+                    child: IgnorePointer(
+                      child: DecoratedBox(
+                        decoration: ShapeDecoration(
+                          color: cs.primary,
+                          shape: const StadiumBorder(),
                         ),
                       ),
                     ),
-                  ),
-                ),
+                  );
+                },
+              ),
             ],
-          ),
-        ],
+          );
+        },
       ),
     );
+  }
+
+  Widget _tab(BuildContext context, int i, TextStyle style, ColorScheme cs) {
+    final ids = identifiers;
+    final animation = controller.animation!;
+    return Semantics(
+      container: true,
+      identifier: ids != null && i < ids.length ? ids[i] : null,
+      role: SemanticsRole.tab,
+      button: true,
+      selected: controller.index == i,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () {
+          HapticFeedback.selectionClick();
+          controller.animateTo(
+            i,
+            duration: MediaQuery.disableAnimationsOf(context)
+                ? Duration.zero
+                : const Duration(milliseconds: 450),
+            curve: appSpring,
+          );
+        },
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(_hPad, 0, _hPad, _labelBottom),
+          child: Center(
+            child: AnimatedBuilder(
+              animation: animation,
+              builder: (context, _) {
+                // 1 at the active tab, fading with distance.
+                final active =
+                    (1 - (animation.value - i).abs()).clamp(0.0, 1.0);
+                return FittedBox(
+                  // A huge text scale shrinks the label to the fixed-height
+                  // bar instead of clipping it.
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    labels[i],
+                    maxLines: 1,
+                    softWrap: false,
+                    style: style.copyWith(
+                      color: Color.lerp(
+                        cs.onSurface.withValues(alpha: _mutedAlpha),
+                        cs.onSurface,
+                        active,
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// The label's painted width in [box], after the [FittedBox] scale-down.
+  static double _labelWidth(
+    BuildContext context,
+    String label,
+    TextStyle style,
+    Size box,
+  ) {
+    final painter = TextPainter(
+      text: TextSpan(text: label, style: style),
+      textDirection: Directionality.of(context),
+      textScaler: MediaQuery.textScalerOf(context),
+      maxLines: 1,
+      locale: Localizations.maybeLocaleOf(context),
+      textHeightBehavior: DefaultTextHeightBehavior.maybeOf(context),
+    )..layout();
+    final size = painter.size;
+    painter.dispose();
+    final scale = math.min(
+      1.0,
+      math.min(box.width / size.width, box.height / size.height),
+    );
+    return size.width * scale;
   }
 }

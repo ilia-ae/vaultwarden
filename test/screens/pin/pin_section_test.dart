@@ -1,11 +1,15 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show RenderParagraph;
+import 'package:flutter/semantics.dart' show SemanticsRole;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vault_approver/screens/pin/pin_prefs.dart';
+import 'package:vault_approver/screens/pin/pin_section.dart';
 import 'package:vault_approver/screens/pin/pin_session.dart';
 import 'package:vault_approver/utils/external_picker.dart';
+import 'package:vault_approver/widgets/segmented_tabs.dart';
 
 import 'pin_harness.dart';
 
@@ -60,6 +64,90 @@ void main() {
     expect(byId('pin_shift_view'), findsOneWidget);
     expect(container.read(pinToolProvider), PinTool.pinShift);
   });
+
+  testWidgets('tool picker: full-width segmented tabs in the cards\' gutters',
+      (tester) async {
+    tester.view.physicalSize = const Size(402 * 3, 874 * 3);
+    tester.view.devicePixelRatio = 3;
+    addTearDown(tester.view.reset);
+    mockPrivacyChannel(tester);
+    await pumpPin(tester);
+
+    expect(find.byType(SegmentedTabs<PinTool>), findsOneWidget);
+    void expectSpan(List<String> ids) {
+      final rects = [for (final id in ids) tester.getRect(byId(id))];
+      final width = (402 - 2 * 20 - 2 * SegmentedTabs.inset) / ids.length;
+      for (final r in rects) {
+        expect(r.width, moreOrLessEquals(width), reason: '$ids');
+      }
+      expect(rects.first.left, moreOrLessEquals(20 + SegmentedTabs.inset));
+      expect(
+          rects.last.right, moreOrLessEquals(402 - 20 - SegmentedTabs.inset));
+    }
+
+    const three = ['pin_tool_shift', 'pin_tool_pin24', 'pin_tool_yubikey'];
+    expectSpan(three);
+    final shift = tester.widget<Semantics>(byId('pin_tool_shift')).properties;
+    expect(shift.role, SemanticsRole.tab);
+    expect(shift.selected, isTrue);
+    expect(tester.widget<Semantics>(byId('pin_tool_pin24')).properties.selected,
+        isFalse);
+
+    await tester.ensureVisible(byId('pin_show_legacy'));
+    await tester.pump();
+    await tester.tap(byId('pin_show_legacy'));
+    await tester.pump();
+    await tester.drag(find.byType(Scrollable).first, const Offset(0, 3000));
+    await tester.pumpAndSettle();
+    expectSpan([...three, 'pin_tool_legacy']);
+  });
+
+  for (final locale in ['en', 'ru', 'ar']) {
+    testWidgets(
+        'tool picker at text scale 2.0 on 320 pt ($locale): 4 segments, '
+        'mirrored in Arabic, no label clipped', (tester) async {
+      setPinPrefs({PinPrefs.kShowLegacy: true});
+      tester.view.physicalSize = const Size(320, 2000);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      mockPrivacyChannel(tester);
+      await pumpPin(
+        tester,
+        locale: Locale(locale),
+        child: Builder(
+          builder: (context) => MediaQuery(
+            data: MediaQuery.of(context)
+                .copyWith(textScaler: const TextScaler.linear(2)),
+            child: const PinSection(),
+          ),
+        ),
+      );
+      expect(tester.takeException(), isNull);
+      const ids = [
+        'pin_tool_shift',
+        'pin_tool_pin24',
+        'pin_tool_yubikey',
+        'pin_tool_legacy',
+      ];
+      final xs = [for (final id in ids) tester.getCenter(byId(id)).dx];
+      expect(
+          xs,
+          orderedEquals(locale == 'ar'
+              ? ([...xs]..sort((a, b) => b.compareTo(a)))
+              : ([...xs]..sort())));
+      for (final id in ids) {
+        final segment = tester.getRect(byId(id));
+        final text = find.descendant(of: byId(id), matching: find.byType(Text));
+        final paragraph = tester.renderObject<RenderParagraph>(text);
+        expect(paragraph.didExceedMaxLines, isFalse, reason: id);
+        final painted = tester.getRect(text);
+        expect(painted.left, greaterThanOrEqualTo(segment.left - 0.01));
+        expect(painted.right, lessThanOrEqualTo(segment.right + 0.01));
+        expect(painted.top, greaterThanOrEqualTo(segment.top - 0.01));
+        expect(painted.bottom, lessThanOrEqualTo(segment.bottom + 0.01));
+      }
+    });
+  }
 
   testWidgets('a stored "show legacy" with PIN Shift first; legacy stays last',
       (tester) async {

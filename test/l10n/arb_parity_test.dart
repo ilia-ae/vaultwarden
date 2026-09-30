@@ -67,19 +67,14 @@ void main() {
       'pinToolYubikey',
       'pin24WordsCounter',
       'pinYkBioTitle', // product name
-    };
-    // Russian keeps the BIP39 term "passphrase" (as the spec's RU table does).
-    const keptTerms = {
-      'ru': {'pin24PassphraseLabel'},
+      'pinShiftSectionPin', // "1 · PIN": PIN is kept as the term
     };
     for (final l in _locales.skip(1)) {
       final untranslated = <String>[];
       for (final key in pinKeys) {
         final text = arbs[l]![key] as String;
         expect(text.trim(), isNotEmpty, reason: '$l/$key');
-        if (text == template[key] &&
-            !universal.contains(key) &&
-            !(keptTerms[l]?.contains(key) ?? false)) {
+        if (text == template[key] && !universal.contains(key)) {
           untranslated.add(key);
         }
       }
@@ -101,19 +96,36 @@ void main() {
     }
   });
 
-  // C8 UX #11: terminology.
-  test('PIN terminology: modulo, tab, passphrase, formal you, project name',
-      () {
+  // C8 UX #11: terminology. Russian and Chinese translate "passphrase"
+  // (парольная фраза / 密码短语) and "nickname" (никнейм / 昵称); Russian
+  // says "серийный номер", not the slang "серийник".
+  test('PIN terminology: modulo, tab, passphrase, nickname, formal you', () {
     final banned = <String, List<String>>{
       'ar': ['ترديد', 'العلامة', 'الأسطول'],
-      'ru': ['парка', 'парк '],
-      'zh': ['passphrase', '机群', '你'],
-      'zh_Hans': ['passphrase', '机群', '你'],
+      'ru': [
+        'парка',
+        'парк ',
+        'passphrase',
+        'nickname',
+        'Nickname',
+        'серийник'
+      ],
+      'zh': ['passphrase', 'nickname', 'Nickname', '机群', '你'],
+      'zh_Hans': ['passphrase', 'nickname', 'Nickname', '机群', '你'],
+    };
+    // The one place a banned word is kept on purpose: the English BIP39 term
+    // as a gloss in the Russian section title, so it can be matched with
+    // Ledger's documentation.
+    const glossed = {
+      'ru': {'pin24PassphraseTitle': 'passphrase'}
     };
     for (final MapEntry(key: l, value: words) in banned.entries) {
       for (final key in keys.where((k) => k.startsWith('pin'))) {
-        final text = arbs[l]![key] as String;
+        // The message's own placeholders ({nickname}) are not text.
+        final text =
+            (arbs[l]![key] as String).replaceAll(RegExp(r'\{\w+\}'), '');
         for (final w in words) {
+          if (glossed[l]?[key] == w) continue;
           expect(text.contains(w), isFalse, reason: '$l/$key contains "$w"');
         }
       }
@@ -140,7 +152,21 @@ void main() {
     expect(ru.pin24NicknameTooLong(22, 19), startsWith('22 байта'));
     expect(ru.pinShiftPaperLegend(4), contains('из 4 цифр'));
     expect(ru.pinShiftPaperLegend(1), contains('из 1 цифры'));
-    expect(ru.pinYkSerialsTooMany(32), contains('32 серийника'));
+    expect(ru.pinYkSerialsTooMany(32), contains('32 серийных номера'));
+    expect(ru.pinYkSerialsTooMany(21), contains('первый 21 серийный номер'));
+    expect(ru.pin24PinCaption('visa', 1), contains('взять первую цифру'));
+    expect(ru.pin24PinCaption('visa', 4), contains('первые 4 цифры'));
+    expect(ru.pin24PinCaption('visa', 12), contains('первые 12 цифр'));
+    expect(ru.pin24FullCaption(1), contains('первая цифра'));
+    expect(ru.pinShiftWhyShapeBody(4, '10^4'), contains('ровно 4 цифры'));
+    expect(ru.clientCertExpiresSoon(1, 'd'), contains('через 1 день'));
+    expect(ru.clientCertExpiresSoon(3, 'd'), contains('через 3 дня'));
+    expect(ru.clientCertExpiresSoon(10, 'd'), contains('через 10 дней'));
+    expect(ru.clientCertExpiresSoon(0, 'd'), contains('менее чем через день'));
+    expect(en.clientCertExpiresSoon(0, 'd'), contains('in less than a day'));
+    expect(en.clientCertExpiresSoon(1, 'd'), contains('in 1 day'));
+    expect(en.pin24StatusCount(1), startsWith('1 word;'));
+    expect(en.pin24StatusCount(13), startsWith('13 words;'));
     expect(ar.pin24PinCaption('visa', 4), contains('أول 4 أرقام'));
     expect(ar.pin24PinCaption('visa', 12), contains('أول 12 رقمًا'));
     expect(ar.pin24FullCaption(4), contains('أول 4 أرقام'));

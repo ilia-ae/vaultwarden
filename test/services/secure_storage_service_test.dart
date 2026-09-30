@@ -1,11 +1,13 @@
 import 'dart:convert';
 
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vault_approver/models/user_session.dart';
 import 'package:vault_approver/services/crypto_service.dart';
+import 'package:vault_approver/services/pin_shift_vector_store.dart';
 import 'package:vault_approver/services/secure_storage_service.dart';
 
 import '../providers/provider_fakes.dart';
@@ -509,5 +511,142 @@ void main() {
     expect(await storage.loadSession(), isNull);
     await storage.saveSession(_session());
     expect((await storage.loadSession())!.email, 'a@b.com');
+  });
+
+  // PIN Shift's remembered vector: device data, not vault account data.
+  group('PIN Shift vector', () {
+    const key = SecureStorageService.keyPinShiftVector;
+
+    test('save, load, replace, delete', () async {
+      expect(key, 'pin_shift_vector');
+      expect(await storage.loadShiftVector(), isNull);
+      await storage.saveShiftVector('11111111');
+      expect(await storage.loadShiftVector(), '11111111');
+      expect((await raw.readAll())[key], '11111111');
+      await storage.saveShiftVector('3719');
+      expect(await storage.loadShiftVector(), '3719');
+      await storage.deleteShiftVector();
+      expect(await storage.loadShiftVector(), isNull);
+      expect((await raw.readAll()).containsKey(key), isFalse);
+      await storage.deleteShiftVector(); // nothing saved: no error
+    });
+
+    test('never in SharedPreferences', () async {
+      SharedPreferences.setMockInitialValues({});
+      await storage.saveShiftVector('90817263');
+      await storage.getOrCreateDeviceId();
+      final prefs = await SharedPreferences.getInstance();
+      for (final k in prefs.getKeys()) {
+        expect('${prefs.get(k)}', isNot(contains('90817263')), reason: k);
+      }
+    });
+
+    for (final keep2fa in [false, true]) {
+      test('kept by clearSessionData (keepTwoFactorRemember: $keep2fa)',
+          () async {
+        await seed();
+        await storage.saveShiftVector('90817263');
+        await storage.clearSessionData(keepTwoFactorRemember: keep2fa);
+        expect(await storage.loadSession(), isNull);
+        expect(await storage.loadShiftVector(), '90817263');
+        expect((await raw.readAll())[key], '90817263');
+      });
+    }
+
+    test('removed by clearAll, with or without the device id', () async {
+      await seed();
+      await storage.saveShiftVector('90817263');
+      await storage.clearAll();
+      expect(await storage.loadShiftVector(), isNull);
+      expect((await raw.readAll()).containsKey(key), isFalse);
+      await storage.saveShiftVector('1234');
+      await storage.clearAll(keepDeviceId: false);
+      expect(await raw.readAll(), isEmpty);
+    });
+
+    test('removed by the reinstall wipe', () async {
+      await storage.saveShiftVector('90817263');
+      SharedPreferences.setMockInitialValues({});
+      expect(
+          await storage
+              .wipeIfReinstalled(await SharedPreferences.getInstance()),
+          isFalse);
+      expect(await storage.loadShiftVector(), '90817263');
+      // Delete + install again: the keychain kept it, the preferences not.
+      SharedPreferences.setMockInitialValues({});
+      expect(
+          await storage
+              .wipeIfReinstalled(await SharedPreferences.getInstance()),
+          isTrue);
+      expect(await storage.loadShiftVector(), isNull);
+    });
+
+    test('the keychain store behind PIN Shift is this service', () {
+      expect(storage, isA<PinShiftVectorStore>());
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      expect(container.read(pinShiftVectorStoreProvider), isNull,
+          reason: 'main() wires it to the app\'s SecureStorageService');
+    });
+
+    group('iOS, protected data unavailable', () {
+      late FakeAppleKeychain keychain;
+      late SecureStorageService ios;
+
+      setUp(() {
+        SharedPreferences.setMockInitialValues({});
+        keychain = FakeAppleKeychain()..metadataReadableWhileLocked = true;
+        ios = appleStorage(keychain);
+      });
+
+      test('a saved vector that cannot be read throws, never "none"', () async {
+        await ios.saveShiftVector('90817263');
+        for (final metadataReadable in [true, false]) {
+          keychain
+            ..locked = true
+            ..metadataReadableWhileLocked = metadataReadable;
+          await expectLater(ios.loadShiftVector(),
+              throwsA(isA<SecureStorageReadException>()));
+          keychain.locked = false;
+        }
+        expect(await ios.loadShiftVector(), '90817263');
+      });
+
+      test('save and delete are owed, then applied in order', () async {
+        keychain.locked = true;
+        await ios.saveShiftVector('90817263');
+        expect(keychain.mutationsWhileLocked, 0);
+        expect(keychain.items.containsKey(key), isFalse);
+        expect(await ios.loadShiftVector(), '90817263');
+        keychain.locked = false;
+        await pumpEventQueue();
+        expect(keychain.items[key], '90817263');
+
+        keychain.locked = true;
+        await ios.deleteShiftVector();
+        expect(keychain.items[key], '90817263');
+        expect(await ios.loadShiftVector(), isNull);
+        keychain.locked = false;
+        await pumpEventQueue();
+        expect(keychain.items.containsKey(key), isFalse);
+        expect(ios.hasPendingChanges, isFalse);
+      });
+
+      test('an owed sign-out keeps an owed vector and the stored one',
+          () async {
+        keychain.items[key] = '1111';
+        await seedAsBuild105(keychain, CryptoService(runKdfInIsolate: false));
+        keychain.locked = true;
+        await ios.saveShiftVector('90817263');
+        await ios.clearSessionData(session: testSession());
+        expect(await ios.loadSession(), isNull);
+        expect(await ios.loadShiftVector(), '90817263');
+        keychain.locked = false;
+        await pumpEventQueue();
+        expect(keychain.items.containsKey(SecureStorageService.keySession),
+            isFalse);
+        expect(keychain.items[key], '90817263');
+      });
+    });
   });
 }

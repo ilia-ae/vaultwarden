@@ -4,6 +4,7 @@ import 'package:flutter/services.dart' show HapticFeedback;
 import '../glass.dart';
 import '../l10n/app_localizations.dart';
 import '../models/server_environment.dart';
+import 'option_pills.dart';
 
 /// Localised name of a server region ("bitwarden.com", "bitwarden.eu",
 /// "Self-hosted").
@@ -59,8 +60,9 @@ class ServerSelector extends StatelessWidget {
   }
 }
 
-/// One selection pill: selected = soft accent stadium, unselected = hairline
-/// outline; spring squish + selection haptic on tap.
+/// One selection pill with [OptionPill]'s neutral look (selected = grey
+/// stadium, unselected = hairline outline); spring squish + selection haptic
+/// on tap.
 class _RegionPill extends StatelessWidget {
   const _RegionPill({
     required this.label,
@@ -99,13 +101,13 @@ class _RegionPill extends StatelessWidget {
               alignment: Alignment.center,
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
               decoration: ShapeDecoration(
-                color: selected ? cs.primaryContainer : Colors.transparent,
+                color: selected
+                    ? OptionPill.selectedFill(theme.brightness)
+                    : Colors.transparent,
                 shape: StadiumBorder(
                   side: selected
                       ? BorderSide.none
-                      : BorderSide(
-                          color: cs.outlineVariant.withValues(alpha: 0.6),
-                        ),
+                      : OptionPill.unselectedSide(cs),
                 ),
               ),
               child: FittedBox(
@@ -114,8 +116,7 @@ class _RegionPill extends StatelessWidget {
                   label,
                   maxLines: 1,
                   style: theme.textTheme.labelLarge?.copyWith(
-                    color:
-                        selected ? cs.onPrimaryContainer : cs.onSurfaceVariant,
+                    color: OptionPill.labelColor(cs, selected: selected),
                     fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
                   ),
                 ),

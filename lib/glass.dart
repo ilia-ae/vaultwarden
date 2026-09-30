@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show SystemUiOverlayStyle;
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 
 /// The app's single motion feel: an underdamped spring (ζ=0.8) with a
@@ -22,6 +23,24 @@ class AppSpringCurve extends Curve {
 }
 
 const appSpring = AppSpringCurve();
+
+/// Status-bar style for a theme [brightness]: dark icons and text on the
+/// light theme, light ones on the dark theme, over a transparent bar (the
+/// scene shows through). Status bar only, like AppBar's own default, so the
+/// system navigation bar keeps its platform handling.
+SystemUiOverlayStyle systemOverlayStyleFor(Brightness brightness) =>
+    brightness == Brightness.dark
+        ? const SystemUiOverlayStyle(
+            statusBarColor: Color(0x00000000),
+            // Android: icon colour; iOS: the bar's background brightness.
+            statusBarIconBrightness: Brightness.light,
+            statusBarBrightness: Brightness.dark,
+          )
+        : const SystemUiOverlayStyle(
+            statusBarColor: Color(0x00000000),
+            statusBarIconBrightness: Brightness.dark,
+            statusBarBrightness: Brightness.light,
+          );
 
 /// Press-feedback wrapper: scales to 0.97 while pressed, springs back on
 /// release. Uses [Listener] so it never competes with the child's own tap

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart' show SemanticsRole;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:vault_approver/app.dart';
+import 'package:vault_approver/models/auth_request.dart';
 import 'package:vault_approver/providers/auth_requests_provider.dart';
 import 'package:vault_approver/providers/service_providers.dart';
 import 'package:vault_approver/screens/requests_screen.dart';
@@ -9,6 +11,7 @@ import 'package:vault_approver/services/client_cert_service.dart';
 import 'package:vault_approver/widgets/auth_request_card.dart';
 import 'package:vault_approver/widgets/glass_top_bar.dart';
 import 'package:vault_approver/widgets/option_pills.dart';
+import 'package:vault_approver/widgets/segmented_tabs.dart';
 
 import '../providers/provider_fakes.dart';
 import 'screen_harness.dart';
@@ -31,6 +34,23 @@ class _SpyRequests extends AuthRequestsNotifier {
     resumes++;
     super.resume();
   }
+}
+
+/// A fixed list that is never swept (like the demo's): expired requests
+/// stay in it.
+class _FixedRequests extends AuthRequestsNotifier {
+  _FixedRequests(this.requests);
+
+  final List<AuthRequest> requests;
+
+  @override
+  Future<List<AuthRequest>> build() async => requests;
+
+  @override
+  void pause() {}
+
+  @override
+  void resume() {}
 }
 
 Future<(Harness, FakeClientCertService)> _pump(
@@ -84,17 +104,26 @@ HistoryEntry _entry(String id, {required bool approved, String? ip}) =>
       requestCreatedAt: DateTime.now().subtract(const Duration(seconds: 5)),
     );
 
-/// Taps the Vault pill (or top-bar tab) with Semantics identifier [id].
+/// Taps the Vault segment (or top-bar tab) with Semantics identifier [id].
 Future<void> _tapId(WidgetTester tester, String id) async {
   await tester.tap(find.bySemanticsIdentifier(id));
   await tester.pump();
   await tester.pump(const Duration(milliseconds: 700));
 }
 
-bool _pillSelected(WidgetTester tester, String label) => tester
-    .widget<OptionPill>(
-        find.ancestor(of: find.text(label), matching: find.byType(OptionPill)))
-    .selected;
+/// The Vault picker's visible track.
+Rect _picker(WidgetTester tester) =>
+    tester.getRect(find.byKey(SegmentedTabs.trackKey));
+
+/// Whether the Vault segment labelled [label] is the selected one.
+bool _pillSelected(WidgetTester tester, String label) {
+  final picker = tester
+      .widget<SegmentedTabs<VaultView>>(find.byType(SegmentedTabs<VaultView>));
+  return picker.segments
+          .firstWhere((s) => s.label == label, orElse: () => throw label)
+          .value ==
+      picker.selected;
+}
 
 /// The icon-and-text block of an empty state, found by its title.
 Rect _placeholder(WidgetTester tester, String title) => tester.getRect(
@@ -252,7 +281,7 @@ void main() {
     await _finish(tester, h);
   });
 
-  testWidgets('two tabs, Vault first; its pills switch Pending and History',
+  testWidgets('two tabs, Vault first; its segments switch Pending and History',
       (tester) async {
     final (h, _) = await _pump(tester);
     final semantics = tester.ensureSemantics();
@@ -269,7 +298,8 @@ void main() {
     expect(bar.controller.length, 2);
     expect(bar.controller.index, 0, reason: 'Vault is the default tab');
     expect(bar.title, _l.authRequestsTitle);
-    // The store screenshot flows tap tab_history: it is the History pill now.
+    // The store screenshot flows tap tab_history: it is the History segment
+    // now.
     for (final id in ['tab_vault', 'tab_pin', 'tab_pending', 'tab_history']) {
       expect(find.bySemanticsIdentifier(id), findsOneWidget, reason: id);
     }
@@ -283,9 +313,16 @@ void main() {
         hasSelectedState: true,
       ),
     );
+    expect(
+      tester
+          .getSemantics(find.bySemanticsIdentifier('tab_pending'))
+          .getSemanticsData()
+          .role,
+      SemanticsRole.tab,
+    );
 
     // Pending by default: the request, not the history.
-    expect(find.byType(OptionPills<VaultView>), findsOneWidget);
+    expect(find.byType(SegmentedTabs<VaultView>), findsOneWidget);
     expect(_pillSelected(tester, _l.pendingTab), isTrue);
     expect(_pillSelected(tester, _l.historyTab), isFalse);
     expect(find.byType(AuthRequestCard), findsOneWidget);
@@ -312,7 +349,46 @@ void main() {
     await _finish(tester, h);
   });
 
-  testWidgets('history: a swipe deletes the swiped entry (pills are item 0)',
+  testWidgets('Vault picker: the selected segment glides to History',
+      (tester) async {
+    final (h, _) = await _pump(tester, view: _portrait);
+    final picker = find.byType(SegmentedTabs<VaultView>);
+    final droplet = find.byKey(SegmentedTabs.thumbKey);
+    final state = tester.state(picker);
+    final semantics = tester.ensureSemantics();
+    int nodeId() =>
+        tester.getSemantics(find.bySemanticsIdentifier('tab_history')).id;
+    final nodeBefore = nodeId();
+    // The selected segment spans its tab's columns, 3 pt inside the track.
+    final track = _picker(tester);
+    Rect thumbOf(String id) {
+      final tab = tester.getRect(find.bySemanticsIdentifier(id));
+      return Rect.fromLTRB(tab.left, track.top + SegmentedTabs.inset, tab.right,
+          track.bottom - SegmentedTabs.inset);
+    }
+
+    final pending = thumbOf('tab_pending');
+    final history = thumbOf('tab_history');
+    expect(tester.getRect(droplet), rectMoreOrLessEquals(pending));
+
+    await tester.tap(find.bySemanticsIdentifier('tab_history'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 90));
+    // The list under it was swapped, the picker (and its droplet) was kept.
+    expect(find.text(_l.noHistoryYet), findsOneWidget);
+    expect(tester.state(picker), same(state));
+    expect(tester.getRect(droplet).center.dx,
+        inExclusiveRange(pending.center.dx, history.center.dx));
+    // ...but its tabs are new semantics nodes: iOS mislocates a node that
+    // moved to another parent (Maestro's tab_history tap missed).
+    expect(nodeId(), isNot(nodeBefore));
+    await tester.pump(const Duration(milliseconds: 600));
+    expect(tester.getRect(droplet), rectMoreOrLessEquals(history));
+    semantics.dispose();
+    await _finish(tester, h);
+  });
+
+  testWidgets('history: a swipe deletes the swiped entry (picker is item 0)',
       (tester) async {
     final (h, _) = await _pump(tester);
     final history = h.container.read(historyProvider.notifier);
@@ -332,38 +408,45 @@ void main() {
     await _finish(tester, h);
   });
 
-  testWidgets('empty states: on the screen centre, under the pills',
+  testWidgets('empty states: on the screen centre, under the picker',
       (tester) async {
     final (h, _) = await _pump(tester, view: _portrait);
     await tester.pump();
-    // Bar: 62 pt status bar + 106 pt glass bar; the pills 8 pt below it, as
-    // the PIN tab's tool picker.
-    final pill = tester.getRect(find.bySemanticsIdentifier('tab_pending'));
+    // Bar: 62 pt status bar + 100 pt glass bar; the picker 8 pt below it
+    // (its track after its tap margin), as the PIN tab's tool picker, full
+    // width inside the cards' gutters.
+    final picker = _picker(tester);
     expect(
-        pill.top, 62 + GlassTopBar.toolbarHeight + GlassTopBar.tabsHeight + 8);
-    expect(pill.left, 20);
+        picker.top,
+        62 +
+            GlassTopBar.toolbarHeight +
+            GlassTopBar.tabsHeight +
+            8 +
+            SegmentedTabs.tapMargin);
+    expect(picker.left, 20);
+    expect(picker.right, 402 - 20);
     final pending = _placeholder(tester, _l.noPendingRequests);
     expect(pending.center.dy, moreOrLessEquals(874 / 2));
     expect(pending.center.dx, moreOrLessEquals(402 / 2));
 
     await _tapId(tester, 'tab_history');
-    expect(tester.getTopLeft(find.bySemanticsIdentifier('tab_pending')),
-        pill.topLeft,
-        reason: 'the pills do not move between the two views');
+    expect(_picker(tester), picker,
+        reason: 'the picker does not move between the two views');
     final history = _placeholder(tester, _l.noHistoryYet);
     expect(history.center.dy, moreOrLessEquals(874 / 2),
         reason: 'same height on Pending and History');
     await _finish(tester, h);
   });
 
-  testWidgets('landscape: an empty state never runs into the pills',
+  testWidgets('landscape: an empty state never runs into the picker',
       (tester) async {
     final (h, _) = await _pump(tester, view: _landscape);
     await tester.pump();
-    final pill = tester.getRect(find.bySemanticsIdentifier('tab_pending'));
-    expect(pill.left, 62 + 20, reason: 'island inset + gutter');
+    final picker = _picker(tester);
+    expect(picker.left, 62 + 20, reason: 'island inset + gutter');
+    expect(picker.right, 874 - 62 - 20);
     final pending = _placeholder(tester, _l.noPendingRequests);
-    expect(pending.top, greaterThanOrEqualTo(pill.bottom + 16));
+    expect(pending.top, greaterThanOrEqualTo(picker.bottom + 16));
 
     // Pull-to-refresh still works on the empty state.
     final before = h.api.pendingCalls;
@@ -373,6 +456,72 @@ void main() {
     await tester.pump(const Duration(seconds: 1));
     await tester.pump(const Duration(seconds: 1));
     expect(h.api.pendingCalls, greaterThan(before));
+    await _finish(tester, h);
+  });
+
+  testWidgets(
+      'Pending counts the requests that can be answered: appears, updates, '
+      'disappears', (tester) async {
+    final (h, _) = await _pump(tester);
+    final semantics = tester.ensureSemantics();
+    const nbsp = '\u00A0';
+    String pendingLabel() => tester
+        .getSemantics(find.bySemanticsIdentifier('tab_pending'))
+        .getSemanticsData()
+        .label;
+    // No requests: no count.
+    expect(find.text(_l.pendingTab), findsOneWidget);
+    expect(pendingLabel(), _l.pendingTab);
+
+    h.api.pending = [testRequest('req-1')];
+    await h.container.read(authRequestsProvider.notifier).refresh();
+    await tester.pump();
+    expect(find.text('${_l.pendingTab}${nbsp}1'), findsOneWidget);
+    expect(pendingLabel(), '${_l.pendingTab}, 1');
+    // History carries no count.
+    expect(find.text(_l.historyTab), findsOneWidget);
+
+    h.api.pending = [testRequest('req-1'), testRequest('req-2')];
+    await h.container.read(authRequestsProvider.notifier).refresh();
+    await tester.pump();
+    expect(find.text('${_l.pendingTab}${nbsp}2'), findsOneWidget);
+    expect(pendingLabel(), '${_l.pendingTab}, 2');
+    // The count stays on the picker while History is shown.
+    await _tapId(tester, 'tab_history');
+    expect(find.text('${_l.pendingTab}${nbsp}2'), findsOneWidget);
+    await _tapId(tester, 'tab_pending');
+
+    h.api.pending = [];
+    await h.container.read(authRequestsProvider.notifier).refresh();
+    await tester.pump();
+    expect(find.text(_l.pendingTab), findsOneWidget);
+    expect(find.textContaining(nbsp), findsNothing);
+    expect(pendingLabel(), _l.pendingTab);
+    semantics.dispose();
+    await _finish(tester, h);
+  });
+
+  testWidgets('the Pending count drops when a request\'s window closes',
+      (tester) async {
+    // A fixed clock: the requests expire when it moves past their window.
+    var now = DateTime.now();
+    // A list nobody sweeps (as in the demo): the count must see the expiry
+    // by itself.
+    final (h, _) = await _pump(tester, overrides: [
+      requestClockProvider.overrideWithValue(() => now),
+      authRequestsProvider.overrideWith(() => _FixedRequests([
+            testRequest('soon', age: const Duration(seconds: 270)),
+            testRequest('gone', age: const Duration(minutes: 6)),
+          ])),
+    ]);
+    // The expired request is not counted; the one with 30 s left is.
+    expect(find.byType(AuthRequestCard), findsNWidgets(2));
+    expect(find.text('${_l.pendingTab}\u00A01'), findsOneWidget);
+
+    now = now.add(const Duration(seconds: 31));
+    await tester.pump(const Duration(seconds: 31));
+    expect(find.text(_l.pendingTab), findsOneWidget,
+        reason: 'the window closed: nothing left to answer');
     await _finish(tester, h);
   });
 

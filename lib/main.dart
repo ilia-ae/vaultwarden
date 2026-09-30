@@ -8,6 +8,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'app.dart';
 import 'demo_fixtures.dart';
 import 'firebase_options.dart';
+import 'providers/service_providers.dart';
+import 'services/pin_shift_vector_store.dart';
 import 'services/secure_storage_service.dart';
 import 'services/settings_service.dart';
 
@@ -51,6 +53,10 @@ Future<void> main() async {
       child: ProviderScope(
         overrides: [
           settingsServiceProvider.overrideWithValue(settings),
+          // PIN Shift's saved vector lives in the app's keychain store (the
+          // same guarded write path as the session).
+          pinShiftVectorStoreProvider
+              .overrideWith((ref) => ref.watch(secureStorageProvider)),
           ...demoModeOverrides(),
         ],
         child: const App(),

@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  Lightweight mobile app for approving <em>"Login with device"</em> requests<br>
+  Lightweight mobile app for approving <em>"Log in with device"</em> requests<br>
   on Bitwarden cloud (bitwarden.com / bitwarden.eu) or a self-hosted
   <a href="https://github.com/dani-garcia/vaultwarden">Vaultwarden</a> / Bitwarden server.
 </p>
@@ -31,7 +31,7 @@
 
 ## Why?
 
-Bitwarden supports passwordless login via "Login with device", but approving those requests requires a **full-featured** client (Bitwarden Mobile / Desktop).
+Bitwarden supports passwordless login via "Log in with device", but approving those requests requires a **full-featured** client (Bitwarden Mobile / Desktop).
 
 Vault Approver is a **single-purpose** alternative:
 
@@ -48,13 +48,14 @@ No vault UI, no stored passwords — just an approver.
 | ☁️ | **Cloud or self-hosted** | bitwarden.com (US), bitwarden.eu (EU) or any self-hosted Vaultwarden / Bitwarden URL — custom port and path are kept |
 | 🪪 | **Client certificates (mTLS)** | Import a `.p12` / `.pfx` for a self-hosted server that requires one; subject and expiry are shown, with a warning 30 days before it expires; used for both REST and the WebSocket |
 | 🔐 | **Biometric unlock** | Face ID / Touch ID on every launch |
+| 🗂️ | **Two tabs** | **Vault** (Pending and History) and **PIN** (offline PIN tools, see below) |
 | ⚡ | **Real-time notifications** | SignalR WebSocket + MessagePack; polling fallback |
 | 🔑 | **Fingerprint phrase** | 5-word EFF phrase shown before approval — computed exactly like the official Bitwarden clients, so it matches the phrase on the requesting device |
 | ⏳ | **5-minute window** | Countdown on the server's clock; an expired request can no longer be approved (Vaultwarden only honours approvals for 5 minutes) |
 | 🛡️ | **Full E2E encryption** | Master password never stored; RSA-2048-OAEP key exchange |
 | 📲 | **Two-step login** | Authenticator app (TOTP), email (the code is requested for you, with resend), YubiKey OTP and recovery code; "Remember this device". Duo and passkeys / FIDO2 keys are listed but need another method |
 | ✉️ | **New-device verification** | bitwarden.com's e-mailed device code, with resend. The device ID survives logout, so the app stays one device on the server |
-| 🌍 | **Localization** | English, Russian, Arabic and Simplified Chinese; in-app language switcher |
+| 🌍 | **Localization** | English, Russian, Arabic and Simplified Chinese; language switcher on the setup screen and in Settings |
 | 🎨 | **Themes** | System / Light / Dark |
 | 🔒 | **Privacy screen** | iOS blur overlay + Android FLAG_SECURE; hides content in app switcher |
 | 🔄 | **Auto-refresh** | Configurable polling (5 s / 15 s / 30 s / 1 min) |
@@ -256,12 +257,12 @@ test/
 
 ## PIN tools
 
-A second tab, **PIN**, sits behind the same biometric lock. Every tool runs **fully offline on the phone**: nothing typed there is saved, synced, logged or sent anywhere (a test guards that no PIN code imports anything that can reach the network).
+The second tab, **PIN** (next to **Vault**), sits behind the same biometric lock. Every tool runs **fully offline on the phone**: nothing typed there is synced, logged or sent anywhere, and nothing is saved except a PIN Shift vector you choose to keep on the device (a test guards that no PIN code imports anything that can reach the network).
 
 | Tool | What it does |
 |:--|:--|
+| **PIN Shift** | Per-position modulo-10 shift, `new = base + vector (mod 10)` without carry: encode/decode, lengths 1–16, per-digit breakdown, a paper walkthrough and the threat model. Mnemonic obfuscation, **not a cipher**; no copy button by design. The vector can be saved on the device (**Save on this device**): it is then used automatically, so only the PIN is typed, and the app never shows it again; Replace and Delete are offered instead. |
 | **PIN 24** — Ledger recovery | Recovery-only reimplementation of the Ledger Passwords app: BIP39 seed (12/15/18/21/24 words, optional passphrase) + nickname → the PIN or 20-character password the device would type. Typing the first 4 letters of a word and a space completes it (nothing is completed while you are still typing a word). Matches the official LedgerHQ vectors bit for bit; **Check engine** replays them on the phone. Nicknames can also be picked from a list: import a Ledger Passwords backup (`.json` from passwords.ledger.com, `{"parsed": [{"nickname", "charsets"}]}`) **before** typing the seed — the file picker sends the app to the background, so the import is off while a seed is entered or cached. Only nicknames and charsets are read (none given = all sets), the list stays in memory until the next full wipe, a pick never overwrites a typed nickname without asking, and a charset mask the five toggles cannot express (e.g. `MINUS` alone) is used exactly, with a warning. |
-| **PIN Shift** | Per-position modulo-10 shift, `new = base + vector (mod 10)` without carry: encode/decode, lengths 1–16, per-digit breakdown, a paper walkthrough and the threat model. Mnemonic obfuscation, **not a cipher**; no copy button by design. |
 | **YubiKey** | PIV PIN/PUK, OpenPGP, FIDO2, OATH and OTP access codes for one or more serials, identical to yubikey-fleet `yk-batch-secrets.py`: from Ledger Passwords entries, from a master key (derived mode) or at random. The Ledger source uses the seed entered in PIN 24: as soon as the phrase there is valid it stays in memory for the tab (no nickname needed), and **Back to YubiKey** returns with the serials and settings kept. PINs still set by hand during the move to Ledger (00, 23, 34) can be excluded. Values are hidden per row with a `sha256_6` checksum; copy one value, or copy a `folder,name,field,value` CSV for a password manager (not directly importable by Bitwarden). Random values exist nowhere else: Clear and switching tools ask first. YAML manifests and `ykman` provisioning stay on the desktop. |
 | **Legacy mask** | The archived `pass_pin` generator (an 8-digit mask walked over a 20-character string), shown only with **Show legacy tools**, to recover PINs made with it. Superseded by PIN Shift. |
 
@@ -269,12 +270,13 @@ A second tab, **PIN**, sits behind the same biometric lock. Every tool runs **fu
 
 **Security notes**
 
-- Secrets live only in widget state and an auto-disposed session. Everything — including the 64-byte seed shared by PIN 24 and YubiKey — is wiped by **Wipe seed** / **Wipe all**, when you leave the PIN tab, when the app leaves the screen, after 2 minutes without activity and on lock; switching tools clears that tool's inputs. A wipe cannot be undone (no undo history survives it) and closes any open PIN dialog. Dart strings cannot be zeroed — closing the app is the final wipe.
+- Secrets live only in widget state and an auto-disposed session (the one exception is a saved PIN Shift vector, below). Everything — including the 64-byte seed shared by PIN 24 and YubiKey — is wiped by **Wipe seed** / **Wipe all**, when you leave the PIN tab, when the app leaves the screen, after 2 minutes without activity and on lock; switching tools clears that tool's inputs. A wipe cannot be undone (no undo history survives it) and closes any open PIN dialog. Dart strings cannot be zeroed — closing the app is the final wipe.
 - Secret fields turn off suggestions, autocorrect, keyboard learning and autofill, offer only Paste and ignore the copy/cut/undo shortcuts; the seed field has no reveal. Error messages never quote secret input unless you turn on **Show typed words** (then invalid words and completions are shown); invalid serial numbers are quoted, since serials are not secret.
 - Hidden fields show the last character you type for a moment, like the system's own password fields: this is Flutter's standard behaviour with no per-field switch (on Android it follows the system setting "Show passwords"; iOS always does it). Pasted text is never shown.
 - After a paste the app reminds you that the secret is still on the clipboard; **Wipe seed**, **Wipe all**, **Clear** and leaving the tab also clear it (and a copied result that is still ours).
 - Android sets `FLAG_SECURE` on the PIN tab (test builds made with `-Pallow-screenshots=true` say so); iOS hides the tab while the screen is recorded or mirrored and warns after a screenshot.
 - Copies use a native channel: local-only (no Universal Clipboard) with an expiry on iOS; on Android the clip is flagged `IS_SENSITIVE` and cleared after 60 seconds, which clipboard-sync apps can still copy. Android 13+ confirms every copy itself, so the app shows no second "Copied" message there. Derivations run in a background isolate.
+- A saved PIN Shift vector is kept in the Keychain / Keystore (iOS: a this-device-only item that needs a device passcode), never in preferences or cloud sync. It survives logout (it is device data, not vault data) and is removed by **Delete**, a full reset or a reinstall. It is never shown or read aloud again; anyone who can open the unlocked app can compute with it, and one result for a PIN they know reveals it.
 - PIN 24 is for recovery only: a seed typed into a phone is exposed to the OS, keyboards and backups — use the real Ledger whenever possible.
 
 ## Crypto Chain
@@ -381,7 +383,7 @@ Generated code is created automatically (`generate: true` in `pubspec.yaml`).
 
 To add a locale: create `app_XX.arb` → add to `supportedLocales` in `lib/app.dart`.
 
-Users can switch language in-app: **Settings → Language** (System / English / Русский / العربية / 简体中文).
+Users can switch language in-app: **Settings → Language**, or the language button on the setup screen (System / English / Русский / العربية / 简体中文).
 
 ## License
 

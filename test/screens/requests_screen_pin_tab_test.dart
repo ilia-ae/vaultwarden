@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -10,7 +12,6 @@ import 'package:vault_approver/screens/pin/pin_section.dart';
 import 'package:vault_approver/screens/pin/pin_session.dart';
 import 'package:vault_approver/screens/requests_screen.dart';
 import 'package:vault_approver/widgets/glass_top_bar.dart';
-import 'package:vault_approver/widgets/option_pills.dart';
 
 import 'pin/pin_harness.dart';
 
@@ -56,7 +57,7 @@ void main() {
     final container =
         ProviderScope.containerOf(tester.element(find.byType(RequestsScreen)));
 
-    // Top bar: Vault, PIN. Inside Vault: the Pending/History pills.
+    // Top bar: Vault, PIN. Inside Vault: the Pending/History segments.
     for (final id in ['tab_vault', 'tab_pin', 'tab_pending', 'tab_history']) {
       expect(byId(id), findsOneWidget, reason: id);
     }
@@ -67,7 +68,7 @@ void main() {
     expect(byId('btn_add_demo'), findsOneWidget);
     expect(secureCalls(channel), isEmpty);
 
-    // History is a pill inside the Vault tab, not a tab of its own.
+    // History is a segment inside the Vault tab, not a tab of its own.
     await tapTab(tester, 'tab_history');
     expect(byId('btn_add_demo'), findsNothing,
         reason: 'FAB only on Vault › Pending');
@@ -81,7 +82,8 @@ void main() {
     expect(find.text(l.authRequestsTitle), findsNothing);
     expect(find.byIcon(Icons.refresh), findsNothing);
     expect(byId('btn_add_demo'), findsNothing);
-    expect(byId('tab_pending'), findsNothing, reason: 'the pills are Vault\'s');
+    expect(byId('tab_pending'), findsNothing,
+        reason: 'the Pending/History picker is Vault\'s');
     expect(byId('pin_tool_pin24'), findsOneWidget);
     expect(pinTabVisible.value, isTrue);
     // The tab opens on PIN Shift, its PIN field first.
@@ -99,11 +101,9 @@ void main() {
     expect(secureCalls(channel), [true, true, true, false]);
     // Leaving the tab disposed the section's session (and its seed cache).
     expect(container.exists(pinSessionProvider), isFalse);
-    // Back on the pill it was left on (History): still no FAB.
-    bool selected(String id) => tester
-        .widget<OptionPill>(
-            find.ancestor(of: byId(id), matching: find.byType(OptionPill)))
-        .selected;
+    // Back on the segment it was left on (History): still no FAB.
+    bool selected(String id) =>
+        tester.widget<Semantics>(byId(id)).properties.selected!;
     expect(selected('tab_history'), isTrue);
     expect(selected('tab_pending'), isFalse);
     expect(byId('btn_add_demo'), findsNothing);
@@ -256,27 +256,35 @@ void main() {
     (const Locale('ar'), true)
   ]) {
     testWidgets(
-        'the tab droplet spans one of the two tabs (${locale.languageCode})',
-        (tester) async {
+        'the top tabs: text labels, the underline under the active one '
+        '(${locale.languageCode})', (tester) async {
       useTallSurface(tester);
       mockPrivacyChannel(tester);
       await pumpRequests(tester, locale: locale);
-      Rect droplet() => tester.getRect(find.descendant(
+      final l = lookupAppLocalizations(locale);
+      // No droplet: the bar's own glass is the only glass in it.
+      expect(
+        find.descendant(
             of: find.byType(GlassTopBar),
-            matching: find.byWidgetPredicate((w) =>
-                w is GlassContainer && w.shape is LiquidRoundedSuperellipse),
-          ));
-      // 1000-pt wide surface; the tab row has 16-pt margins.
-      const half = (1000 - 32) / 2;
-      const first = 16.0, second = 16.0 + half;
+            matching: find.byType(GlassContainer)),
+        findsOneWidget,
+      );
+      Rect underline() => tester.getRect(find.byKey(GlassTopBar.underlineKey));
+      Rect label(String text) => tester.getRect(find.descendant(
+          of: find.byType(GlassTopBar), matching: find.text(text)));
 
-      expect(droplet().width, half);
-      expect(droplet().left, rtl ? second : first, reason: 'on Vault');
+      // 1000-pt wide surface; the tab row has 16-pt margins.
+      expect(
+          underline().center.dx, moreOrLessEquals(label(l.vaultTab).center.dx),
+          reason: 'on Vault');
+      expect(underline().width, moreOrLessEquals(label(l.vaultTab).width));
       expect(tester.getCenter(byId('tab_vault')).dx < 500, !rtl);
 
       await tapTab(tester, 'tab_pin');
-      expect(droplet().width, half);
-      expect(droplet().left, rtl ? first : second, reason: 'on PIN');
+      expect(underline().center.dx, moreOrLessEquals(label(l.pinTab).center.dx),
+          reason: 'on PIN');
+      expect(underline().width,
+          moreOrLessEquals(math.max(label(l.pinTab).width, 24)));
       expect(tester.getCenter(byId('tab_pin')).dx > 500, !rtl);
       await tester.pumpWidget(const SizedBox());
     });

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show HapticFeedback;
 
 import '../glass.dart';
+import 'segmented_tabs.dart';
 
 /// Section title above a group of controls: `labelLarge` in
 /// `onSurfaceVariant`, the settings sheet's header look.
@@ -33,11 +34,12 @@ class SectionHeader extends StatelessWidget {
 /// Single-choice selection pills (the settings sheet's option chips as a
 /// reusable widget).
 ///
-/// iOS-26 grammar matching the app's Approve/Deny/tab language: selected = a
-/// soft accent stadium (no Material checkmark), unselected = a
-/// hairline-outlined stadium. Press gives the app-wide spring squish and a
-/// selection haptic. [onSelected] fires on every tap, including a tap on the
-/// pill that is already selected.
+/// Neutral, like the [SegmentedTabs] pickers (the accent is kept for the
+/// top-tab underline and Approve): selected = a filled grey stadium with the
+/// label in `onSurface`, semibold (no Material checkmark); unselected = a
+/// hairline-outlined stadium with the label in `onSurfaceVariant`. Press
+/// gives the app-wide spring squish and a selection haptic. [onSelected]
+/// fires on every tap, including a tap on the pill that is already selected.
 class OptionPills<T> extends StatelessWidget {
   const OptionPills({
     super.key,
@@ -136,6 +138,24 @@ class OptionPill extends StatelessWidget {
   final VoidCallback onTap;
   final String? identifier;
 
+  /// Fill of a selected pill (also the setup screen's server pills): the
+  /// [SegmentedTabs] greys, never the accent. Its lighter thumb in the dark
+  /// theme; in the light theme its track grey, as a white thumb would vanish
+  /// on the white cards the pills sit on.
+  static Color selectedFill(Brightness brightness) =>
+      brightness == Brightness.dark
+          ? SegmentedTabs.thumbColor(brightness)
+          : SegmentedTabs.trackColor(brightness);
+
+  /// Label colour: `onSurface` when selected (as the selected segment's
+  /// label), `onSurfaceVariant` otherwise.
+  static Color labelColor(ColorScheme cs, {required bool selected}) =>
+      selected ? cs.onSurface : cs.onSurfaceVariant;
+
+  /// Outline of an unselected pill; a selected one has none.
+  static BorderSide unselectedSide(ColorScheme cs) =>
+      BorderSide(color: cs.outlineVariant.withValues(alpha: 0.6));
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -157,19 +177,17 @@ class OptionPill extends StatelessWidget {
             // full-width. Padding alone keeps them content-sized.
             padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
             decoration: ShapeDecoration(
-              color: selected ? cs.primaryContainer : Colors.transparent,
+              color: selected
+                  ? selectedFill(theme.brightness)
+                  : Colors.transparent,
               shape: StadiumBorder(
-                side: selected
-                    ? BorderSide.none
-                    : BorderSide(
-                        color: cs.outlineVariant.withValues(alpha: 0.6),
-                      ),
+                side: selected ? BorderSide.none : unselectedSide(cs),
               ),
             ),
             child: Text(
               label,
               style: theme.textTheme.labelLarge?.copyWith(
-                color: selected ? cs.onPrimaryContainer : cs.onSurfaceVariant,
+                color: labelColor(cs, selected: selected),
                 fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
               ),
             ),

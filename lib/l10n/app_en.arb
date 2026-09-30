@@ -11,12 +11,12 @@
   "emailLabel": "Email",
   "emailRequired": "Enter your email",
   "emailInvalid": "Invalid email",
-  "masterPasswordLabel": "Master Password",
+  "masterPasswordLabel": "Master password",
   "masterPasswordRequired": "Enter your master password",
-  "settingUp": "Setting up...",
-  "setUp": "Set Up",
+  "settingUp": "Setting up…",
+  "setUp": "Set up",
 
-  "twoFactorTitle": "Two-Factor Authentication",
+  "twoFactorTitle": "Two-step login",
   "twoFactorPrompt": "Enter the 6-digit code from your authenticator app.",
   "twoFactorHint": "000000",
   "twoFactorCodeError": "Enter 6 digits",
@@ -31,10 +31,10 @@
   },
 
   "errorInvalidCredentials": "Invalid email or password",
-  "errorInvalidTwoFactorCode": "Invalid two-factor code",
+  "errorInvalidTwoFactorCode": "Invalid two-step login code",
   "errorInvalidRequest": "Invalid request — check your credentials",
   "errorAccessDenied": "Access denied by server",
-  "errorEndpointNotFound": "Server endpoint not found — check URL",
+  "errorEndpointNotFound": "Not found on this server (404) — check the URL",
   "errorTooManyAttempts": "Too many attempts — try again later",
   "errorServerRetry": "Server error ({status}) — try again later",
   "@errorServerRetry": {
@@ -48,17 +48,17 @@
       "status": { "type": "int" }
     }
   },
-  "errorConnectionTimeout": "Connection timed out — check server URL",
-  "errorCannotConnect": "Cannot connect to server",
-  "errorCannotResolve": "Cannot resolve server address — check URL",
-  "errorSslCertificate": "SSL certificate error — check server URL",
+  "errorConnectionTimeout": "Connection timed out — check the server URL",
+  "errorCannotConnect": "Can't connect to the server",
+  "errorCannotResolve": "Can't resolve the server address — check the URL",
+  "errorSslCertificate": "SSL certificate error — check the server URL",
   "errorRequestCancelled": "Request cancelled",
   "errorInvalidMasterPassword": "Invalid master password",
-  "errorInvalidServerResponse": "Invalid server response — check URL",
+  "errorInvalidServerResponse": "Invalid server response — check the URL",
   "errorUnexpectedFormat": "Unexpected server response format",
   "errorSessionExpired": "Session expired — please log in again",
   "errorBiometricFailed": "Biometric authentication failed",
-  "errorNoConnection": "No connection to server",
+  "errorNoConnection": "No connection to the server",
   "errorNoConnectionSubtitle": "Check your network connection and server availability",
 
   "biometricReason": "Authenticate to access Vault Approver",
@@ -70,27 +70,27 @@
     }
   },
   "requestApproved": "Request approved",
-  "approveFailedMessage": "Approve failed: {error}",
+  "approveFailedMessage": "Couldn't approve: {error}",
   "@approveFailedMessage": {
     "placeholders": {
       "error": { "type": "String" }
     }
   },
-  "denyFailedMessage": "Deny failed: {error}",
+  "denyFailedMessage": "Couldn't deny: {error}",
   "@denyFailedMessage": {
     "placeholders": {
       "error": { "type": "String" }
     }
   },
 
-  "logoutTitle": "Logout",
-  "logoutConfirmation": "This will delete all stored keys. You will need to set up again with your master password.",
-  "logout": "Logout",
+  "logoutTitle": "Log out?",
+  "logoutConfirmation": "This deletes the account's keys, session and request history from this device; to set up again, you'll need your master password. Client certificates and a saved PIN Shift vector stay on this device.",
+  "logout": "Log out",
 
   "locked": "Locked",
   "unlock": "Unlock",
 
-  "authRequestsTitle": "Auth Requests",
+  "authRequestsTitle": "Login requests",
   "vaultTab": "Vault",
   "@vaultTab": {
     "description": "Main-screen tab with the login-with-device requests (Pending and History inside). Feature name: kept as \"Vault\" in every language."
@@ -102,12 +102,12 @@
   "noPendingRequests": "No pending requests",
   "pullDownToRefresh": "Pull down to refresh",
 
-  "clearHistoryTitle": "Clear History",
+  "clearHistoryTitle": "Clear history?",
   "clearHistoryConfirmation": "All history entries will be permanently deleted.",
   "clear": "Clear",
   "noHistoryYet": "No history yet",
   "historyEmptySubtitle": "Approved and denied requests will appear here",
-  "clearAll": "Clear All",
+  "clearAll": "Clear all",
 
   "approved": "Approved",
   "denied": "Denied",
@@ -115,6 +115,21 @@
   "@respondedIn": {
     "placeholders": {
       "responseStr": { "type": "String" }
+    }
+  },
+  "responseTimeSeconds": "{seconds}s",
+  "@responseTimeSeconds": {
+    "description": "History: how long the answer took, under a minute (the responseStr of respondedIn).",
+    "placeholders": {
+      "seconds": { "type": "int" }
+    }
+  },
+  "responseTimeMinutes": "{minutes}m {seconds}s",
+  "@responseTimeMinutes": {
+    "description": "History: how long the answer took, a minute or more (the responseStr of respondedIn).",
+    "placeholders": {
+      "minutes": { "type": "int" },
+      "seconds": { "type": "int" }
     }
   },
 
@@ -144,7 +159,7 @@
     }
   },
 
-  "fingerprintLabel": "Fingerprint:",
+  "fingerprintLabel": "Fingerprint phrase:",
   "deny": "Deny",
   "approve": "Approve",
 
@@ -173,17 +188,17 @@
   "ipTrusted": "Known IP",
   "ipDenied": "Denied IP",
 
-  "biometricRequiredTitle": "Biometrics Required",
+  "biometricRequiredTitle": "Biometrics required",
   "biometricRequiredMessage": "This app requires Face ID, Touch ID, or fingerprint authentication to securely store your encryption keys. Please enable biometrics in your device settings.",
   "biometricUnavailable": "Biometrics unavailable. Enable Face ID or fingerprint in device settings.",
   "biometricRetry": "Retry",
 
   "demoModeNotice": "Demo mode — sample data, not a real account",
   "sessionEndedOnServer": "Your session ended on the server. Please log in again.",
-  "signedOutByServer": "The server signed this device out (password or security change). Please log in again.",
+  "signedOutByServer": "The server logged this device out (the password or security settings changed). Please log in again.",
   "storageErrorTitle": "Can't read secure storage",
   "storageErrorMessage": "Your saved login couldn't be read from the device keychain. Unlock the device and try again.",
-  "lockKeyMissing": "The encryption key for this account is missing on this device. Log out and set up again.",
+  "lockKeyMissing": "The encryption key for this account wasn't found on this device. Tap Retry, or log out and set up again.",
 
   "serverSection": "Server",
   "serverRegionUs": "bitwarden.com",
@@ -197,7 +212,7 @@
       }
     }
   },
-  "signedInAs": "Signed in as {email}",
+  "signedInAs": "Logged in as {email}",
   "@signedInAs": {
     "placeholders": {
       "email": {
@@ -207,7 +222,7 @@
   },
   "setupStepServerParameters": "Getting server parameters…",
   "setupStepDerivingKey": "Deriving master key…",
-  "setupStepAuthenticating": "Signing in…",
+  "setupStepAuthenticating": "Logging in…",
   "setupStepDecryptingKey": "Decrypting encryption key…",
   "setupStepSecuringKeys": "Securing keys…",
   "sendingCode": "Sending code…",
@@ -218,7 +233,7 @@
   "clientCertReplace": "Replace",
   "clientCertRemove": "Remove",
   "clientCertRemoveTitle": "Remove client certificate?",
-  "clientCertRemoveMessage": "The app will stop presenting a certificate to {server}. If the server requires one, sign-in and updates will stop working.",
+  "clientCertRemoveMessage": "The app will stop presenting a certificate to {server}. If the server requires one, the app will no longer be able to log in or load requests.",
   "@clientCertRemoveMessage": {
     "placeholders": {
       "server": {
@@ -245,7 +260,7 @@
       }
     }
   },
-  "clientCertExpiresSoon": "Expires in {days} d ({date}). Import a renewed certificate.",
+  "clientCertExpiresSoon": "Expires {days, plural, =0{in less than a day} one{in 1 day} other{in {days} days}} ({date}). Import a renewed certificate.",
   "@clientCertExpiresSoon": {
     "placeholders": {
       "days": {
@@ -289,7 +304,7 @@
   "errorAuthRequestNotFound": "This request no longer exists (it expired or was answered elsewhere)",
   "errorClientVersionRejected": "The server rejected this app version. Please update Vault Approver.",
   "errorMissingUserKey": "The server sent no master-password key for this account. Accounts that unlock with SSO, a trusted device or Key Connector are not supported.",
-  "errorKdfTooWeak": "The server sent unsafe key-derivation settings. Sign-in was refused to protect your master password.",
+  "errorKdfTooWeak": "The server sent unsafe key-derivation settings. The app refused to log in, to protect your master password.",
   "errorUnsupportedKdf": "The server uses a key-derivation method this app doesn't support",
   "errorTooManyAttemptsWait": "Too many attempts. Try again in {seconds} s.",
   "@errorTooManyAttemptsWait": {
@@ -356,7 +371,7 @@
   },
   "codeIncomplete": "Enter the full code",
   "newDeviceTitle": "Verify new device",
-  "newDevicePrompt": "Bitwarden sent a verification code to your email. Enter it to finish signing in on this device.",
+  "newDevicePrompt": "Bitwarden sent a verification code to your email. Enter it to finish logging in on this device.",
   "requestTimeLeft": "{time} left",
   "@requestTimeLeft": {
     "placeholders": {
@@ -418,7 +433,7 @@
   "cloudSyncErrorTimeout": "Sign-in is taking too long. Check your connection and try again.",
   "cloudSyncErrorGeneric": "Sign-in failed. Please try again.",
   "plainHttpTitle": "Unencrypted connection",
-  "plainHttpMessage": "This server address starts with http://. Your master-password hash, sign-in tokens and approvals would travel unencrypted, and anyone on the network could read or change them. Use https:// unless you fully trust this network.",
+  "plainHttpMessage": "This server address starts with http://. Your master-password hash, login tokens and approvals would travel unencrypted, and anyone on the network could read or change them. Use https:// unless you fully trust this network.",
   "plainHttpContinue": "Continue anyway",
   "ok": "OK",
   "demoAddRequest": "Add demo request",
@@ -431,7 +446,7 @@
   "pinToolLegacy": "Legacy mask",
   "pinShowLegacy": "Show legacy tools",
   "pinShowLegacyHelp": "Adds the old 8-digit mask tool (kept only to recover values made with it).",
-  "pinOfflineNote": "Everything here works offline, on this phone only. Nothing you type is saved, synced or sent anywhere.",
+  "pinOfflineNote": "Everything here works offline, on this phone only. Nothing you type is saved, synced or sent anywhere — except a PIN Shift vector you choose to save in this device's keychain.",
   "pinUnavailable": "The PIN tools could not start. Close and reopen the app.",
   "pinScreenshotsAllowedBuild": "Test build: screenshots of this screen are allowed.",
   "pinSeedInMemory": "A seed from PIN 24 is still in memory ({words} words).",
@@ -453,7 +468,7 @@
   "pinTapToCopy": "Tap to copy — it clears from the clipboard after 60 seconds.",
   "pinCopied": "Copied!",
   "pinCopiedTtl": "Copied — clears from the clipboard in 60 seconds",
-  "pinCopyFailed": "Failed",
+  "pinCopyFailed": "Couldn't copy",
   "pinPastedStillOnClipboard": "The pasted text is still on the clipboard.",
   "pinClearClipboard": "Clear clipboard",
   "pinClipboardCleared": "Clipboard cleared",
@@ -468,9 +483,9 @@
   "pinWordStatePartial": "incomplete",
   "pinWordStateInvalid": "not in the wordlist",
   "pinWordStateEmpty": "empty",
-  "pin24Summary": "Recovery-only: derive Ledger-compatible PINs and passwords from a 12, 15, 18, 21 or 24-word BIP39 seed.",
+  "pin24Summary": "Recovery-only: derive Ledger-compatible PINs and passwords from a 12, 15, 18, 21 or 24-word BIP39 seed phrase.",
   "pin24Bullets": "• Bit-for-bit replica of the LedgerHQ app-passwords derivation\n• BIP39 validation (wordlist + checksum) before touching the secret\n• Per-service nickname; first N digits of the device output\n• Use only when the real Ledger is unavailable",
-  "pin24Caption": "Recovery-only software reproduction of the Ledger Passwords app. Type the BIP39 seed + a nickname → get the same numeric PIN the device would type for that nickname with “Use numbers + Use separators” selected. Use the real device whenever possible.",
+  "pin24Caption": "Recovery-only software reproduction of the Ledger Passwords app. Type the BIP39 seed phrase and a nickname → get the same numeric PIN the device would type for that nickname with “Use numbers + Use separators” selected. Use the real device whenever possible.",
   "pin24Banner": "Recovery-only tool. Use it only when your Ledger device is unavailable. Typing your BIP39 seed phrase into a phone exposes it to the operating system, keyboard apps, the clipboard, screenshots, screen recording and backups. Prefer the real device whenever possible. Close this screen when done, and assume the phone could be compromised — rotate any high-value secrets afterwards if practical.",
   "pin24Acknowledge": "I understand",
   "pin24AckRequired": "Read the warning above and tap “I understand” to unlock the seed field.",
@@ -478,10 +493,10 @@
   "pin24SectionNickname": "2 · Service nickname",
   "pin24SectionMode": "3 · Mode",
   "pin24SectionOutput": "4 · Output",
-  "pin24SeedLabel": "BIP39 seed (12 / 15 / 18 / 21 / 24 words; spaces / dashes / commas / newlines all work)",
+  "pin24SeedLabel": "BIP39 seed phrase (12 / 15 / 18 / 21 / 24 words; spaces, dashes, commas and new lines all work)",
   "pin24SeedHelp": "Always masked. The word cells below mirror what you typed — turn on “Show typed words” to see the words in them. Paste works; copying out does not.",
   "pin24ShowWords": "Show typed words in the cells below (off by default)",
-  "pin24ShowWordsHelp": "Off: cells render bullets, only validation colors visible. On: each cell shows the actual word.",
+  "pin24ShowWordsHelp": "Off: the cells show dots and only the validation colors. On: each cell shows the actual word.",
   "pin24WordsMetric": "Words",
   "pin24WordsCounter": "{typed} / {target}",
   "@pin24WordsCounter": {
@@ -491,7 +506,7 @@
     }
   },
   "pin24StatusEmpty": "Enter the seed phrase above.",
-  "pin24StatusCount": "Got {count} words; BIP39 requires one of 12, 15, 18, 21, 24.",
+  "pin24StatusCount": "{count, plural, one{1 word} other{{count} words}}; BIP39 needs 12, 15, 18, 21 or 24.",
   "@pin24StatusCount": {
     "placeholders": {
       "count": { "type": "int" }
@@ -505,13 +520,13 @@
       "count": { "type": "int" }
     }
   },
-  "pin24InvalidMasked": "Not in BIP39 wordlist at position(s): {positions}",
+  "pin24InvalidMasked": "Not in the BIP39 wordlist, position(s): {positions}",
   "@pin24InvalidMasked": {
     "placeholders": {
       "positions": { "type": "String" }
     }
   },
-  "pin24InvalidRevealed": "Not in BIP39 wordlist: {items}",
+  "pin24InvalidRevealed": "Not in the BIP39 wordlist: {items}",
   "@pin24InvalidRevealed": {
     "placeholders": {
       "items": { "type": "String" }
@@ -556,7 +571,7 @@
   "pin24WipeAllBody": "This clears the seed phrase, passphrase, nickname and results on this tab and zeroes the cached seed.\n\nThe derived PIN will be lost — copy or write it down first.",
   "pin24WipeAllConfirm": "Yes, wipe now",
   "pin24NicknameLabel": "Nickname",
-  "pin24NicknameHelp": "Exactly as set on the device — case-sensitive. It must match the nickname stored on your Ledger byte for byte: if you used 'Visa' on the device, 'visa' here derives a different PIN.",
+  "pin24NicknameHelp": "Exactly as set on the device — case-sensitive. It must match the nickname stored on your Ledger byte for byte: if you used “Visa” on the device, “visa” here derives a different PIN.",
   "pin24NicknameWhitespace": "Starts or ends with a space — it is part of the nickname",
   "pin24NicknameNonAscii": "Non-ASCII characters — they must match the device byte-for-byte",
   "pin24NicknameTooLong": "{bytes} bytes in UTF-8 — Ledger nicknames hold at most {max}",
@@ -569,7 +584,7 @@
   "pin24ModePin": "PIN (digits only)",
   "pin24ModePinHelp": "Numeric PIN — first N digits of the device's NUMBERS+SEPARATORS output.",
   "pin24ModePassword": "Password (any charset)",
-  "pin24ModePasswordHelp": "Full 20-char Ledger password — same as choosing charsets on the device.",
+  "pin24ModePasswordHelp": "Full 20-character Ledger password — same as choosing charsets on the device.",
   "pin24Length": "Length",
   "pin24LengthButton": "Length {length}",
   "@pin24LengthButton": {
@@ -617,7 +632,7 @@
       "zeros": { "type": "int" }
     }
   },
-  "pin24FullToggle": "Show full derived password (for debug / device cross-check)",
+  "pin24FullToggle": "Show the full derived password (to cross-check with the device)",
   "pin24FullHelp": "Shows the entire numbers-and-separators string the Ledger would type (␣ = space). Use it once on first setup: create an entry “pin24-test” on the device and compare character by character, then turn this off.",
   "pin24FullCaption": "Full derived password. The PIN above is {length, plural, one{the first digit} other{the first {length} digits}} of this string (separators skipped). Compare it character-for-character with what your Ledger types in the same configuration.",
   "@pin24FullCaption": {
@@ -626,7 +641,7 @@
     }
   },
   "pin24CopyFull": "Copy full password",
-  "pin24PasswordCaption": "Charsets: {charsets}. This is the exact 20-char string the Ledger device would type for nickname “{nickname}” with the same on-device toggles enabled (␣ = space).",
+  "pin24PasswordCaption": "Charsets: {charsets}. This is the exact 20-character string the Ledger device would type for nickname “{nickname}” with the same on-device toggles enabled (␣ = space).",
   "@pin24PasswordCaption": {
     "placeholders": {
       "charsets": { "type": "String" },
@@ -637,11 +652,11 @@
   "pin24ErrorPassphraseUtf8": "The passphrase contains a broken character (an unpaired surrogate) that cannot be encoded as UTF-8. Clear the passphrase and type it again.",
   "pin24ErrorNicknameUtf8": "The nickname contains a broken character (an unpaired surrogate) that cannot be encoded as UTF-8. Clear the nickname and type it again.",
   "pin24ErrorBip32": "This nickname hits an astronomically rare invalid key; the device cannot derive it either. Use a different nickname.",
-  "pin24ErrorGeneric": "Derivation failed unexpectedly. The seed itself is not echoed in this message on purpose. Re-check the phrase length, wordlist, and BIP39 checksum; if the problem persists, wipe everything and start again.",
-  "pin24ErrorGenericShort": "Derivation failed unexpectedly. The seed itself is not echoed in this message on purpose.",
+  "pin24ErrorGeneric": "Derivation failed unexpectedly. For safety, this message never shows the seed. Re-check the phrase length, wordlist, and BIP39 checksum; if the problem persists, wipe everything and start again.",
+  "pin24ErrorGenericShort": "Derivation failed unexpectedly. For safety, this message never shows the seed.",
   "pin24ThreatTitle": "Threat model & recovery checklist",
   "pin24ThreatProtectsTitle": "What this screen does to protect the seed",
-  "pin24ThreatProtectsBody": "• The seed field is always masked and never shown as plain text; you can paste into it, never copy out of it.\n• Keyboard suggestions, autocorrect, keyboard learning and autofill are off for the secret fields.\n• Everything is computed on this phone, offline, in a separate short-lived isolate; nothing is sent to your Vaultwarden server, Firebase or anywhere else.\n• Nothing secret is saved: not in settings, cloud sync, backups or logs.\n• The derived seed stays in memory only to avoid re-deriving it, and is zeroed on “Wipe seed” and “Wipe all”, when you leave the PIN tab, when the app goes to the background, after 2 minutes without activity, and when the app locks.\n• Android blocks screenshots and recording of this tab; iOS hides it while the screen is recorded or mirrored.",
+  "pin24ThreatProtectsBody": "• The seed field is always masked and never shown as plain text; you can paste into it, never copy out of it.\n• Keyboard suggestions, autocorrect, keyboard learning and autofill are off for the secret fields.\n• Everything is computed on this phone, offline, in a separate, short-lived background worker; nothing is sent to your Vaultwarden server, Firebase or anywhere else.\n• Nothing secret is saved: not in settings, cloud sync, backups or logs.\n• The derived seed stays in memory only to avoid re-deriving it, and is zeroed on “Wipe seed” and “Wipe all”, when you leave the PIN tab, when the app goes to the background, after 2 minutes without activity, and when the app locks.\n• Android blocks screenshots and recording of this tab; iOS hides it while the screen is recorded or mirrored.",
   "pin24ThreatCannotTitle": "What it CANNOT protect against",
   "pin24ThreatCannotBody": "• A compromised phone: malware, a jailbreak or root, or a malicious keyboard app (Android cannot block third-party keyboards; iOS forces the system keyboard in masked fields only).\n• Accessibility services and screen readers that can read the screen.\n• Screenshots on iOS (they cannot be blocked — you only get a warning), cameras and people looking over your shoulder.\n• Dart strings cannot be wiped: the phrase you typed may stay in app memory until it is overwritten. Only the binary seed buffers are zeroed.\n• Your memory: one wrong word gives a completely different PIN, and the checksum catches most mistakes but not all. A forgotten passphrase cannot be recovered.",
   "pin24ThreatUseTitle": "Use this tool when",
@@ -750,7 +765,7 @@
       "sign": { "type": "String" }
     }
   },
-  "pinShiftRowOutputDerived": "Output (derived)",
+  "pinShiftRowOutputDerived": "Output (derived PIN)",
   "pinShiftRowOutputBase": "Output (base PIN)",
   "pinShiftOutputEmpty": "Output: not ready yet",
   "pinShiftFillBoth": "Fill both fields with exactly {length, plural, one{1 digit} other{{length} digits}}.",
@@ -815,7 +830,7 @@
   "pinLegacyMaskLabel": "Mask (8 digits)",
   "pinLegacyMaskHelp": "Exactly 8 digits 1–9 (0 is not allowed), e.g. 24681357. Only ASCII digits are accepted, on purpose.",
   "pinLegacyMaskAsciiOnly": "The mask contains digits of another script (Arabic-Indic or fullwidth). Only ASCII 0–9 are accepted — switch the keyboard to Western digits.",
-  "pinLegacyErrMaskFormat": "The mask must contain exactly 8 digits, e.g. '24681357'.",
+  "pinLegacyErrMaskFormat": "The mask must contain exactly 8 digits, e.g. 24681357.",
   "pinLegacyErrInputLength": "The input string must contain exactly 20 characters (excluding whitespace).",
   "pinLegacyErrMaskValueRange": "Mask value at position {position} must be between 1 and 20.",
   "@pinLegacyErrMaskValueRange": {
@@ -936,7 +951,7 @@
   "pinYkMasterMissing": "Paste the master key.",
   "pinYkMasterBroken": "The key contains a broken character (an unpaired surrogate). Clear the field and paste it again.",
   "pinYkMasterTitle": "The master key",
-  "pinYkMasterNeverStored": "The master key lives only in this field while the tab is open: it is never saved, synced or sent, and it is wiped when the app leaves the screen, when you leave the PIN tab, after 2 minutes without activity and with Clear.",
+  "pinYkMasterNeverStored": "The master key lives only in this field while the tab is open: it is never saved, synced or sent, and it is wiped when the app leaves the screen, when you leave the PIN tab, after 2 minutes without activity and when you tap Clear.",
   "pinYkSectionResult": "4 · Values",
   "pinYkNoSerials": "Enter one or more serial numbers.",
   "pinYkGateBadSerials": "Fix the serial numbers above.",
@@ -957,7 +972,7 @@
     }
   },
   "pinYkOriginLedger": "from Ledger",
-  "pinYkOriginDerived": "master key",
+  "pinYkOriginDerived": "from master key",
   "pinYkOriginRandom": "random",
   "pinYkOriginSerial": "from serial",
   "pinYkValueHidden": "hidden value",
@@ -1016,7 +1031,7 @@
       "max": { "type": "int" }
     }
   },
-  "pinYkHwExactHex": "exactly {count} hex",
+  "pinYkHwExactHex": "exactly {count} hex digits",
   "@pinYkHwExactHex": {
     "placeholders": {
       "count": { "type": "int" }
@@ -1129,7 +1144,7 @@
       "fields": { "type": "String" }
     }
   },
-  "pinHiddenLastCharNote": "Hidden fields show the last character you type for a moment, like the system password fields do. Flutter has no switch for this per field: on Android it follows the system setting “Show passwords”, iOS always does it. Pasted text is never shown.",
+  "pinHiddenLastCharNote": "Hidden fields show the last character you type for a moment, like the system password fields do. The app can't turn this off per field: on Android it follows the system setting “Show passwords”; iOS always does it. Pasted text is never shown.",
   "pin24ImportTitle": "Nickname list from a backup (optional)",
   "pin24ImportHelp": "Choose a Ledger Passwords backup (.json, as saved by passwords.ledger.com) to pick a nickname and its charsets from a list instead of typing them. Only nicknames and charsets are read, and the list is kept in memory only: it is wiped together with everything else.",
   "pin24ImportFile": "Import list from file",
@@ -1166,5 +1181,43 @@
   "keyboardDone": "Done",
   "@keyboardDone": {
     "description": "Button above an iOS number pad (which has no return key) that closes the keyboard."
+  },
+  "pinShiftVectorSave": "Save on this device",
+  "pinShiftVectorSaveReplace": "Save",
+  "pinShiftVectorSaveHelp": "Saved in this device's keychain, protected by the device passcode; not synced, and kept when you log out of the vault. Once saved, it is used automatically and can't be shown again.",
+  "pinShiftVectorSavedTitle": "Saved vector · {length, plural, one{1 digit} other{{length} digits}}",
+  "@pinShiftVectorSavedTitle": {
+    "placeholders": {
+      "length": { "type": "int" }
+    }
+  },
+  "pinShiftVectorSavedHelp": "Used automatically: enter only the PIN. The app never shows the vector. It stays in this device's keychain (protected by the device passcode), is not synced and is kept when you log out of the vault. Anyone who can open the unlocked app can compute with it, and one result for a PIN they know gives the vector away.",
+  "pinShiftVectorSavedSemantics": "Saved shift vector, {length, plural, one{1 digit} other{{length} digits}}. Never shown or read aloud.",
+  "@pinShiftVectorSavedSemantics": {
+    "placeholders": {
+      "length": { "type": "int" }
+    }
+  },
+  "pinShiftVectorReplace": "Replace",
+  "pinShiftVectorDelete": "Delete",
+  "pinShiftVectorNewLabel": "New shift vector",
+  "pinShiftVectorReplaceNote": "The saved vector is kept until you save the new one.",
+  "pinShiftVectorSavedSnack": "Vector saved on this device. From now on it can't be viewed.",
+  "pinShiftVectorReplacedSnack": "Saved vector replaced.",
+  "pinShiftVectorDeletedSnack": "Saved vector deleted.",
+  "pinShiftVectorDeleteTitle": "Delete the saved vector?",
+  "pinShiftVectorDeleteBody": "It is removed from this device's keychain; the app can't show or restore it. To use PIN Shift afterwards, enter the vector again.",
+  "pinShiftVectorReadError": "Couldn't read the saved vector from this device's keychain.",
+  "pinShiftVectorSaveError": "Couldn't save the vector on this device. Try again.",
+  "pinShiftVectorDeleteError": "Couldn't delete the saved vector. Try again.",
+  "pinShiftLengthSetBySaved": "Set by the saved vector. To change the length, replace or delete the vector.",
+  "pinShiftRevealSaved": "Reveal base PIN",
+  "pinShiftRevealHelpSaved": "Off (default): only the output. On: input + output and the per-digit breakdown; the saved vector stays hidden. Turns off whenever the tab is wiped.",
+  "pinShiftHiddenNoteSaved": "Base PIN hidden; the saved vector is never shown. Turn on “Reveal base PIN” below to see the PIN.",
+  "pinShiftFillPin": "Enter the PIN: exactly {length, plural, one{1 digit} other{{length} digits}}.",
+  "@pinShiftFillPin": {
+    "placeholders": {
+      "length": { "type": "int" }
+    }
   }
 }
