@@ -403,6 +403,66 @@ void main() {
     expect(find.textContaining('3719'), findsNothing);
   });
 
+  testWidgets(
+      'saved vector: the result follows the PIN, the vector card goes below; '
+      'replacing or deleting brings the vector back before the result',
+      (tester) async {
+    FlutterSecureStorage.setMockInitialValues({_key: '11111111'});
+    useTallSurface(tester);
+    mockPrivacyChannel(tester);
+    await _pump(tester);
+    final l = l10n(tester);
+    double top(Finder f) => tester.getRect(f.first).top;
+    void expectOrder(List<Finder> finders) {
+      final tops = [for (final f in finders) top(f)];
+      expect(tops, orderedEquals([...tops]..sort()), reason: '$tops');
+    }
+
+    final pin = '1 · ${l.pinShiftSectionPin}';
+    final settings = '4 · ${l.pinShiftSectionSettings}';
+    expectOrder([
+      find.text(pin),
+      byId('pin_shift_pin'),
+      find.text('2 · ${l.pinShiftSectionResult}'),
+      byId('pin_shift_output'),
+      find.text('3 · ${l.pinShiftSectionVector}'),
+      byId('pin_shift_vector_saved'),
+      byId('pin_shift_vector_replace'),
+      find.text(settings),
+    ]);
+    await tester.enterText(fieldById('pin_shift_pin'), '12345678');
+    await tester.pump();
+    expect(_digits(tester, 'pin_shift_output'), '23456789');
+    expect(top(byId('pin_shift_output')),
+        lessThan(top(byId('pin_shift_vector_saved'))));
+
+    // Replacing: the new vector is typed before its result.
+    await _tap(tester, 'pin_shift_vector_replace');
+    expectOrder([
+      find.text(pin),
+      find.text('2 · ${l.pinShiftSectionVector}'),
+      byId('pin_shift_vector'),
+      find.text('3 · ${l.pinShiftSectionResult}'),
+      byId('pin_shift_output'),
+      find.text(settings),
+    ]);
+    await _tap(tester, 'pin_shift_vector_cancel');
+    expect(find.text('2 · ${l.pinShiftSectionResult}'), findsOneWidget);
+
+    // Deleted: back to the order for typing both.
+    await _tap(tester, 'pin_shift_vector_delete');
+    await tester.pumpAndSettle();
+    await tester.tap(byId('pin_shift_vector_delete_confirm'));
+    await tester.pumpAndSettle();
+    expectOrder([
+      find.text(pin),
+      find.text('2 · ${l.pinShiftSectionVector}'),
+      byId('pin_shift_vector'),
+      find.text('3 · ${l.pinShiftSectionResult}'),
+      find.text(settings),
+    ]);
+  });
+
   testWidgets('delete asks first; then the field and Save are back',
       (tester) async {
     FlutterSecureStorage.setMockInitialValues({_key: '11111111'});

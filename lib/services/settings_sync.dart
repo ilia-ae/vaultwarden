@@ -50,6 +50,12 @@ class SettingsSyncService {
         'updatedAt': FieldValue.serverTimestamp(),
       };
 
+  /// Deletes the user's settings document (account deletion, H2). The
+  /// document has no sub-collections. Firestore only completes a delete once
+  /// the server has it, so an offline device times out instead of hanging.
+  Future<void> delete(String uid) =>
+      _doc(uid).delete().timeout(const Duration(seconds: 20));
+
   Stream<SettingsSnapshot?> watch(String uid) =>
       _doc(uid).snapshots().map((snap) {
         final data = snap.data();
@@ -91,21 +97,54 @@ class SettingsSyncCoordinator {
   String? _uid;
   SettingsSnapshot? _lastRemote;
 
+  /// True while [deleteAccount] runs: nothing is watched or pushed.
+  bool _suspended = false;
+
   void _onUser(User? user) {
     if (user?.uid == _uid) return;
     _uid = user?.uid;
     _remoteSub?.cancel();
     _remoteSub = null;
     _lastRemote = null;
-    if (_uid == null) return;
+    if (_uid == null || _suspended) return;
+    _subscribe(_uid!);
+  }
 
+  void _subscribe(String uid) {
     _remoteSub = _ref
         .read(settingsSyncServiceProvider)
-        .watch(_uid!)
+        .watch(uid)
         .listen(_onRemote, onError: (_) {});
   }
 
+  /// Deletes the signed-in cloud-sync account and its settings document
+  /// (H1–H3). Sync is suspended meanwhile: the watch would report the
+  /// deleted document as a first sign-in and seed it again from local state.
+  /// If the deletion fails and the user is still signed in, sync resumes.
+  /// Throws what [AuthService.deleteAccount] throws.
+  Future<void> deleteAccount() async {
+    _suspended = true;
+    _pushDebounce?.cancel();
+    _remoteSub?.cancel();
+    _remoteSub = null;
+    _lastRemote = null;
+    try {
+      await _ref.read(authServiceProvider).deleteAccount(
+            deleteData: _ref.read(settingsSyncServiceProvider).delete,
+          );
+    } finally {
+      _suspended = false;
+      final uid = _uid;
+      if (uid != null &&
+          _remoteSub == null &&
+          _ref.read(authServiceProvider).currentUser?.uid == uid) {
+        _subscribe(uid);
+      }
+    }
+  }
+
   void _onRemote(SettingsSnapshot? remote) {
+    if (_suspended) return;
     if (remote == null) {
       // First sign-in with no cloud doc yet — seed it from local state.
       _pushNow(_currentSnapshot());
@@ -129,7 +168,7 @@ class SettingsSyncCoordinator {
   }
 
   void _onLocalChange() {
-    if (_uid == null) return;
+    if (_uid == null || _suspended) return;
     final current = _currentSnapshot();
     final last = _lastRemote;
     // Nothing new vs the cloud (a local-only "never" is not a difference).
@@ -141,7 +180,7 @@ class SettingsSyncCoordinator {
 
   void _pushNow(SettingsSnapshot s) {
     final uid = _uid;
-    if (uid == null) return;
+    if (uid == null || _suspended) return;
     _lastRemote = s; // treat as the new baseline so it isn't echoed
     _ref.read(settingsSyncServiceProvider).push(uid, s).catchError((_) {});
   }

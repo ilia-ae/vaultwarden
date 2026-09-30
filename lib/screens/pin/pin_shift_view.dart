@@ -29,7 +29,9 @@ const String _mask = '•';
 /// `lib/pin_tools/pin_shift.dart`).
 ///
 /// Top to bottom: the PIN, the vector, the result, the settings (direction,
-/// length, reveal, Clear), then what it is and how to do it on paper.
+/// length, reveal, Clear), then what it is and how to do it on paper. With a
+/// saved vector only the PIN is typed, so the result follows it directly and
+/// the saved-vector card (replace / delete) comes after the result.
 ///
 /// Mnemonic obfuscation, not a cipher. The PIN and a typed vector live only
 /// in this widget's text controllers; they are cleared by every section wipe
@@ -459,6 +461,9 @@ class _PinShiftViewState extends ConsumerState<PinShiftView> {
       vec =
           _saved == _Saved.loading ? null : _FieldCheck(_vecCtrl.text, _length);
     }
+    // With a saved vector only the PIN is typed, so its result comes right
+    // after it; the saved-vector card (replace / delete) moves below.
+    final resultFirst = _usingSaved;
     return Semantics(
       identifier: 'pin_shift_view',
       container: true,
@@ -466,10 +471,15 @@ class _PinShiftViewState extends ConsumerState<PinShiftView> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _pinCard(l, pin),
-          _vectorCard(l),
-          _resultCard(l, pin, vec),
-          _settingsCard(l),
+          _pinCard(l, pin, step: 1),
+          if (resultFirst) ...[
+            _resultCard(l, pin, vec, step: 2),
+            _vectorCard(l, step: 3),
+          ] else ...[
+            _vectorCard(l, step: 2),
+            _resultCard(l, pin, vec, step: 3),
+          ],
+          _settingsCard(l, step: 4),
           _aboutCard(l),
           _paperCard(l),
           _threatCard(l),
@@ -477,6 +487,9 @@ class _PinShiftViewState extends ConsumerState<PinShiftView> {
       ),
     );
   }
+
+  /// A card title numbered in screen order ("1 · PIN").
+  static String _stepTitle(int step, String title) => '$step · $title';
 
   Widget _eye({
     required String identifier,
@@ -532,9 +545,9 @@ class _PinShiftViewState extends ConsumerState<PinShiftView> {
     return const [];
   }
 
-  Widget _pinCard(AppLocalizations l, _FieldCheck pin) {
+  Widget _pinCard(AppLocalizations l, _FieldCheck pin, {required int step}) {
     return PinCard(
-      title: l.pinShiftSectionPin,
+      title: _stepTitle(step, l.pinShiftSectionPin),
       children: [
         PinSecretField(
           controller: _pinCtrl,
@@ -569,9 +582,9 @@ class _PinShiftViewState extends ConsumerState<PinShiftView> {
 
   // ── Vector ──
 
-  Widget _vectorCard(AppLocalizations l) {
+  Widget _vectorCard(AppLocalizations l, {required int step}) {
     return PinCard(
-      title: l.pinShiftSectionVector,
+      title: _stepTitle(step, l.pinShiftSectionVector),
       children: [
         ...switch (_saved) {
           _Saved.loading => [_loadingSaved()],
@@ -782,7 +795,12 @@ class _PinShiftViewState extends ConsumerState<PinShiftView> {
 
   /// [vec] is `null` while the vector is not available yet (the keychain is
   /// being read).
-  Widget _resultCard(AppLocalizations l, _FieldCheck pin, _FieldCheck? vec) {
+  Widget _resultCard(
+    AppLocalizations l,
+    _FieldCheck pin,
+    _FieldCheck? vec, {
+    required int step,
+  }) {
     final body = <Widget>[];
 
     if (pin.hasError || (vec?.hasError ?? false)) {
@@ -814,7 +832,10 @@ class _PinShiftViewState extends ConsumerState<PinShiftView> {
       const SizedBox(height: 12),
       PinCaption(l.pinShiftNoCopyNote),
     ]);
-    return PinCard(title: l.pinShiftSectionResult, children: body);
+    return PinCard(
+      title: _stepTitle(step, l.pinShiftSectionResult),
+      children: body,
+    );
   }
 
   List<Widget> _validResult(AppLocalizations l, String pin, String vector) {
@@ -1015,14 +1036,14 @@ class _PinShiftViewState extends ConsumerState<PinShiftView> {
 
   // ── Settings ──
 
-  Widget _settingsCard(AppLocalizations l) {
+  Widget _settingsCard(AppLocalizations l, {required int step}) {
     final locked = _lengthLocked;
     // A saved vector fixes the length: the controls stay visible, disabled.
     Widget lockable(Widget child) => locked
         ? IgnorePointer(child: Opacity(opacity: 0.45, child: child))
         : child;
     return PinCard(
-      title: l.pinShiftSectionSettings,
+      title: _stepTitle(step, l.pinShiftSectionSettings),
       children: [
         SectionHeader(l.pinShiftSectionDirection, padding: EdgeInsets.zero),
         const SizedBox(height: 6),

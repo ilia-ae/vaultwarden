@@ -1,5 +1,5 @@
-/// Why a cloud-sync sign-in failed; the UI localises it (see
-/// `describeCloudSyncError`).
+/// Why a cloud-sync sign-in (or account deletion) failed; the UI localises it
+/// (see `describeCloudSyncError`).
 enum AuthFailure {
   /// The user closed the Google/Apple sheet: nothing to report.
   cancelled,
@@ -15,6 +15,13 @@ enum AuthFailure {
 
   /// The e-mail already belongs to an account with another provider.
   emailInUse,
+
+  /// Re-authentication picked a different account than the signed-in one.
+  wrongAccount,
+
+  /// Deleting the account (or its data) failed after re-authentication;
+  /// [AuthException.detail] holds the Firebase code.
+  deleteFailed,
 
   /// Anything else; [AuthException.detail] holds the provider's code.
   failed,

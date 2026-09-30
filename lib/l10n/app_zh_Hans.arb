@@ -286,6 +286,16 @@
   "cloudSyncErrorFailed": "{provider} 登录失败（{detail}）。",
   "cloudSyncErrorTimeout": "登录耗时过长。请检查网络连接后重试。",
   "cloudSyncErrorGeneric": "登录失败。请重试。",
+  "cloudSyncDeleteAccount": "删除账户",
+  "cloudSyncDeleteTitle": "删除云同步账户？",
+  "cloudSyncDeleteBody": "这将永久删除您的云同步账户及其中保存的设置，对您的所有设备生效。确认时，请使用同一个 Apple 或 Google 账户再次登录。\n\n此设备上的设置、服务器上的密码库账户以及此设备上的其他所有内容都将保持不变。Bitwarden 或 Vaultwarden 账户本身需在您服务器的网页密码库中删除。",
+  "cloudSyncDeleting": "正在删除…",
+  "cloudSyncDeleteDoneTitle": "账户已删除",
+  "cloudSyncDeleteDoneBody": "您的云同步账户及其保存的设置已删除。此设备上的设置保持不变；再次登录云同步将创建一个新账户。",
+  "cloudSyncDeleteFailedTitle": "账户未删除",
+  "cloudSyncErrorWrongAccount": "此 {provider} 账户不是当前登录云同步的账户。请选择同一个账户进行确认。",
+  "cloudSyncDeleteErrorFailed": "无法删除账户（{detail}）。请检查网络连接后重试。",
+  "cloudSyncDeleteErrorTimeout": "删除耗时过长。请检查网络连接后重试。",
   "plainHttpTitle": "未加密的连接",
   "plainHttpMessage": "该服务器地址以 http:// 开头。您的主密码哈希、登录令牌和批准操作将以未加密方式传输，网络中的任何人都可能读取或篡改。除非您完全信任此网络，否则请使用 https://。",
   "plainHttpContinue": "仍然继续",
@@ -550,7 +560,7 @@
   "pinShiftSectionLength": "长度",
   "pinShiftLengthMustMatch": "PIN 与向量的长度必须相同。",
   "pinShiftLengthCustom": "自定义长度（1–16）。",
-  "pinShiftSectionPin": "1 · PIN",
+  "pinShiftSectionPin": "PIN",
   "pinShiftFieldBase": "基础 PIN",
   "pinShiftFieldDerived": "派生 PIN（新）",
   "pinShiftFieldBaseHelp": "基础 PIN——只能是数字，共 {length} 位。",
@@ -578,7 +588,7 @@
       "expected": { "type": "int" }
     }
   },
-  "pinShiftSectionVector": "2 · 移位向量",
+  "pinShiftSectionVector": "移位向量",
   "pinShiftFieldVector": "移位向量",
   "pinShiftFieldVectorHelp": "按位的秘密——只能是数字，共 {length} 位。",
   "@pinShiftFieldVectorHelp": {
@@ -607,8 +617,8 @@
       "keyspace": { "type": "String" }
     }
   },
-  "pinShiftSectionResult": "3 · 结果",
-  "pinShiftSectionSettings": "4 · 设置",
+  "pinShiftSectionResult": "结果",
+  "pinShiftSectionSettings": "设置",
   "pinShiftReveal": "显示基础 PIN 和向量",
   "pinShiftRevealHelp": "关闭（默认）：只显示输出。打开：输入 + 向量 + 输出，以及逐位明细。每次清除本标签页时都会关闭。",
   "pinShiftRowInputBase": "输入（基础 PIN）",

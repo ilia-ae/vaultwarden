@@ -41,7 +41,13 @@ class AuthService {
   }
 
   /// Sign in with Google → Firebase. Throws [AuthException] on cancel/failure.
-  Future<User> signInWithGoogle() async {
+  Future<User> signInWithGoogle() async =>
+      _authorize(await googleCredential(), provider: 'Google');
+
+  /// A Firebase credential from the native Google sheet. Throws
+  /// [AuthException] on cancel/failure.
+  @protected
+  Future<AuthCredential> googleCredential() async {
     if (googleServerClientId.isEmpty) {
       throw AuthException(AuthFailure.notConfigured, provider: 'Google');
     }
@@ -70,8 +76,7 @@ class AuthService {
     if (idToken == null) {
       throw AuthException(AuthFailure.missingToken, provider: 'Google');
     }
-    final credential = GoogleAuthProvider.credential(idToken: idToken);
-    return _authorize(credential, provider: 'Google');
+    return GoogleAuthProvider.credential(idToken: idToken);
   }
 
   /// Sign in with (or link) [credential].
@@ -129,9 +134,7 @@ class AuthService {
   /// validation with `invalid-credential` (firebase-ios-sdk #15571), which is
   /// exactly what we hit on-device.
   Future<User> signInWithApple() async {
-    final provider = AppleAuthProvider()
-      ..addScope('email')
-      ..addScope('name');
+    final provider = _appleProvider();
     final current = _auth.currentUser;
     try {
       // Signed in already → LINK Apple to the same uid (same settings doc).
@@ -150,9 +153,7 @@ class AuthService {
         final result = await _auth.signInWithProvider(provider);
         return result.user!;
       }
-      if (e.code == 'canceled' ||
-          e.code == 'user-cancelled' ||
-          e.code == 'web-context-canceled') {
+      if (_appleCancelCodes.contains(e.code)) {
         throw AuthException(AuthFailure.cancelled, provider: 'Apple');
       }
       if (e.code == 'account-exists-with-different-credential') {
@@ -163,6 +164,101 @@ class AuthService {
         provider: 'Apple',
         detail: e.code,
       );
+    }
+  }
+
+  static AppleAuthProvider _appleProvider() => AppleAuthProvider()
+    ..addScope('email')
+    ..addScope('name');
+
+  /// Codes Firebase reports when the user closes the Apple sheet.
+  static const _appleCancelCodes = {
+    'canceled',
+    'user-cancelled',
+    'web-context-canceled',
+  };
+
+  /// Deletes the cloud-sync account (App Store guideline 5.1.1(v)).
+  ///
+  /// 1. Confirms the identity again: Firebase deletes only a user who signed
+  ///    in recently, and Apple's sheet also returns the authorization code
+  ///    that revokes the Sign in with Apple token. Apple is used when it is
+  ///    linked and this is an Apple platform (or Google is not linked);
+  ///    otherwise Google.
+  /// 2. Runs [deleteData] for the user's synced data (while still signed in,
+  ///    so the Firestore rules let the owner delete it).
+  /// 3. Revokes the Apple token (best effort: it needs the Apple provider's
+  ///    OAuth code-flow keys in the Firebase console).
+  /// 4. Deletes the Firebase user, then drops the app's Google grant (best
+  ///    effort).
+  ///
+  /// Throws [AuthException]; nothing is deleted when the confirmation is
+  /// cancelled or fails. Does not touch the vault session or on-device keys.
+  Future<void> deleteAccount({
+    required Future<void> Function(String uid) deleteData,
+  }) async {
+    final user = _auth.currentUser;
+    if (user == null) return;
+    final providers = {for (final p in user.providerData) p.providerId};
+    final hasGoogle = providers.contains('google.com');
+    final useApple = providers.contains('apple.com') &&
+        (!hasGoogle ||
+            defaultTargetPlatform == TargetPlatform.iOS ||
+            defaultTargetPlatform == TargetPlatform.macOS);
+    final provider = useApple ? 'Apple' : 'Google';
+
+    String? appleCode;
+    try {
+      if (useApple) {
+        final result = await user.reauthenticateWithProvider(_appleProvider());
+        appleCode = result.additionalUserInfo?.authorizationCode;
+      } else if (hasGoogle) {
+        await user.reauthenticateWithCredential(await googleCredential());
+      }
+    } on FirebaseAuthException catch (e) {
+      debugPrint('[$provider] re-auth for deletion failed code=${e.code}');
+      if (_appleCancelCodes.contains(e.code)) {
+        throw AuthException(AuthFailure.cancelled, provider: provider);
+      }
+      if (e.code == 'user-mismatch') {
+        throw AuthException(AuthFailure.wrongAccount, provider: provider);
+      }
+      throw AuthException(AuthFailure.failed,
+          provider: provider, detail: e.code);
+    }
+
+    try {
+      await deleteData(user.uid);
+      if (appleCode != null && appleCode.isNotEmpty) {
+        try {
+          await _auth.revokeTokenWithAuthorizationCode(appleCode);
+        } catch (e) {
+          debugPrint('[Apple] token revoke failed: $e');
+        }
+      }
+      await user.delete();
+    } on FirebaseException catch (e) {
+      debugPrint('[$provider] account deletion failed code=${e.code}');
+      if (e.code != 'user-not-found') {
+        throw AuthException(AuthFailure.deleteFailed,
+            provider: provider, detail: e.code);
+      }
+      // Already gone on the server: just drop the local sign-in.
+      await _auth.signOut();
+    }
+
+    if (hasGoogle) await disconnectGoogle();
+  }
+
+  /// Revokes the app's Google grant on this device (best effort: the Google
+  /// SDK only knows an account that signed in here).
+  @protected
+  Future<void> disconnectGoogle() async {
+    try {
+      await _ensureGoogleInitialized();
+      await GoogleSignIn.instance.disconnect();
+    } catch (e) {
+      debugPrint('[Google] disconnect failed: $e');
     }
   }
 

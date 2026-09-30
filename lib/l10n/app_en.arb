@@ -432,6 +432,30 @@
   },
   "cloudSyncErrorTimeout": "Sign-in is taking too long. Check your connection and try again.",
   "cloudSyncErrorGeneric": "Sign-in failed. Please try again.",
+  "cloudSyncDeleteAccount": "Delete account",
+  "cloudSyncDeleteTitle": "Delete cloud sync account?",
+  "cloudSyncDeleteBody": "This permanently deletes your cloud sync account and the settings saved in it, for all your devices. To confirm, sign in once more with the same Apple or Google account.\n\nSettings on this device, your vault account on the server and everything else on this device stay as they are. A Bitwarden or Vaultwarden account itself is deleted in your server's web vault.",
+  "cloudSyncDeleting": "Deleting…",
+  "cloudSyncDeleteDoneTitle": "Account deleted",
+  "cloudSyncDeleteDoneBody": "Your cloud sync account and its saved settings are deleted. Settings on this device stay as they are; signing in to cloud sync again creates a new account.",
+  "cloudSyncDeleteFailedTitle": "Account not deleted",
+  "cloudSyncErrorWrongAccount": "This {provider} account is not the one signed in to cloud sync. Choose the same account to confirm.",
+  "@cloudSyncErrorWrongAccount": {
+    "placeholders": {
+      "provider": {
+        "type": "String"
+      }
+    }
+  },
+  "cloudSyncDeleteErrorFailed": "The account could not be deleted ({detail}). Check your connection and try again.",
+  "@cloudSyncDeleteErrorFailed": {
+    "placeholders": {
+      "detail": {
+        "type": "String"
+      }
+    }
+  },
+  "cloudSyncDeleteErrorTimeout": "Deleting is taking too long. Check your connection and try again.",
   "plainHttpTitle": "Unencrypted connection",
   "plainHttpMessage": "This server address starts with http://. Your master-password hash, login tokens and approvals would travel unencrypted, and anyone on the network could read or change them. Use https:// unless you fully trust this network.",
   "plainHttpContinue": "Continue anyway",
@@ -696,7 +720,7 @@
   "pinShiftSectionLength": "Length",
   "pinShiftLengthMustMatch": "The PIN and the vector must have the same length.",
   "pinShiftLengthCustom": "Custom length (1–16).",
-  "pinShiftSectionPin": "1 · PIN",
+  "pinShiftSectionPin": "PIN",
   "pinShiftFieldBase": "Base PIN",
   "pinShiftFieldDerived": "Derived PIN (new)",
   "pinShiftFieldBaseHelp": "Base PIN — digits only, {length} of them.",
@@ -724,7 +748,7 @@
       "expected": { "type": "int" }
     }
   },
-  "pinShiftSectionVector": "2 · Shift vector",
+  "pinShiftSectionVector": "Shift vector",
   "pinShiftFieldVector": "Shift vector",
   "pinShiftFieldVectorHelp": "Per-position secret — digits only, {length} of them.",
   "@pinShiftFieldVectorHelp": {
@@ -753,8 +777,8 @@
       "keyspace": { "type": "String" }
     }
   },
-  "pinShiftSectionResult": "3 · Result",
-  "pinShiftSectionSettings": "4 · Settings",
+  "pinShiftSectionResult": "Result",
+  "pinShiftSectionSettings": "Settings",
   "pinShiftReveal": "Reveal base PIN & vector",
   "pinShiftRevealHelp": "Off (default): only the output. On: input + vector + output and the per-digit breakdown. Turns off whenever the tab is wiped.",
   "pinShiftRowInputBase": "Input (base PIN)",

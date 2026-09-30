@@ -60,6 +60,7 @@ No vault UI, no stored passwords — just an approver.
 | 🔒 | **Privacy screen** | iOS blur overlay + Android FLAG_SECURE; hides content in app switcher |
 | 🔄 | **Auto-refresh** | Configurable polling (5 s / 15 s / 30 s / 1 min) |
 | ⏱️ | **Lock timeout** | Auto-lock: immediate / 15 s / 1 min / 5 min / 15 min / never |
+| 🔁 | **Optional settings sync** | Sign in with Apple or Google to keep theme, language and timers the same on your devices (Firebase; no vault data is synced). **Delete account** under Settings → Cloud sync deletes the sync account and its saved settings |
 
 ## Servers
 
@@ -222,6 +223,7 @@ lib/
     ├── app_background.dart           # Scene background under every screen
     ├── auth_request_card.dart        # Request card: countdown, trust status, actions
     ├── client_cert_section.dart      # Client certificate row (import / replace / remove)
+    ├── cloud_account_delete_button.dart # Delete the cloud-sync account (App Store 5.1.1(v))
     ├── device_icon.dart              # Browser / desktop / CLI / mobile icons
     ├── fingerprint_phrase.dart       # Fingerprint phrase widget
     ├── glass_top_bar.dart            # Glass app bar with tabs

@@ -289,6 +289,9 @@ String? describeCloudSyncError(Object e, AppLocalizations l) {
       AuthFailure.unsupported => l.cloudSyncErrorUnsupported(e.provider),
       AuthFailure.missingToken => l.cloudSyncErrorNoToken(e.provider),
       AuthFailure.emailInUse => l.cloudSyncErrorEmailInUse(e.provider),
+      AuthFailure.wrongAccount => l.cloudSyncErrorWrongAccount(e.provider),
+      AuthFailure.deleteFailed =>
+        l.cloudSyncDeleteErrorFailed(e.detail ?? 'unknown'),
       AuthFailure.failed => e.detail == null
           ? l.cloudSyncErrorGeneric
           : l.cloudSyncErrorFailed(e.provider, e.detail!),
@@ -297,4 +300,13 @@ String? describeCloudSyncError(Object e, AppLocalizations l) {
   if (e is TimeoutException) return l.cloudSyncErrorTimeout;
   if (isNetworkError(e)) return l.errorCannotConnect;
   return l.cloudSyncErrorGeneric;
+}
+
+/// Localised text for a failed cloud-sync account deletion, or null when the
+/// user cancelled the confirming sign-in.
+String? describeCloudDeleteError(Object e, AppLocalizations l) {
+  if (e is TimeoutException) return l.cloudSyncDeleteErrorTimeout;
+  if (e is AuthException) return describeCloudSyncError(e, l);
+  if (isNetworkError(e)) return l.errorCannotConnect;
+  return l.cloudSyncDeleteErrorFailed('unknown');
 }

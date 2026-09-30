@@ -21,6 +21,7 @@ import '../services/settings_sync.dart';
 import '../utils/error_formatter.dart';
 import '../widgets/auth_request_card.dart';
 import '../widgets/client_cert_section.dart';
+import '../widgets/cloud_account_delete_button.dart';
 import '../widgets/device_icon.dart';
 import '../widgets/server_selector.dart';
 import '../widgets/glass_top_bar.dart';
@@ -1277,6 +1278,8 @@ class _SettingsSheet extends ConsumerWidget {
               label: Text(AppLocalizations.of(context)!.cloudSyncSignOut),
             ),
           ),
+          const SizedBox(height: 4),
+          const CloudAccountDeleteButton(),
         ],
       ),
     );

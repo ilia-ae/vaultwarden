@@ -67,7 +67,7 @@ void main() {
       'pinToolYubikey',
       'pin24WordsCounter',
       'pinYkBioTitle', // product name
-      'pinShiftSectionPin', // "1 · PIN": PIN is kept as the term
+      'pinShiftSectionPin', // "PIN" is kept as the term
     };
     for (final l in _locales.skip(1)) {
       final untranslated = <String>[];

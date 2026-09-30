@@ -286,6 +286,16 @@
   "cloudSyncErrorFailed": "فشل تسجيل الدخول عبر {provider} ({detail}).",
   "cloudSyncErrorTimeout": "يستغرق تسجيل الدخول وقتًا طويلًا. تحقق من اتصالك وحاول مرة أخرى.",
   "cloudSyncErrorGeneric": "فشل تسجيل الدخول. حاول مرة أخرى.",
+  "cloudSyncDeleteAccount": "حذف الحساب",
+  "cloudSyncDeleteTitle": "حذف حساب المزامنة السحابية؟",
+  "cloudSyncDeleteBody": "سيؤدي هذا إلى حذف حساب المزامنة السحابية والإعدادات المحفوظة فيه نهائيًا، على جميع أجهزتك. للتأكيد، سجّل الدخول مرة أخرى بحساب Apple أو Google نفسه.\n\nتبقى الإعدادات على هذا الجهاز وحساب خزنتك على الخادم وكل ما هو مخزّن على هذا الجهاز كما هي. أما حساب Bitwarden أو Vaultwarden نفسه فيُحذف من خزنة الويب على خادمك.",
+  "cloudSyncDeleting": "جارٍ الحذف…",
+  "cloudSyncDeleteDoneTitle": "تم حذف الحساب",
+  "cloudSyncDeleteDoneBody": "تم حذف حساب المزامنة السحابية وإعداداته المحفوظة. تبقى الإعدادات على هذا الجهاز كما هي؛ وتسجيل الدخول إلى المزامنة مرة أخرى يُنشئ حسابًا جديدًا.",
+  "cloudSyncDeleteFailedTitle": "لم يتم حذف الحساب",
+  "cloudSyncErrorWrongAccount": "حساب {provider} هذا ليس الحساب المسجَّل به في المزامنة السحابية. اختر الحساب نفسه للتأكيد.",
+  "cloudSyncDeleteErrorFailed": "تعذّر حذف الحساب ({detail}). تحقق من اتصالك وحاول مرة أخرى.",
+  "cloudSyncDeleteErrorTimeout": "يستغرق الحذف وقتًا طويلًا. تحقق من اتصالك وحاول مرة أخرى.",
   "plainHttpTitle": "اتصال غير مشفّر",
   "plainHttpMessage": "يبدأ عنوان الخادم بـ ‎http://‎. ستُرسَل تجزئة كلمة المرور الرئيسية ورموز تسجيل الدخول والموافقات دون تشفير، ويمكن لأي شخص على الشبكة قراءتها أو تغييرها. استخدم ‎https://‎ ما لم تكن تثق بهذه الشبكة تمامًا.",
   "plainHttpContinue": "المتابعة على أي حال",
@@ -550,7 +560,7 @@
   "pinShiftSectionLength": "الطول",
   "pinShiftLengthMustMatch": "يجب أن يتساوى طول رمز PIN وطول المتجه.",
   "pinShiftLengthCustom": "طول مخصص (‎1–16‎).",
-  "pinShiftSectionPin": "1 · رمز PIN",
+  "pinShiftSectionPin": "رمز PIN",
   "pinShiftFieldBase": "رمز PIN الأساسي",
   "pinShiftFieldDerived": "رمز PIN المشتق (الجديد)",
   "pinShiftFieldBaseHelp": "رمز PIN الأساسي — أرقام فقط، وعددها {length}.",
@@ -578,7 +588,7 @@
       "expected": { "type": "int" }
     }
   },
-  "pinShiftSectionVector": "2 · متجه الإزاحة",
+  "pinShiftSectionVector": "متجه الإزاحة",
   "pinShiftFieldVector": "متجه الإزاحة",
   "pinShiftFieldVectorHelp": "سرّ لكل خانة — أرقام فقط، وعددها {length}.",
   "@pinShiftFieldVectorHelp": {
@@ -607,8 +617,8 @@
       "keyspace": { "type": "String" }
     }
   },
-  "pinShiftSectionResult": "3 · النتيجة",
-  "pinShiftSectionSettings": "4 · الإعدادات",
+  "pinShiftSectionResult": "النتيجة",
+  "pinShiftSectionSettings": "الإعدادات",
   "pinShiftReveal": "إظهار رمز PIN الأساسي والمتجه",
   "pinShiftRevealHelp": "معطّل (افتراضيًا): الناتج فقط. مفعّل: المُدخل + المتجه + الناتج والتفصيل رقمًا برقم. يتعطّل في كل مرة يُمسح فيها التبويب.",
   "pinShiftRowInputBase": "المُدخل (رمز PIN الأساسي)",

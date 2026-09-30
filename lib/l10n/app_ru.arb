@@ -229,6 +229,16 @@
   "cloudSyncErrorFailed": "Не удалось войти через {provider} ({detail}).",
   "cloudSyncErrorTimeout": "Вход занимает слишком много времени. Проверьте подключение и попробуйте снова.",
   "cloudSyncErrorGeneric": "Не удалось войти. Попробуйте ещё раз.",
+  "cloudSyncDeleteAccount": "Удалить аккаунт",
+  "cloudSyncDeleteTitle": "Удалить аккаунт синхронизации?",
+  "cloudSyncDeleteBody": "Аккаунт облачной синхронизации и сохранённые в нём настройки будут удалены навсегда — для всех ваших устройств. Для подтверждения войдите ещё раз тем же аккаунтом Apple или Google.\n\nНастройки на этом устройстве, аккаунт хранилища на сервере и всё остальное на этом устройстве останутся без изменений. Сам аккаунт Bitwarden или Vaultwarden удаляется в веб-хранилище вашего сервера.",
+  "cloudSyncDeleting": "Удаление…",
+  "cloudSyncDeleteDoneTitle": "Аккаунт удалён",
+  "cloudSyncDeleteDoneBody": "Аккаунт облачной синхронизации и сохранённые в нём настройки удалены. Настройки на этом устройстве остались без изменений; при новом входе в синхронизацию будет создан новый аккаунт.",
+  "cloudSyncDeleteFailedTitle": "Аккаунт не удалён",
+  "cloudSyncErrorWrongAccount": "Этот аккаунт {provider} не тот, с которым выполнен вход в синхронизацию. Для подтверждения выберите тот же аккаунт.",
+  "cloudSyncDeleteErrorFailed": "Не удалось удалить аккаунт ({detail}). Проверьте подключение и попробуйте снова.",
+  "cloudSyncDeleteErrorTimeout": "Удаление занимает слишком много времени. Проверьте подключение и попробуйте снова.",
   "plainHttpTitle": "Незашифрованное соединение",
   "plainHttpMessage": "Адрес сервера начинается с http://. Хеш мастер-пароля, токены входа и одобрения будут передаваться без шифрования — любой в этой сети сможет их прочитать или подменить. Используйте https://, если не доверяете сети полностью.",
   "plainHttpContinue": "Всё равно продолжить",
@@ -493,7 +503,7 @@
   "pinShiftSectionLength": "Длина",
   "pinShiftLengthMustMatch": "Длина PIN и вектора должна совпадать.",
   "pinShiftLengthCustom": "Своя длина (1–16).",
-  "pinShiftSectionPin": "1 · PIN",
+  "pinShiftSectionPin": "PIN",
   "pinShiftFieldBase": "Базовый PIN",
   "pinShiftFieldDerived": "Производный PIN (новый)",
   "pinShiftFieldBaseHelp": "Базовый PIN — только цифры, ровно {length}.",
@@ -521,7 +531,7 @@
       "expected": { "type": "int" }
     }
   },
-  "pinShiftSectionVector": "2 · Вектор сдвига",
+  "pinShiftSectionVector": "Вектор сдвига",
   "pinShiftFieldVector": "Вектор сдвига",
   "pinShiftFieldVectorHelp": "Секрет по позициям — только цифры, ровно {length}.",
   "@pinShiftFieldVectorHelp": {
@@ -550,8 +560,8 @@
       "keyspace": { "type": "String" }
     }
   },
-  "pinShiftSectionResult": "3 · Результат",
-  "pinShiftSectionSettings": "4 · Настройки",
+  "pinShiftSectionResult": "Результат",
+  "pinShiftSectionSettings": "Настройки",
   "pinShiftReveal": "Показать базовый PIN и вектор",
   "pinShiftRevealHelp": "Выкл. (по умолчанию): только результат. Вкл.: ввод + вектор + результат и разбор по цифрам. Выключается при каждом стирании вкладки.",
   "pinShiftRowInputBase": "Ввод (базовый PIN)",

@@ -8,6 +8,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vault_approver/app.dart';
 import 'package:vault_approver/models/settings_snapshot.dart';
+import 'package:vault_approver/services/auth_service.dart';
 import 'package:vault_approver/services/settings_service.dart';
 import 'package:vault_approver/services/settings_sync.dart';
 
@@ -19,22 +20,52 @@ class _FakeUser extends Fake implements User {
 class _FakeSync extends Fake implements SettingsSyncService {
   final remote = StreamController<SettingsSnapshot?>.broadcast();
   final pushes = <Map<String, dynamic>>[];
+  final deleted = <String>[];
+  int watches = 0;
 
   @override
   Future<void> push(String uid, SettingsSnapshot s) async =>
       pushes.add(s.toMap());
 
   @override
-  Stream<SettingsSnapshot?> watch(String uid) => remote.stream;
+  Future<void> delete(String uid) async => deleted.add(uid);
+
+  @override
+  Stream<SettingsSnapshot?> watch(String uid) {
+    watches++;
+    return remote.stream;
+  }
 
   /// What Firestore would deliver for [doc] (parsed like the real service).
   void deliver(Map<String, dynamic>? doc) =>
       remote.add(doc == null ? null : SettingsSnapshot.fromMap(doc));
 }
 
+/// Stands in for Apple/Google + Firebase: [deleteAccount] runs the real
+/// data callback, then [onDelete] (e.g. a late remote snapshot or a failure).
+class _FakeAuthService extends Fake implements AuthService {
+  _FakeAuthService(this.user);
+
+  User? user;
+  Future<void> Function()? onDelete;
+
+  @override
+  User? get currentUser => user;
+
+  @override
+  Future<void> deleteAccount({
+    required Future<void> Function(String uid) deleteData,
+  }) async {
+    await deleteData(user!.uid);
+    await onDelete?.call();
+  }
+}
+
 Future<(ProviderContainer, _FakeSync)> _signedInSync(
   WidgetTester tester, {
   Map<String, Object> prefs = const {},
+  AuthService? auth,
+  Stream<User?>? users,
 }) async {
   SharedPreferences.setMockInitialValues(prefs);
   final settings = SettingsService(await SharedPreferences.getInstance());
@@ -42,7 +73,8 @@ Future<(ProviderContainer, _FakeSync)> _signedInSync(
   final container = ProviderContainer(overrides: [
     settingsServiceProvider.overrideWithValue(settings),
     settingsSyncServiceProvider.overrideWithValue(sync),
-    authStateProvider.overrideWith((ref) => Stream.value(_FakeUser())),
+    authStateProvider.overrideWith((ref) => users ?? Stream.value(_FakeUser())),
+    if (auth != null) authServiceProvider.overrideWithValue(auth),
   ]);
   container.read(settingsSyncCoordinatorProvider);
   await tester.pump(); // signed-in user arrives, remote doc subscribed
@@ -234,6 +266,63 @@ void main() {
       expect(sync.pushes.single.containsKey('lockTimeout'), isFalse);
       expect(sync.pushes.single['pollInterval'], 30);
       c.dispose();
+    });
+  });
+  group('SettingsSyncCoordinator.deleteAccount (H3)', () {
+    testWidgets('the deleted document is not seeded again', (tester) async {
+      final users = StreamController<User?>.broadcast();
+      final auth = _FakeAuthService(_FakeUser());
+      final (c, sync) =
+          await _signedInSync(tester, auth: auth, users: users.stream);
+      users.add(_FakeUser());
+      await tester.pump();
+      sync.deliver({'themeMode': 'dark', 'pollInterval': 30});
+      await tester.pump();
+      final watches = sync.watches;
+
+      auth.onDelete = () async {
+        // Firestore reports the now-missing document; a local edit lands
+        // meanwhile. Neither may write the document back.
+        sync.deliver(null);
+        c.read(themeModeProvider.notifier).state = ThemeMode.light;
+        auth.user = null;
+      };
+      await c.read(settingsSyncCoordinatorProvider).deleteAccount();
+      users.add(null);
+      await tester.pump(const Duration(seconds: 2));
+
+      expect(sync.deleted, ['uid-1']);
+      expect(sync.pushes, isEmpty);
+      expect(sync.watches, watches, reason: 'no new watch after deletion');
+      c.dispose();
+      await users.close();
+    });
+
+    testWidgets('a failed deletion resumes sync', (tester) async {
+      final users = StreamController<User?>.broadcast();
+      final auth = _FakeAuthService(_FakeUser());
+      final (c, sync) =
+          await _signedInSync(tester, auth: auth, users: users.stream);
+      users.add(_FakeUser());
+      await tester.pump();
+      final watches = sync.watches;
+
+      auth.onDelete = () async =>
+          throw AuthException(AuthFailure.deleteFailed, detail: 'unavailable');
+      await expectLater(
+        c.read(settingsSyncCoordinatorProvider).deleteAccount(),
+        throwsA(isA<AuthException>()),
+      );
+      expect(sync.watches, watches + 1, reason: 'watching again');
+
+      sync.deliver({'themeMode': 'dark', 'pollInterval': 30});
+      await tester.pump();
+      expect(c.read(themeModeProvider), ThemeMode.dark);
+      c.read(themeModeProvider.notifier).state = ThemeMode.light;
+      await tester.pump(const Duration(seconds: 1));
+      expect(sync.pushes.last['themeMode'], 'light');
+      c.dispose();
+      await users.close();
     });
   });
 }

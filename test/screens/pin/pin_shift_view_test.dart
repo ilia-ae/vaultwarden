@@ -543,10 +543,10 @@ void main() {
 
     // The card titles are numbered in screen order.
     final titles = [
-      l.pinShiftSectionPin,
-      l.pinShiftSectionVector,
-      l.pinShiftSectionResult,
-      l.pinShiftSectionSettings,
+      '1 · ${l.pinShiftSectionPin}',
+      '2 · ${l.pinShiftSectionVector}',
+      '3 · ${l.pinShiftSectionResult}',
+      '4 · ${l.pinShiftSectionSettings}',
     ];
     expect(
         titles, ['1 · PIN', '2 · Shift vector', '3 · Result', '4 · Settings']);
@@ -597,7 +597,7 @@ void main() {
     expect(resultTops, orderedEquals([...resultTops]..sort()),
         reason: '$resultTops');
     expect(tester.getRect(byId('pin_shift_breakdown')).bottom,
-        lessThan(_top(tester, find.text(l.pinShiftSectionSettings))));
+        lessThan(_top(tester, find.text('4 · ${l.pinShiftSectionSettings}'))));
 
     // Errors sit in the result too.
     await _enter(tester, '1234567x', '00000000');
