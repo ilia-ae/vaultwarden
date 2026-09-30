@@ -7,6 +7,7 @@ import '../l10n/app_localizations.dart';
 import '../models/api_error.dart';
 import '../services/auth_exception.dart';
 import '../services/client_cert_service.dart';
+import '../services/secure_storage_service.dart';
 
 /// Formats errors into user-friendly localized messages.
 ///
@@ -28,6 +29,9 @@ String formatError(Object e, AppLocalizations l) {
   }
   if (e is SocketException) {
     return l.errorCannotConnect;
+  }
+  if (e is SecureStorageReadException) {
+    return l.storageErrorMessage;
   }
   final msg = e.toString();
   // Local refusals of the request provider (matched by name: the provider

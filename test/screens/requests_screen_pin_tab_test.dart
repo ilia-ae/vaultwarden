@@ -1,10 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vault_approver/demo_runtime.dart';
 import 'package:vault_approver/l10n/app_localizations.dart';
+import 'package:vault_approver/screens/pin/pin_prefs.dart';
+import 'package:vault_approver/screens/pin/pin_section.dart';
 import 'package:vault_approver/screens/pin/pin_session.dart';
 import 'package:vault_approver/screens/requests_screen.dart';
+import 'package:vault_approver/widgets/glass_top_bar.dart';
+import 'package:vault_approver/widgets/option_pills.dart';
 
 import 'pin/pin_harness.dart';
 
@@ -31,7 +37,7 @@ void main() {
   });
   tearDown(() => demoRuntime.value = false);
 
-  testWidgets('3rd tab: title, refresh, demo FAB and FLAG_SECURE by tab',
+  testWidgets('2nd tab: title, refresh, demo FAB and FLAG_SECURE by tab',
       (tester) async {
     useTallSurface(tester);
     final channel = mockPrivacyChannel(tester);
@@ -50,38 +56,61 @@ void main() {
     final container =
         ProviderScope.containerOf(tester.element(find.byType(RequestsScreen)));
 
-    for (final id in ['tab_pending', 'tab_history', 'tab_pin']) {
+    // Top bar: Vault, PIN. Inside Vault: the Pending/History pills.
+    for (final id in ['tab_vault', 'tab_pin', 'tab_pending', 'tab_history']) {
       expect(byId(id), findsOneWidget, reason: id);
     }
+    expect(find.text(l.vaultTab), findsOneWidget);
     expect(find.text(l.pinTab), findsOneWidget);
     expect(find.text(l.authRequestsTitle), findsOneWidget);
     expect(find.byIcon(Icons.refresh), findsOneWidget);
     expect(byId('btn_add_demo'), findsOneWidget);
     expect(secureCalls(channel), isEmpty);
 
+    // History is a pill inside the Vault tab, not a tab of its own.
     await tapTab(tester, 'tab_history');
-    expect(byId('btn_add_demo'), findsNothing, reason: 'FAB only on tab 0');
+    expect(byId('btn_add_demo'), findsNothing,
+        reason: 'FAB only on Vault › Pending');
+    expect(find.text(l.authRequestsTitle), findsOneWidget);
     expect(find.byIcon(Icons.refresh), findsOneWidget);
     expect(secureCalls(channel), isEmpty);
+    expect(pinTabVisible.value, isFalse);
 
     await tapTab(tester, 'tab_pin');
     expect(find.text(l.pinTitle), findsOneWidget);
     expect(find.text(l.authRequestsTitle), findsNothing);
     expect(find.byIcon(Icons.refresh), findsNothing);
     expect(byId('btn_add_demo'), findsNothing);
+    expect(byId('tab_pending'), findsNothing, reason: 'the pills are Vault\'s');
     expect(byId('pin_tool_pin24'), findsOneWidget);
+    expect(pinTabVisible.value, isTrue);
+    // The tab opens on PIN Shift, its PIN field first.
+    expect(byId('pin_shift_view'), findsOneWidget);
+    expect(byId('pin_shift_pin'), findsOneWidget);
     // The screen (by tab index) and the section (while it exists) both hold
     // FLAG_SECURE; the calls nest.
     expect(secureCalls(channel), [true, true]);
     expect(container.exists(pinSessionProvider), isTrue);
 
-    await tapTab(tester, 'tab_pending');
+    await tapTab(tester, 'tab_vault');
     expect(find.text(l.authRequestsTitle), findsOneWidget);
-    expect(byId('btn_add_demo'), findsOneWidget);
+    expect(pinTabVisible.value, isFalse);
     // Still on while the old page existed, off once the section was gone.
     expect(secureCalls(channel), [true, true, true, false]);
     // Leaving the tab disposed the section's session (and its seed cache).
     expect(container.exists(pinSessionProvider), isFalse);
+    // Back on the pill it was left on (History): still no FAB.
+    bool selected(String id) => tester
+        .widget<OptionPill>(
+            find.ancestor(of: byId(id), matching: find.byType(OptionPill)))
+        .selected;
+    expect(selected('tab_history'), isTrue);
+    expect(selected('tab_pending'), isFalse);
+    expect(byId('btn_add_demo'), findsNothing);
+    await tapTab(tester, 'tab_pending');
+    expect(selected('tab_pending'), isTrue);
+    expect(byId('btn_add_demo'), findsOneWidget);
+    expect(secureCalls(channel), [true, true, true, false]);
 
     // Unmounting while on the PIN tab releases FLAG_SECURE.
     await tapTab(tester, 'tab_pin');
@@ -90,14 +119,15 @@ void main() {
     expect(secureCalls(channel).last, isFalse);
   });
 
-  Future<ProviderContainer> pumpRequests(WidgetTester tester) async {
+  Future<ProviderContainer> pumpRequests(WidgetTester tester,
+      {Locale locale = const Locale('en')}) async {
     await tester.pumpWidget(ProviderScope(
       overrides: [pinComputeRunnerProvider.overrideWithValue(inlineRunner)],
-      child: const MaterialApp(
+      child: MaterialApp(
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
-        locale: Locale('en'),
-        home: RequestsScreen(),
+        locale: locale,
+        home: const RequestsScreen(),
       ),
     ));
     await tester.pump();
@@ -115,6 +145,8 @@ void main() {
     final container = await pumpRequests(tester);
 
     await tapTab(tester, 'tab_pin');
+    await tester.tap(byId('pin_tool_pin24'));
+    await tester.pump();
     await tester.enterText(fieldById('pin24_nickname'), 'visa');
     await tester.pump();
     await tester.enterText(fieldById('pin24_seed'), abandon12);
@@ -127,12 +159,45 @@ void main() {
         null;
     expect(focusInField(), isTrue, reason: 'the seed field has focus');
 
-    await tapTab(tester, 'tab_pending');
+    await tapTab(tester, 'tab_vault');
     expect(cache.hasSeed, isFalse, reason: 'zeroed when the tab was left');
     expect(container.exists(pinSessionProvider), isFalse);
     expect(find.byType(EditableText, skipOffstage: false), findsNothing);
     expect(focusInField(), isFalse);
     expect(secureCalls(channel).last, isFalse);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('PIN Shift keeps its length across tab visits, not its values',
+      (tester) async {
+    useTallSurface(tester);
+    mockPrivacyChannel(tester);
+    final container = await pumpRequests(tester);
+    String length() => tester
+        .widget<Text>(find.descendant(
+            of: byId('pin_shift_len_value'), matching: find.byType(Text)))
+        .data!;
+
+    await tapTab(tester, 'tab_pin');
+    expect(byId('pin_shift_view'), findsOneWidget);
+    expect(length(), '8');
+    await tester.ensureVisible(byId('pin_shift_len_6'));
+    await tester.tap(byId('pin_shift_len_6'));
+    await tester.pump();
+    await tester.enterText(fieldById('pin_shift_pin'), '123456');
+    await tester.enterText(fieldById('pin_shift_vector'), '111111');
+    await tester.pump();
+
+    await tapTab(tester, 'tab_vault');
+    expect(container.exists(pinSessionProvider), isFalse);
+    await tapTab(tester, 'tab_pin');
+    expect(byId('pin_shift_view'), findsOneWidget);
+    expect(length(), '6');
+    expect(fieldText(tester, 'pin_shift_pin'), isEmpty);
+    expect(fieldText(tester, 'pin_shift_vector'), isEmpty);
+
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.getInt(PinPrefs.kShiftLength), 6);
     await tester.pumpWidget(const SizedBox());
   });
 
@@ -154,8 +219,66 @@ void main() {
     expect(byId('yk_random_warning'), findsOneWidget);
     expect(l.pinYkRandomWarning, contains('PIN tab'));
 
-    await tapTab(tester, 'tab_history');
+    await tapTab(tester, 'tab_vault');
     expect(find.text(l.pinYkRandomErasedLeft), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
   });
+  // FLAG_SECURE covers any part of the PIN tab on screen — now the 2nd tab,
+  // so the first pixel of a swipe away from Vault already counts.
+  testWidgets('mid-swipe from Vault towards PIN: secure, then released',
+      (tester) async {
+    useTallSurface(tester);
+    final channel = mockPrivacyChannel(tester);
+    await pumpRequests(tester);
+    expect(pinTabVisible.value, isFalse);
+
+    final gesture =
+        await tester.startGesture(tester.getCenter(find.byType(TabBarView)));
+    await gesture.moveBy(const Offset(-40, 0));
+    await gesture.moveBy(const Offset(-60, 0));
+    await tester.pump();
+    expect(pinTabVisible.value, isTrue);
+    expect(secureCalls(channel).first, isTrue);
+
+    // Dragged back and let go: Vault again, the PIN page wiped and gone.
+    await gesture.moveBy(const Offset(100, 0));
+    await gesture.up();
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 1));
+    expect(pinTabVisible.value, isFalse);
+    expect(secureCalls(channel).last, isFalse);
+    expect(byId('tab_pending'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  for (final (locale, rtl) in [
+    (const Locale('en'), false),
+    (const Locale('ar'), true)
+  ]) {
+    testWidgets(
+        'the tab droplet spans one of the two tabs (${locale.languageCode})',
+        (tester) async {
+      useTallSurface(tester);
+      mockPrivacyChannel(tester);
+      await pumpRequests(tester, locale: locale);
+      Rect droplet() => tester.getRect(find.descendant(
+            of: find.byType(GlassTopBar),
+            matching: find.byWidgetPredicate((w) =>
+                w is GlassContainer && w.shape is LiquidRoundedSuperellipse),
+          ));
+      // 1000-pt wide surface; the tab row has 16-pt margins.
+      const half = (1000 - 32) / 2;
+      const first = 16.0, second = 16.0 + half;
+
+      expect(droplet().width, half);
+      expect(droplet().left, rtl ? second : first, reason: 'on Vault');
+      expect(tester.getCenter(byId('tab_vault')).dx < 500, !rtl);
+
+      await tapTab(tester, 'tab_pin');
+      expect(droplet().width, half);
+      expect(droplet().left, rtl ? first : second, reason: 'on PIN');
+      expect(tester.getCenter(byId('tab_pin')).dx > 500, !rtl);
+      await tester.pumpWidget(const SizedBox());
+    });
+  }
 }

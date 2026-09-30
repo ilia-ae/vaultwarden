@@ -10,6 +10,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:vault_approver/l10n/app_localizations.dart';
 import 'package:vault_approver/pin_tools/yubikey_secrets.dart' show ykFields;
+import 'package:vault_approver/screens/pin/pin_session.dart';
 import 'package:vault_approver/screens/pin/pin_widgets.dart';
 import 'package:vault_approver/services/privacy_service.dart';
 
@@ -69,7 +70,7 @@ void main() {
         tester.view.devicePixelRatio = 1;
         addTearDown(tester.view.reset);
         mockPrivacyChannel(tester);
-        await pumpPin(tester, locale: locale);
+        await pumpPin(tester, tool: PinTool.pin24, locale: locale);
         expect(
             DefaultTextStyle.of(tester.element(byId('pin24_seed')))
                 .style
@@ -93,7 +94,7 @@ void main() {
       (tester) async {
     useTallSurface(tester);
     mockPrivacyChannel(tester);
-    await pumpPin(tester);
+    await pumpPin(tester, tool: PinTool.pin24);
     final l = l10n(tester);
     await _ledgerKey(tester, '38715242');
 
@@ -130,7 +131,7 @@ void main() {
         useTallSurface(tester);
         final channel = mockPrivacyChannel(tester,
             systemShowsCopyConfirmation: systemConfirms);
-        await pumpPin(tester);
+        await pumpPin(tester, tool: PinTool.pin24);
         final l = l10n(tester);
 
         await enterPin24(tester, seed: abandon12, nickname: 'visa');
@@ -165,7 +166,7 @@ void main() {
           _ => true,
         },
       );
-      await pumpPin(tester);
+      await pumpPin(tester, tool: PinTool.pin24);
       final l = l10n(tester);
       await enterPin24(tester, seed: abandon12, nickname: 'visa');
       await _tap(tester, 'pin24_show_full');
@@ -179,7 +180,7 @@ void main() {
       (tester) async {
     useTallSurface(tester);
     mockPrivacyChannel(tester);
-    await pumpPin(tester);
+    await pumpPin(tester, tool: PinTool.pin24);
     final l = l10n(tester);
     final note = find.textContaining(l.pinHiddenLastCharNote);
 

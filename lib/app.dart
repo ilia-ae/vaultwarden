@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -6,6 +8,7 @@ import 'demo_fixtures.dart';
 import 'l10n/app_localizations.dart';
 import 'models/settings_snapshot.dart';
 import 'models/user_session.dart';
+import 'providers/service_providers.dart';
 import 'providers/session_provider.dart';
 import 'widgets/unlock_shell.dart';
 import 'screens/requests_screen.dart';
@@ -233,6 +236,9 @@ class _AppState extends ConsumerState<App> with WidgetsBindingObserver {
         }
       }
     } else if (state == AppLifecycleState.resumed) {
+      // Keychain changes held back while protected data was unavailable
+      // (device locked) are written now (SecureStorageService write guard).
+      unawaited(ref.read(secureStorageProvider).flushPending());
       final timeout = ref.read(lockTimeoutProvider);
       if (timeout == -1) return; // never-lock mode
 

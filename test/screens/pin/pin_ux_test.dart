@@ -189,7 +189,7 @@ void main() {
         (tester) async {
       useTallSurface(tester);
       mockPrivacyChannel(tester);
-      await pumpPin(tester);
+      await pumpPin(tester, tool: PinTool.pin24);
       final cs = Theme.of(tester.element(find.byType(Scaffold))).colorScheme;
 
       Color? filledBackground(String id) => tester
@@ -237,7 +237,7 @@ void main() {
         (tester) async {
       useTallSurface(tester);
       mockPrivacyChannel(tester);
-      await pumpPin(tester);
+      await pumpPin(tester, tool: PinTool.pin24);
       final l = l10n(tester);
 
       await tester.enterText(fieldById('pin24_seed'), 'abandon ab');
@@ -274,19 +274,19 @@ void main() {
       final l = l10n(tester);
       final handle = tester.ensureSemantics();
 
-      await _tap(tester, 'pin_tool_shift');
-      await tester.pump();
-      await tester.enterText(fieldById('pin_shift_pin'), '1234');
-      await tester.enterText(fieldById('pin_shift_vector'), '3719');
+      // PIN Shift is the first tool; 8 digits by default.
+      expect(byId('pin_shift_view'), findsOneWidget);
+      await tester.enterText(fieldById('pin_shift_pin'), '12345678');
+      await tester.enterText(fieldById('pin_shift_vector'), '37193719');
       await tester.pump();
       expect(
           find.bySemanticsLabel(
-              l.pinSecretHiddenSemantics(l.pinShiftRowOutputDerived, 4)),
+              l.pinSecretHiddenSemantics(l.pinShiftRowOutputDerived, 8)),
           findsOneWidget);
-      expect(find.bySemanticsLabel(RegExp('4 9 4 3')), findsNothing);
+      expect(find.bySemanticsLabel(RegExp('4 9 4 3 8 3 8 7')), findsNothing);
       await _tap(tester, 'pin_shift_reveal');
       await tester.pump();
-      expect(find.bySemanticsLabel(RegExp('4 9 4 3')), findsOneWidget);
+      expect(find.bySemanticsLabel(RegExp('4 9 4 3 8 3 8 7')), findsOneWidget);
 
       await _tap(tester, 'pin_show_legacy');
       await tester.pump();
@@ -311,7 +311,7 @@ void main() {
         (tester) async {
       useTallSurface(tester);
       mockPrivacyChannel(tester);
-      await pumpPin(tester);
+      await pumpPin(tester, tool: PinTool.pin24);
       ExpansionTile tile() => tester.widget<ExpansionTile>(find.descendant(
           of: byId('pin24_threat_model'),
           matching: find.byType(ExpansionTile)));
@@ -320,6 +320,7 @@ void main() {
 
       await pumpPin(
         tester,
+        tool: PinTool.pin24,
         child: Builder(
           builder: (context) => MediaQuery(
             data: MediaQuery.of(context).copyWith(disableAnimations: true),
@@ -341,7 +342,7 @@ void main() {
       mockPrivacyChannel(tester);
       // First run: everything above the seed field.
       setPinPrefs({'pin.pin24.banner_ack': false});
-      await pumpPin(tester);
+      await pumpPin(tester, tool: PinTool.pin24);
       final l = l10n(tester);
       expect(find.text(l.pin24Summary), findsOneWidget);
       final firstRun = tester.getRect(byId('pin24_seed')).top;
@@ -349,7 +350,7 @@ void main() {
       // Acknowledged: the banner stays, the description is folded away.
       setPinPrefs();
       await tester.pumpWidget(const SizedBox());
-      await pumpPin(tester);
+      await pumpPin(tester, tool: PinTool.pin24);
       expect(byId('pin24_about'), findsOneWidget);
       expect(find.text(l.pin24Summary), findsNothing);
       expect(find.text(l.pin24Banner), findsOneWidget);
@@ -369,7 +370,7 @@ void main() {
       setPinPrefs({'pin.pin24.banner_ack': false});
       useTallSurface(tester);
       mockPrivacyChannel(tester);
-      await pumpPin(tester);
+      await pumpPin(tester, tool: PinTool.pin24);
       final l = l10n(tester);
       expect(find.text(l.pin24Summary), findsOneWidget);
       final text = tester.widget<Text>(find.text(l.pin24AckRequired));
@@ -382,7 +383,7 @@ void main() {
         (tester) async {
       useTallSurface(tester);
       mockPrivacyChannel(tester);
-      await pumpPin(tester);
+      await pumpPin(tester, tool: PinTool.pin24);
       final l = l10n(tester);
       final field = tester.widget<TextField>(find.descendant(
           of: byId('pin24_nickname'), matching: find.byType(TextField)));
@@ -395,7 +396,7 @@ void main() {
         (tester) async {
       useTallSurface(tester);
       mockPrivacyChannel(tester);
-      await pumpPin(tester);
+      await pumpPin(tester, tool: PinTool.pin24);
       final l = l10n(tester);
       await _tap(tester, 'pin24_passphrase_section');
       await tester.pumpAndSettle();
@@ -411,7 +412,7 @@ void main() {
         (tester) async {
       useTallSurface(tester);
       mockPrivacyChannel(tester);
-      await pumpPin(tester);
+      await pumpPin(tester, tool: PinTool.pin24);
       final l = l10n(tester);
       await _tap(tester, 'pin24_passphrase_section');
       await tester.pumpAndSettle();
@@ -428,7 +429,7 @@ void main() {
         (tester) async {
       useTallSurface(tester);
       mockPrivacyChannel(tester);
-      await pumpPin(tester);
+      await pumpPin(tester, tool: PinTool.pin24);
       final l = l10n(tester);
       await _tap(tester, 'pin24_mode_password');
       await tester.pump();
@@ -445,7 +446,7 @@ void main() {
     testWidgets('C-UI-t: a failing engine check says FAILED', (tester) async {
       useTallSurface(tester);
       mockPrivacyChannel(tester);
-      await pumpPin(tester, overrides: [
+      await pumpPin(tester, tool: PinTool.pin24, overrides: [
         pin24SelfTestVectorsProvider.overrideWithValue(const [
           Pin24SelfTestVector(0x07, 'gmail', 'not-the-real-output!'),
           ...kPin24OfficialVectors,
@@ -516,7 +517,7 @@ void main() {
     testWidgets('the clipboard promise matches the platform', (tester) async {
       useTallSurface(tester);
       mockPrivacyChannel(tester);
-      await pumpPin(tester);
+      await pumpPin(tester, tool: PinTool.pin24);
       final l = l10n(tester);
       expect(l.pin24ThreatProtectsBody, isNot(contains('not shared')));
       expect(l.pinYkCsvConfirmBody(3), isNot(contains('not shared')));

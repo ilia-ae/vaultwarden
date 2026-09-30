@@ -4,7 +4,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:vault_approver/screens/pin/pin_prefs.dart';
 import 'package:vault_approver/screens/pin/pin_section.dart';
+import 'package:vault_approver/screens/pin/pin_session.dart';
 import 'package:vault_approver/screens/pin/pin_widgets.dart';
 
 import 'pin_harness.dart';
@@ -27,8 +29,10 @@ Future<void> _pumpScaled(
   tester.view.physicalSize = Size(width, 40000);
   tester.view.devicePixelRatio = 1.0;
   addTearDown(tester.view.reset);
+  // The walk starts in PIN 24.
   await pumpPin(
     tester,
+    tool: PinTool.pin24,
     locale: Locale(locale),
     child: Builder(
       builder: (context) => MediaQuery(
@@ -128,10 +132,11 @@ Future<List<String>> _walkAllTools(WidgetTester tester) async {
   await _tap(tester, 'yk_reveal_12345678_24');
   await check('yk-values');
 
-  // PIN Shift: 16 digits, revealed.
+  // PIN Shift: first open (8 empty cells), then 16 digits, revealed.
   await _tap(tester, 'pin_tool_shift');
   await tester.pumpAndSettle();
-  for (var i = 4; i < 16; i++) {
+  await check('shift-default-empty');
+  for (var i = kPinShiftDefaultLength; i < 16; i++) {
     await _tap(tester, 'pin_shift_len_inc');
   }
   await tester.enterText(fieldById('pin_shift_pin'), '1234567890123456');

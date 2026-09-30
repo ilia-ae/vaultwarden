@@ -30,11 +30,12 @@ import 'nickname_backup.dart';
 import 'pin24_engine.dart';
 import 'yubikey_engine.dart';
 
-/// The tools of the PIN tab, in picker order. [legacyMask] only appears
-/// with "Show legacy tools" on.
+/// The tools of the PIN tab, in picker order: PIN Shift first (the tab opens
+/// on it), then PIN 24 and YubiKey. [legacyMask] only appears with "Show
+/// legacy tools" on.
 enum PinTool {
-  pin24('pin24'),
   pinShift('shift'),
+  pin24('pin24'),
   yubikey('yubikey'),
   legacyMask('legacy');
 
@@ -44,9 +45,9 @@ enum PinTool {
   final String id;
 }
 
-/// Which tool the PIN tab shows. Survives tab switches within a run; not
-/// persisted, not secret.
-final pinToolProvider = StateProvider<PinTool>((_) => PinTool.pin24);
+/// Which tool the PIN tab shows: PIN Shift until the user picks another one.
+/// Survives tab switches within a run; not persisted, not secret.
+final pinToolProvider = StateProvider<PinTool>((_) => PinTool.pinShift);
 
 /// Runs derivations off the UI isolate. Widget tests override it with an
 /// inline runner, because their fake clock cannot drive a real isolate.

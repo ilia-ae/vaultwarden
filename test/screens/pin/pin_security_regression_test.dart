@@ -56,7 +56,7 @@ void main() {
     testWidgets('Ctrl+Z after 🚨 Wipe all brings nothing back', (tester) async {
       useTallSurface(tester);
       final log = mockPrivacyChannel(tester);
-      final container = await pumpPin(tester);
+      final container = await pumpPin(tester, tool: PinTool.pin24);
       await tester.enterText(fieldById('pin24_nickname'), 'visa');
       await tester.pump();
       await tester.enterText(fieldById('pin24_seed'), abandon12);
@@ -88,7 +88,7 @@ void main() {
         (tester) async {
       useTallSurface(tester);
       mockPrivacyChannel(tester);
-      final container = await pumpPin(tester);
+      final container = await pumpPin(tester, tool: PinTool.pin24);
       await tester.enterText(fieldById('pin24_nickname'), 'visa');
       await tester.pump();
       await tester.enterText(fieldById('pin24_seed'), abandon12);
@@ -113,7 +113,7 @@ void main() {
       try {
         useTallSurface(tester);
         mockPrivacyChannel(tester);
-        await pumpPin(tester);
+        await pumpPin(tester, tool: PinTool.pin24);
         await tester.enterText(fieldById('pin24_nickname'), 'visa');
         await tester.pump();
         await tester.enterText(fieldById('pin24_seed'), abandon12);
@@ -250,7 +250,7 @@ void main() {
       useTallSurface(tester);
       resetLifecycleOnTearDown(tester);
       final log = mockPrivacyChannel(tester);
-      final container = await pumpPin(tester);
+      final container = await pumpPin(tester, tool: PinTool.pin24);
       // One big edit = a paste the field could not see (iOS native menu).
       await tester.enterText(fieldById('pin24_seed'), abandon12);
       await tester.pump();
@@ -281,7 +281,7 @@ void main() {
     testWidgets('the reminder follows the user to other tools', (tester) async {
       useTallSurface(tester);
       final log = mockPrivacyChannel(tester);
-      await pumpPin(tester);
+      await pumpPin(tester, tool: PinTool.pin24);
       await tester.enterText(fieldById('pin24_seed'), abandon12);
       await tester.pump();
       await _tap(tester, 'pin_tool_shift');
@@ -299,7 +299,7 @@ void main() {
         (tester) async {
       useTallSurface(tester);
       final log = mockPrivacyChannel(tester);
-      await pumpPin(tester);
+      await pumpPin(tester, tool: PinTool.pin24);
       await tester.enterText(fieldById('pin24_nickname'), 'visa');
       await tester.pump();
       // Typed key by key, not pasted: only our own copy is on the clipboard.
@@ -328,7 +328,7 @@ void main() {
       useTallSurface(tester);
       resetLifecycleOnTearDown(tester);
       final log = mockPrivacyChannel(tester);
-      await pumpPin(tester);
+      await pumpPin(tester, tool: PinTool.pin24);
       final l = l10n(tester);
       await enterPin24(tester, seed: abandon12, nickname: 'visa');
 
@@ -398,10 +398,13 @@ void main() {
       await pumpPin(tester);
       await _tap(tester, 'pin_tool_shift');
       await tester.pump();
-      for (final vector in ['5555', '0000', '1234']) {
-        await tester.enterText(fieldById('pin_shift_pin'), '1234');
+      // Weak vectors of the default length (8): a result is shown, the
+      // notices are not.
+      for (final vector in ['55555555', '00000000', '12345678']) {
+        await tester.enterText(fieldById('pin_shift_pin'), '12345678');
         await tester.enterText(fieldById('pin_shift_vector'), vector);
         await tester.pump();
+        expect(byId('pin_shift_roundtrip'), findsOneWidget, reason: vector);
         expect(byId('pin_shift_input_row'), findsNothing);
         for (final id in [
           'pin_shift_weak_zero',

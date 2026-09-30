@@ -4,6 +4,7 @@
 // wiped.
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:vault_approver/screens/pin/pin_session.dart';
 import 'package:vault_approver/widgets/keyboard_dismiss.dart';
 
 import 'pin_harness.dart';
@@ -175,7 +176,7 @@ void main() {
       (tester) async {
     _usePhone(tester);
     mockPrivacyChannel(tester);
-    await pumpPin(tester);
+    await pumpPin(tester, tool: PinTool.pin24);
 
     // PIN 24's seed and nickname fields use the text keyboard.
     await tester.ensureVisible(fieldById('pin24_nickname'));

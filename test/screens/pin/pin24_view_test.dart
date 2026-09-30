@@ -26,7 +26,7 @@ void main() {
         (tester) async {
       useTallSurface(tester);
       mockPrivacyChannel(tester);
-      await pumpPin(tester);
+      await pumpPin(tester, tool: PinTool.pin24);
       final l = l10n(tester);
 
       await enterPin24(tester, seed: abandon12, nickname: 'visa');
@@ -44,7 +44,7 @@ void main() {
         (tester) async {
       useTallSurface(tester);
       mockPrivacyChannel(tester);
-      await pumpPin(tester);
+      await pumpPin(tester, tool: PinTool.pin24);
 
       await enterPin24(tester, seed: abandon12, nickname: 'Visa');
       expect(displayedPin(tester), '0639');
@@ -58,7 +58,7 @@ void main() {
         (tester) async {
       useTallSurface(tester);
       mockPrivacyChannel(tester);
-      await pumpPin(tester);
+      await pumpPin(tester, tool: PinTool.pin24);
 
       await enterPin24(
         tester,
@@ -73,7 +73,7 @@ void main() {
         (tester) async {
       useTallSurface(tester);
       final channel = mockPrivacyChannel(tester);
-      await pumpPin(tester);
+      await pumpPin(tester, tool: PinTool.pin24);
       final l = l10n(tester);
 
       await enterPin24(tester, seed: speculos24, nickname: 'gmail');
@@ -104,7 +104,7 @@ void main() {
         (tester) async {
       useTallSurface(tester);
       mockPrivacyChannel(tester);
-      await pumpPin(tester);
+      await pumpPin(tester, tool: PinTool.pin24);
       final l = l10n(tester);
 
       await tester.tap(byId('pin24_len_12'));
@@ -120,7 +120,7 @@ void main() {
         (tester) async {
       useTallSurface(tester);
       mockPrivacyChannel(tester);
-      await pumpPin(tester);
+      await pumpPin(tester, tool: PinTool.pin24);
       final l = l10n(tester);
 
       expect(find.text(l.pin24Gate1), findsOneWidget);
@@ -154,7 +154,7 @@ void main() {
     testWidgets('status messages: count, wordlist, checksum', (tester) async {
       useTallSurface(tester);
       mockPrivacyChannel(tester);
-      await pumpPin(tester);
+      await pumpPin(tester, tool: PinTool.pin24);
       final l = l10n(tester);
 
       await tester.enterText(fieldById('pin24_seed'), 'abandon abandon');
@@ -178,7 +178,7 @@ void main() {
         (tester) async {
       useTallSurface(tester);
       mockPrivacyChannel(tester);
-      await pumpPin(tester);
+      await pumpPin(tester, tool: PinTool.pin24);
       final l = l10n(tester);
 
       await enterPin24(
@@ -198,7 +198,7 @@ void main() {
         (tester) async {
       useTallSurface(tester);
       mockPrivacyChannel(tester);
-      await pumpPin(tester);
+      await pumpPin(tester, tool: PinTool.pin24);
       final l = l10n(tester);
 
       await enterPin24(tester, seed: abandon12, nickname: 'vi\uD800sa');
@@ -211,7 +211,7 @@ void main() {
         (tester) async {
       useTallSurface(tester);
       mockPrivacyChannel(tester);
-      await pumpPin(tester);
+      await pumpPin(tester, tool: PinTool.pin24);
       final l = l10n(tester);
 
       await tester.enterText(fieldById('pin24_seed'), 'abandon zoo xyzzy');
@@ -243,7 +243,7 @@ void main() {
     testWidgets('completions only with 👁 on; tap accepts', (tester) async {
       useTallSurface(tester);
       mockPrivacyChannel(tester);
-      await pumpPin(tester);
+      await pumpPin(tester, tool: PinTool.pin24);
       final l = l10n(tester);
 
       await tester.enterText(fieldById('pin24_seed'), 'abandon ab');
@@ -268,7 +268,7 @@ void main() {
         (tester) async {
       useTallSurface(tester);
       mockPrivacyChannel(tester);
-      await pumpPin(tester);
+      await pumpPin(tester, tool: PinTool.pin24);
       final l = l10n(tester);
 
       expect(find.text(l.pin24AutoCompleteHint), findsOneWidget);
@@ -292,7 +292,7 @@ void main() {
       testWidgets('typing $name key by key ends canonical', (tester) async {
         useTallSurface(tester);
         mockPrivacyChannel(tester);
-        await pumpPin(tester);
+        await pumpPin(tester, tool: PinTool.pin24);
         final l = l10n(tester);
         await tester.enterText(fieldById('pin24_nickname'), 'visa');
         for (final ch in phrase.split('')) {
@@ -313,7 +313,7 @@ void main() {
     testWidgets('4 letters and a space per word are enough', (tester) async {
       useTallSurface(tester);
       mockPrivacyChannel(tester);
-      await pumpPin(tester);
+      await pumpPin(tester, tool: PinTool.pin24);
       const short =
           'aban aban aban aban aban aban aban aban aban aban aban abou ';
       for (final ch in short.split('')) {
@@ -327,7 +327,7 @@ void main() {
         (tester) async {
       useTallSurface(tester);
       mockPrivacyChannel(tester);
-      await pumpPin(tester);
+      await pumpPin(tester, tool: PinTool.pin24);
       final l = l10n(tester);
 
       await tester.enterText(fieldById('pin24_seed'), 'ac');
@@ -345,7 +345,7 @@ void main() {
     testWidgets('glued words (lost line breaks) can be split', (tester) async {
       useTallSurface(tester);
       mockPrivacyChannel(tester);
-      await pumpPin(tester);
+      await pumpPin(tester, tool: PinTool.pin24);
       final l = l10n(tester);
 
       await tester.enterText(
@@ -360,7 +360,7 @@ void main() {
     testWidgets('non-ASCII letters are called out', (tester) async {
       useTallSurface(tester);
       mockPrivacyChannel(tester);
-      await pumpPin(tester);
+      await pumpPin(tester, tool: PinTool.pin24);
       final l = l10n(tester);
 
       await tester.enterText(fieldById('pin24_seed'), 'abandon abóut');
@@ -371,7 +371,7 @@ void main() {
     testWidgets('after a paste the clipboard can be cleared', (tester) async {
       useTallSurface(tester);
       final channel = mockPrivacyChannel(tester);
-      await pumpPin(tester);
+      await pumpPin(tester, tool: PinTool.pin24);
       final l = l10n(tester);
 
       await tester.enterText(fieldById('pin24_seed'), abandon12);
@@ -387,7 +387,7 @@ void main() {
         (tester) async {
       useTallSurface(tester);
       mockPrivacyChannel(tester);
-      await pumpPin(tester);
+      await pumpPin(tester, tool: PinTool.pin24);
       final l = l10n(tester);
 
       await tester.enterText(fieldById('pin24_nickname'), ' café');
@@ -406,7 +406,7 @@ void main() {
       useTallSurface(tester);
       resetLifecycleOnTearDown(tester);
       mockPrivacyChannel(tester);
-      final container = await pumpPin(tester);
+      final container = await pumpPin(tester, tool: PinTool.pin24);
       final l = l10n(tester);
 
       await enterPin24(tester, seed: abandon12, nickname: 'visa');
@@ -436,7 +436,7 @@ void main() {
       useTallSurface(tester);
       resetLifecycleOnTearDown(tester);
       mockPrivacyChannel(tester);
-      await pumpPin(tester);
+      await pumpPin(tester, tool: PinTool.pin24);
       final l = l10n(tester);
 
       await enterPin24(tester, seed: abandon12, nickname: 'visa');
@@ -457,7 +457,7 @@ void main() {
     testWidgets('120 s without interaction wipes everything', (tester) async {
       useTallSurface(tester);
       mockPrivacyChannel(tester);
-      final container = await pumpPin(tester);
+      final container = await pumpPin(tester, tool: PinTool.pin24);
       final l = l10n(tester);
 
       await enterPin24(tester, seed: abandon12, nickname: 'visa');
@@ -474,7 +474,7 @@ void main() {
         (tester) async {
       useTallSurface(tester);
       final channel = mockPrivacyChannel(tester);
-      await pumpPin(tester);
+      await pumpPin(tester, tool: PinTool.pin24);
       final l = l10n(tester);
 
       await enterPin24(tester, seed: abandon12, nickname: 'visa');
@@ -510,7 +510,7 @@ void main() {
       SharedPreferences.setMockInitialValues({});
       useTallSurface(tester);
       mockPrivacyChannel(tester);
-      await pumpPin(tester);
+      await pumpPin(tester, tool: PinTool.pin24);
       final l = l10n(tester);
 
       final field = tester.widget<TextField>(find.descendant(
@@ -535,7 +535,7 @@ void main() {
       setPinPrefs({PinPrefs.kPin24Length: 99});
       useTallSurface(tester);
       mockPrivacyChannel(tester);
-      await pumpPin(tester);
+      await pumpPin(tester, tool: PinTool.pin24);
 
       await enterPin24(tester, seed: abandon12, nickname: 'visa');
       expect(displayedPin(tester), '085388806588');
@@ -552,7 +552,7 @@ void main() {
     testWidgets('secret fields carry the anti-leak flags', (tester) async {
       useTallSurface(tester);
       mockPrivacyChannel(tester);
-      await pumpPin(tester);
+      await pumpPin(tester, tool: PinTool.pin24);
 
       for (final id in ['pin24_seed', 'pin24_passphrase', 'pin24_nickname']) {
         if (find
@@ -583,7 +583,7 @@ void main() {
         (tester) async {
       useTallSurface(tester);
       mockPrivacyChannel(tester);
-      await pumpPin(tester, locale: const Locale('ar'));
+      await pumpPin(tester, tool: PinTool.pin24, locale: const Locale('ar'));
 
       await enterPin24(tester, seed: abandon12, nickname: 'visa');
       expect(displayedPin(tester), '0853');

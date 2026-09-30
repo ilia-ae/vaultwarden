@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'dart:convert';
+import 'dart:io' show Platform;
 
-import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
@@ -33,12 +35,34 @@ class SecureStorageReadException implements Exception {
 ///
 /// Preferences live in SharedPreferences; the only one used here is the
 /// install marker of [wipeIfReinstalled].
+///
+/// Reading the items an account cannot do without (session, user key,
+/// biometric storage key, device_id, install marker) never mistakes an
+/// unreadable keychain for an empty one: see [_readRequired].
+///
+/// Write guard (iOS): flutter_secure_storage 9.2.x (and 11.x) writes an
+/// existing item as update → on failure delete → add. While protected data
+/// is unavailable (device locked) the update and the add fail but the delete
+/// does not, so a write then silently DELETES the item (e.g. the session on
+/// a token refresh right after the app went to the background). So before
+/// every write or delete this service checks
+/// `UIApplication.isProtectedDataAvailable`; while it is false nothing
+/// touches the keychain: the change is kept in memory ("owed"), reads return
+/// it, and it is applied in order once protected data is available again —
+/// before the next read or write, on resume ([flushPending]) and on the
+/// plugin's availability event. A write that fails anyway is owed too. A
+/// sign-out that could not run is also recorded in the preferences
+/// ([prefsPendingSignOut]) so it still happens after the process ends.
 class SecureStorageService {
   SecureStorageService({
     FlutterSecureStorage? storage,
     FlutterSecureStorage? legacyDefaultStorage,
+    bool? iosDataProtection,
+    Future<SharedPreferences> Function()? preferences,
   })  : _storage = storage ?? defaultStorage,
-        _legacyStorage = legacyDefaultStorage ?? const FlutterSecureStorage();
+        _legacyStorage = legacyDefaultStorage ?? const FlutterSecureStorage(),
+        _guardWrites = iosDataProtection ?? (!kIsWeb && Platform.isIOS),
+        _preferences = preferences ?? SharedPreferences.getInstance;
 
   /// Options shared by every secure item of the app (use them for any new
   /// secure storage, e.g. history and client certificates).
@@ -56,6 +80,10 @@ class SecureStorageService {
   /// [wipeIfReinstalled].
   static const keyInstallMarker = 'install_marker';
   static const prefsInstallMarker = 'app.install_marker';
+
+  /// A sign-out whose keychain deletes are still owed: `all`, or `keep_2fa`
+  /// (2FA remember tokens kept). No secrets.
+  static const prefsPendingSignOut = 'app.pending_sign_out';
 
   static const keySession = 'session';
   static const keyEncryptedUserKey = 'encrypted_user_key';
@@ -76,26 +104,46 @@ class SecureStorageService {
 
   final FlutterSecureStorage _storage;
   final FlutterSecureStorage _legacyStorage;
+  final bool _guardWrites;
+  final Future<SharedPreferences> Function() _preferences;
+
+  // ── Owed changes (write guard) ──
+
+  /// Writes (value) and deletes (null) still owed to the keychain, applied
+  /// after [_owedSignOutKeep2fa].
+  final Map<String, String?> _owedWrites = {};
+
+  /// Non-null: a sign-out is owed; true = keep the 2FA remember tokens.
+  bool? _owedSignOutKeep2fa;
+  UserSession? _owedSignOutAccount;
+  int _signOutGeneration = 0;
+  bool _owedLegacyHistoryDelete = false;
+  Future<void>? _durableLoad;
+  Future<void>? _flushing;
+  StreamSubscription<bool>? _availability;
+
+  /// True while changes are owed to the keychain.
+  bool get hasPendingChanges =>
+      _owedWrites.isNotEmpty ||
+      _owedSignOutKeep2fa != null ||
+      _owedLegacyHistoryDelete;
+
+  /// Applies owed changes when protected data is available (call on
+  /// resume). Never throws; what still fails stays owed.
+  Future<void> flushPending() => _settle();
 
   // ── Session ──
 
-  Future<void> saveSession(UserSession session) async {
-    await _storage.write(
-      key: keySession,
-      value: jsonEncode(session.toJson()),
-    );
-  }
+  /// Held in memory while the keychain cannot take it (see the class doc):
+  /// the caller's in-memory session stays the authority until then.
+  Future<void> saveSession(UserSession session) =>
+      _change(keySession, jsonEncode(session.toJson()));
 
   /// Null when no (valid) session is stored. Throws
   /// [SecureStorageReadException] when the keychain itself fails, so callers
   /// can tell "logged out" from "keychain temporarily unavailable".
   Future<UserSession?> loadSession() async {
-    final String? raw;
-    try {
-      raw = await _storage.read(key: keySession);
-    } on PlatformException catch (e) {
-      throw SecureStorageReadException(e);
-    }
+    final raw = await _readRequired(keySession);
     if (raw == null) return null;
     try {
       return UserSession.fromJson(jsonDecode(raw) as Map<String, dynamic>);
@@ -104,40 +152,39 @@ class SecureStorageService {
     }
   }
 
-  Future<void> deleteSession() async {
-    await _storage.delete(key: keySession);
-  }
+  Future<void> deleteSession() => _change(keySession, null);
 
   // ── Encrypted UserKey ──
 
-  Future<void> saveEncryptedUserKey(String cipherString) async {
-    await _storage.write(key: keyEncryptedUserKey, value: cipherString);
-  }
+  Future<void> saveEncryptedUserKey(String cipherString) =>
+      _change(keyEncryptedUserKey, cipherString);
 
-  Future<String?> loadEncryptedUserKey() async {
-    return _storage.read(key: keyEncryptedUserKey);
-  }
+  /// Null only when no key is stored; throws [SecureStorageReadException]
+  /// when the keychain cannot be read (see [_readRequired]).
+  Future<String?> loadEncryptedUserKey() => _readRequired(keyEncryptedUserKey);
 
   // ── Biometric Storage Key ──
 
-  Future<void> saveBiometricStorageKey(String base64Key) async {
-    await _storage.write(key: keyBiometricStorageKey, value: base64Key);
-  }
+  Future<void> saveBiometricStorageKey(String base64Key) =>
+      _change(keyBiometricStorageKey, base64Key);
 
-  Future<String?> loadBiometricStorageKey() async {
-    return _storage.read(key: keyBiometricStorageKey);
-  }
+  /// Null only when no key is stored; throws [SecureStorageReadException]
+  /// when the keychain cannot be read (see [_readRequired]).
+  Future<String?> loadBiometricStorageKey() =>
+      _readRequired(keyBiometricStorageKey);
 
   // ── Device ID ──
 
   /// The app's stable Bitwarden `deviceIdentifier`. Survives logout and
   /// [clearAll] (like the official apps' appId), so re-logins are not "new
   /// devices" (new-device verification, 2FA remember, one device row).
+  /// A keychain that cannot be read throws [SecureStorageReadException]
+  /// rather than getting a new id.
   Future<String> getOrCreateDeviceId() async {
-    var id = await _storage.read(key: keyDeviceId);
+    var id = await _readRequired(keyDeviceId);
     if (id == null || id.isEmpty) {
       id = const Uuid().v4();
-      await _storage.write(key: keyDeviceId, value: id);
+      await _change(keyDeviceId, id);
     }
     return id;
   }
@@ -151,26 +198,20 @@ class SecureStorageService {
     required String serverUrl,
     required String email,
     required String token,
-  }) async {
-    await _storage.write(
-      key: twoFactorRememberKey(serverUrl, email),
-      value: token,
-    );
-  }
+  }) =>
+      _change(twoFactorRememberKey(serverUrl, email), token);
 
   Future<String?> loadTwoFactorRememberToken({
     required String serverUrl,
     required String email,
-  }) async {
-    return _storage.read(key: twoFactorRememberKey(serverUrl, email));
-  }
+  }) =>
+      _readOptional(twoFactorRememberKey(serverUrl, email));
 
   Future<void> deleteTwoFactorRememberToken({
     required String serverUrl,
     required String email,
-  }) async {
-    await _storage.delete(key: twoFactorRememberKey(serverUrl, email));
-  }
+  }) =>
+      _change(twoFactorRememberKey(serverUrl, email), null);
 
   // ── Approve/deny history (per server + email) ──
 
@@ -180,29 +221,31 @@ class SecureStorageService {
   Future<String?> loadHistory({
     required String serverUrl,
     required String email,
-  }) async {
-    return _storage.read(key: historyKey(serverUrl, email));
-  }
+  }) =>
+      _readOptional(historyKey(serverUrl, email));
 
   Future<void> saveHistory({
     required String serverUrl,
     required String email,
     required String json,
-  }) async {
-    await _storage.write(key: historyKey(serverUrl, email), value: json);
-  }
+  }) =>
+      _change(historyKey(serverUrl, email), json);
 
   Future<void> deleteHistory({
     required String serverUrl,
     required String email,
-  }) async {
-    await _storage.delete(key: historyKey(serverUrl, email));
-  }
+  }) =>
+      _change(historyKey(serverUrl, email), null);
 
   /// The unscoped history of builds before per-account history (F13), or
   /// null. Only meaningful for the session that was signed in when the app
   /// was updated: a new sign-in deletes it ([deleteLegacyHistory]).
   Future<String?> readLegacyHistory() async {
+    await _settle();
+    if (_owedLegacyHistoryDelete || _owedSignOutKeep2fa != null) return null;
+    if (_owedWrites.containsKey(historyKeyPrefix)) {
+      return _owedWrites[historyKeyPrefix];
+    }
     for (final store in [_legacyStorage, _storage]) {
       try {
         final raw = await store.read(key: historyKeyPrefix);
@@ -214,46 +257,70 @@ class SecureStorageService {
     return null;
   }
 
-  /// Deletes the unscoped history of older builds (best effort).
-  Future<void> deleteLegacyHistory() => _deleteLegacyHistory();
+  /// Deletes the unscoped history of older builds (best effort; owed while
+  /// the keychain cannot take it).
+  Future<void> deleteLegacyHistory() async {
+    if (await _readyToWrite()) {
+      await _deleteLegacyHistory();
+    } else {
+      _owedLegacyHistoryDelete = true;
+      _watchAvailability();
+    }
+  }
 
   // ── Setup check ──
 
   Future<bool> hasCompletedSetup() async {
-    final key = await _storage.read(key: keyEncryptedUserKey);
-    final session = await _storage.read(key: keySession);
+    final key = await loadEncryptedUserKey();
+    final session = await _readRequired(keySession);
     return key != null && session != null;
   }
 
   // ── Reinstall ──
 
   /// iOS keeps keychain items when the app is deleted, SharedPreferences
-  /// not. A keychain marker without the matching preferences marker
-  /// therefore means "deleted and installed again": everything in the store
-  /// (session, keys, device_id, certificates) is wiped, as a fresh install
-  /// promises. Builds before this marker never wrote it, so updating from
-  /// them never wipes. Call once at startup, before anything reads the
-  /// store. Returns true when it wiped.
+  /// not. A keychain marker while the preferences have none therefore means
+  /// "deleted and installed again": everything in the store (session, keys,
+  /// device_id, certificates) is wiped, as a fresh install promises. Call
+  /// once at startup, before anything reads the store. Returns true when it
+  /// wiped.
+  ///
+  /// Never a wipe otherwise:
+  /// - no marker anywhere (fresh install, or an update from a build before
+  ///   the marker such as 1.0.5): a new marker is adopted;
+  /// - keychain unreadable (locked): nothing is decided or written;
+  /// - preferences marker set: it is authoritative and never replaced; a
+  ///   missing or different keychain marker is rewritten from it. (Replacing
+  ///   it after a keychain read that wrongly came back empty left the two
+  ///   markers different, and the next start wiped a signed-in account.)
   Future<bool> wipeIfReinstalled(SharedPreferences prefs) async {
-    final local = prefs.getString(prefsInstallMarker);
     final String? stored;
     try {
-      stored = await _storage.read(key: keyInstallMarker);
+      // A sign-out owed by the previous run happens first.
+      await _settle();
+      stored = await _readRequired(keyInstallMarker);
     } catch (_) {
       return false; // keychain unavailable: decide on a later start
     }
-    var wiped = false;
-    if (stored != null && stored != local) {
-      await clearAll(keepDeviceId: false);
-      wiped = true;
+    var local = prefs.getString(prefsInstallMarker);
+    if (stored != null && local == null) {
+      // Confirm with the preferences on disk before wiping anything.
+      await prefs.reload();
+      local = prefs.getString(prefsInstallMarker);
     }
-    if (stored == null || wiped) {
-      final marker = const Uuid().v4();
-      // Preferences first: a crash in between then only means "no keychain
-      // marker yet" (no wipe) on the next start, never a false reinstall.
-      if (await prefs.setString(prefsInstallMarker, marker)) {
-        await _storage.write(key: keyInstallMarker, value: marker);
-      }
+    if (local != null) {
+      if (stored != local) await _change(keyInstallMarker, local);
+      return false;
+    }
+    final wiped = stored != null;
+    // Throws (nothing touched, no preferences marker written) when the
+    // keychain cannot take it: the next start decides again.
+    if (wiped) await clearAll(keepDeviceId: false);
+    final marker = const Uuid().v4();
+    // Preferences first: a crash in between then only means "no keychain
+    // marker yet", which the next start fills in from the preferences.
+    if (await prefs.setString(prefsInstallMarker, marker)) {
+      await _change(keyInstallMarker, marker);
     }
     return wiped;
   }
@@ -267,14 +334,43 @@ class SecureStorageService {
   /// [session] (default: the stored one) names the account whose history
   /// and remember token are deleted by key even when listing the store
   /// fails (e.g. one corrupt EncryptedSharedPreferences entry).
+  ///
+  /// All or nothing for the caller: when the keychain cannot take the
+  /// deletes now (iOS: protected data unavailable) or one fails, the whole
+  /// sign-out is owed — reads already answer "signed out" — and rerun until
+  /// it completes, after a restart too ([prefsPendingSignOut]). Never
+  /// throws, and never touches the install marker (a sign-out can never
+  /// look like a reinstall).
   Future<void> clearSessionData({
     bool keepTwoFactorRemember = false,
     UserSession? session,
   }) async {
+    await _settle();
+    // Owed changes this sign-out removes are void.
+    _owedWrites
+        .removeWhere((key, _) => _signOutDeletes(key, keepTwoFactorRemember));
+    if (_guardWrites && !await _available()) {
+      await _oweSignOut(keepTwoFactorRemember, session);
+      return;
+    }
+    try {
+      await _clearSessionNow(keepTwoFactorRemember, session);
+    } catch (_) {
+      await _oweSignOut(keepTwoFactorRemember, session);
+    }
+  }
+
+  Future<void> _clearSessionNow(
+    bool keepTwoFactorRemember,
+    UserSession? session,
+  ) async {
     UserSession? account = session;
     if (account == null) {
       try {
-        account = await loadSession();
+        final raw = await _readVerified(keySession);
+        account = raw == null
+            ? null
+            : UserSession.fromJson(jsonDecode(raw) as Map<String, dynamic>);
       } catch (_) {
         account = null;
       }
@@ -305,20 +401,257 @@ class SecureStorageService {
 
   /// Full reset: everything in the secure store including client
   /// certificates. `device_id` survives unless [keepDeviceId] is false.
+  /// Throws [SecureStorageReadException] without touching anything while
+  /// the keychain cannot take it (iOS: protected data unavailable).
   Future<void> clearAll({bool keepDeviceId = true}) async {
+    await _settle();
+    if (_guardWrites && !await _available()) {
+      throw const SecureStorageReadException('protected data unavailable');
+    }
     String? deviceId;
     if (keepDeviceId) {
       try {
-        deviceId = await _storage.read(key: keyDeviceId);
+        deviceId = _owedWrites.containsKey(keyDeviceId)
+            ? _owedWrites[keyDeviceId]
+            : await _storage.read(key: keyDeviceId);
       } catch (_) {
         deviceId = null;
       }
     }
     await _storage.deleteAll();
+    // Nothing owed survives a full reset (the device id is rewritten below).
+    _owedWrites.clear();
+    _owedLegacyHistoryDelete = false;
+    if (_owedSignOutKeep2fa != null) {
+      _owedSignOutKeep2fa = null;
+      _owedSignOutAccount = null;
+      await _setDurableSignOut(null);
+    }
     if (deviceId != null && deviceId.isNotEmpty) {
-      await _storage.write(key: keyDeviceId, value: deviceId);
+      await _change(keyDeviceId, deviceId);
     }
     await _deleteLegacyHistory();
+  }
+
+  /// Reads [key]; null only when the item is really not stored, otherwise
+  /// a [SecureStorageReadException].
+  ///
+  /// flutter_secure_storage 9.2.x on iOS answers `read` with null for an
+  /// item it cannot read (keychain locked, or protected data not available
+  /// yet when the app returns to the foreground): the first query fails with
+  /// errSecInteractionNotAllowed, `read` retries with
+  /// kSecAttrSynchronizable=true, that query finds nothing and "not found"
+  /// is returned. So a null is confirmed with `containsKey` (which reports
+  /// the error, or finds the item) and, on iOS, with
+  /// `UIApplication.isProtectedDataAvailable`. A value still owed to the
+  /// keychain wins over what the keychain holds.
+  Future<String?> _readRequired(String key) async {
+    await _settle();
+    final (owed, value) = _owed(key);
+    if (owed) return value;
+    return _readVerified(key);
+  }
+
+  /// A read of a key whose absence is harmless (history, remember tokens).
+  Future<String?> _readOptional(String key) async {
+    await _settle();
+    final (owed, value) = _owed(key);
+    if (owed) return value;
+    return _storage.read(key: key);
+  }
+
+  Future<String?> _readVerified(String key) async {
+    final String? value;
+    final bool exists;
+    try {
+      value = await _storage.read(key: key);
+      if (value != null) return value;
+      exists = await _storage.containsKey(key: key);
+    } catch (e) {
+      throw SecureStorageReadException(e);
+    }
+    if (exists) {
+      throw SecureStorageReadException('$key is stored but unreadable');
+    }
+    bool? available;
+    try {
+      available = await _storage.isCupertinoProtectedDataAvailable();
+    } catch (_) {
+      available = null; // not an Apple platform / plugin without it
+    }
+    if (available == false) {
+      throw const SecureStorageReadException('protected data unavailable');
+    }
+    return null;
+  }
+
+  // ── Write guard ──
+
+  /// `(true, value)` when a change of [key] is still owed to the keychain
+  /// (value null = deleted), else `(false, null)`.
+  (bool, String?) _owed(String key) {
+    if (_owedWrites.containsKey(key)) return (true, _owedWrites[key]);
+    final keep2fa = _owedSignOutKeep2fa;
+    if (keep2fa != null && _signOutDeletes(key, keep2fa)) return (true, null);
+    return (false, null);
+  }
+
+  static bool _signOutDeletes(String key, bool keepTwoFactorRemember) =>
+      key == keySession ||
+      key == keyEncryptedUserKey ||
+      key == keyBiometricStorageKey ||
+      key.startsWith(historyKeyPrefix) ||
+      (!keepTwoFactorRemember && key.startsWith(twoFactorRememberPrefix));
+
+  /// Writes (or deletes, [value] null) [key] now when the keychain can take
+  /// it, else owes it. A write that fails anyway is owed as well — the
+  /// plugin may already have deleted the old item — and the error is
+  /// rethrown for callers that report it.
+  Future<void> _change(String key, String? value) async {
+    if (await _readyToWrite()) {
+      try {
+        if (value == null) {
+          await _storage.delete(key: key);
+        } else {
+          await _storage.write(key: key, value: value);
+        }
+        return;
+      } catch (_) {
+        _owe(key, value);
+        rethrow;
+      }
+    }
+    _owe(key, value);
+  }
+
+  void _owe(String key, String? value) {
+    _owedWrites.remove(key); // newest last: applied in order
+    _owedWrites[key] = value;
+    _watchAvailability();
+  }
+
+  /// True when nothing is owed any more and (iOS) protected data is
+  /// available: a change may go straight to the keychain.
+  Future<bool> _readyToWrite() async {
+    await _settle();
+    if (hasPendingChanges) return false; // keep the order
+    return !_guardWrites || await _available();
+  }
+
+  Future<void> _oweSignOut(
+      bool keepTwoFactorRemember, UserSession? account) async {
+    // Two owed sign-outs: the more thorough one wins.
+    _owedSignOutKeep2fa =
+        (_owedSignOutKeep2fa ?? true) && keepTwoFactorRemember;
+    _owedSignOutAccount = account ?? _owedSignOutAccount;
+    _signOutGeneration++;
+    await _setDurableSignOut(_owedSignOutKeep2fa);
+    _watchAvailability();
+  }
+
+  Future<bool> _available() async {
+    try {
+      return await _storage.isCupertinoProtectedDataAvailable() ?? true;
+    } catch (_) {
+      return true; // cannot tell: behave as before the guard
+    }
+  }
+
+  /// Loads a sign-out owed by an earlier run (once), then applies whatever
+  /// is owed if the keychain can take it. Never throws.
+  Future<void> _settle() async {
+    await (_durableLoad ??= _loadDurableSignOut());
+    if (!hasPendingChanges) return;
+    await (_flushing ??= _flush().whenComplete(() => _flushing = null));
+  }
+
+  Future<void> _flush() async {
+    if (!_guardWrites || await _available()) {
+      try {
+        final keep2fa = _owedSignOutKeep2fa;
+        if (keep2fa != null) {
+          final generation = _signOutGeneration;
+          await _clearSessionNow(keep2fa, _owedSignOutAccount);
+          if (generation == _signOutGeneration) {
+            _owedSignOutKeep2fa = null;
+            _owedSignOutAccount = null;
+            await _setDurableSignOut(null);
+          }
+        }
+        if (_owedLegacyHistoryDelete) {
+          await _deleteLegacyHistory();
+          _owedLegacyHistoryDelete = false;
+        }
+        for (final MapEntry(:key, :value) in _owedWrites.entries.toList()) {
+          if (value == null) {
+            await _storage.delete(key: key);
+          } else {
+            await _storage.write(key: key, value: value);
+          }
+          // Unless it changed meanwhile.
+          if (_owedWrites.containsKey(key) && _owedWrites[key] == value) {
+            _owedWrites.remove(key);
+          }
+        }
+      } catch (_) {
+        // Still owed: retried on the next access, resume or availability.
+      }
+    }
+    if (hasPendingChanges) {
+      _watchAvailability();
+    } else {
+      _stopWatchingAvailability();
+    }
+  }
+
+  void _watchAvailability() {
+    if (!_guardWrites || _availability != null) return;
+    final Stream<bool>? events;
+    try {
+      events = _storage.onCupertinoProtectedDataAvailabilityChanged;
+    } catch (_) {
+      return;
+    }
+    _availability = events?.listen(
+      (available) {
+        if (available) unawaited(_settle());
+      },
+      onError: (Object _) {},
+    );
+  }
+
+  void _stopWatchingAvailability() {
+    unawaited(_availability?.cancel());
+    _availability = null;
+  }
+
+  Future<void> _loadDurableSignOut() async {
+    try {
+      final stored = (await _preferences()).getString(prefsPendingSignOut);
+      if (stored == null) return;
+      _owedSignOutKeep2fa =
+          (_owedSignOutKeep2fa ?? true) && stored == _signOutKeep2faValue;
+    } catch (_) {
+      // No preferences (tests, early start): nothing owed from before.
+    }
+  }
+
+  static const _signOutKeep2faValue = 'keep_2fa';
+
+  Future<void> _setDurableSignOut(bool? keepTwoFactorRemember) async {
+    try {
+      final prefs = await _preferences();
+      if (keepTwoFactorRemember == null) {
+        await prefs.remove(prefsPendingSignOut);
+      } else {
+        await prefs.setString(
+          prefsPendingSignOut,
+          keepTwoFactorRemember ? _signOutKeep2faValue : 'all',
+        );
+      }
+    } catch (_) {
+      // Best effort: the in-memory record still applies in this run.
+    }
   }
 
   Future<Iterable<String>> _readAllKeys() async {

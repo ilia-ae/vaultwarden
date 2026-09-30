@@ -182,7 +182,7 @@ void main() {
       (tester) async {
     useTallSurface(tester);
     mockPrivacyChannel(tester);
-    final container = await pumpPin(tester);
+    final container = await pumpPin(tester, tool: PinTool.pin24);
     final l = l10n(tester);
 
     await enterPin24(tester, seed: abandon12, nickname: 'yk-38715242-pins');
@@ -293,7 +293,7 @@ void main() {
       (tester) async {
     useTallSurface(tester);
     final channel = mockPrivacyChannel(tester);
-    await pumpPin(tester);
+    await pumpPin(tester, tool: PinTool.pin24);
     final l = l10n(tester);
 
     // The seed alone is enough (cached as soon as the phrase is valid).
@@ -565,9 +565,11 @@ void main() {
 
     await _tap(tester, 'pin_tool_shift');
     await tester.pump();
-    await tester.enterText(fieldById('pin_shift_pin'), '1234');
-    await tester.enterText(fieldById('pin_shift_vector'), '3719');
+    // The default length (8): a real result, not the empty cells.
+    await tester.enterText(fieldById('pin_shift_pin'), '12345678');
+    await tester.enterText(fieldById('pin_shift_vector'), '37193719');
     await tester.pump();
+    expect(byId('pin_shift_roundtrip'), findsOneWidget);
     final cells = find.descendant(
         of: byId('pin_shift_output'), matching: find.byType(Directionality));
     expect(tester.widget<Directionality>(cells.first).textDirection,

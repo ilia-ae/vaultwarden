@@ -51,6 +51,7 @@
   "locked": "已锁定",
   "unlock": "解锁",
   "authRequestsTitle": "认证请求",
+  "vaultTab": "Vault",
   "pendingTab": "待处理",
   "historyTab": "历史",
   "retry": "重试",
@@ -539,15 +540,15 @@
   "pinFixErrorsAbove": "请先修正上方标出的错误，才能看到结果。",
   "pinShiftSummary": "只需记住一个秘密向量，而不是许多 PIN：新 PIN = 基础 PIN + 向量，逐位相加，不进位。",
   "pinShiftCaption": "按位模 10 移位。这是帮助记忆的混淆，不是加密——请参阅下方的“如何在纸上计算”和“威胁模型”。",
-  "pinShiftSectionDirection": "1 · 方向",
+  "pinShiftSectionDirection": "方向",
   "pinShiftEncode": "编码",
   "pinShiftDecode": "解码",
   "pinShiftEncodeHelp": "新 = 基础 + 向量（mod 10）",
   "pinShiftDecodeHelp": "基础 = 新 − 向量（mod 10）",
-  "pinShiftSectionLength": "2 · 长度",
+  "pinShiftSectionLength": "长度",
   "pinShiftLengthMustMatch": "PIN 与向量的长度必须相同。",
   "pinShiftLengthCustom": "自定义长度（1–16）。",
-  "pinShiftSectionPin": "3 · PIN 码",
+  "pinShiftSectionPin": "1 · PIN 码",
   "pinShiftFieldBase": "基础 PIN",
   "pinShiftFieldDerived": "派生 PIN（新）",
   "pinShiftFieldBaseHelp": "基础 PIN——只能是数字，共 {length} 位。",
@@ -575,7 +576,7 @@
       "expected": { "type": "int" }
     }
   },
-  "pinShiftSectionVector": "4 · 移位向量",
+  "pinShiftSectionVector": "2 · 移位向量",
   "pinShiftFieldVector": "移位向量",
   "pinShiftFieldVectorHelp": "按位的秘密——只能是数字，共 {length} 位。",
   "@pinShiftFieldVectorHelp": {
@@ -604,7 +605,8 @@
       "keyspace": { "type": "String" }
     }
   },
-  "pinShiftSectionResult": "5 · 结果",
+  "pinShiftSectionResult": "3 · 结果",
+  "pinShiftSectionSettings": "4 · 设置",
   "pinShiftReveal": "显示基础 PIN 和向量",
   "pinShiftRevealHelp": "关闭（默认）：只显示输出。打开：输入 + 向量 + 输出，以及逐位明细。每次清除本标签页时都会关闭。",
   "pinShiftRowInputBase": "输入（基础 PIN）",
@@ -624,7 +626,7 @@
       "length": { "type": "int" }
     }
   },
-  "pinShiftHiddenNote": "基础 PIN 和向量已隐藏。打开上方的“显示基础 PIN 和向量”即可查看。",
+  "pinShiftHiddenNote": "基础 PIN 和向量已隐藏。打开下方的“显示基础 PIN 和向量”即可查看。",
   "pinShiftRoundTripOk": "往返校验通过——反向运算得到基础 PIN。",
   "pinShiftRoundTripOkDecode": "往返校验通过——对结果编码得到派生 PIN。",
   "pinShiftRoundTripMismatch": "往返校验不一致：反向运算得到的值与输入的不同。",

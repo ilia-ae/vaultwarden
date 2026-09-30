@@ -256,7 +256,7 @@ test/
 
 ## PIN tools
 
-A third tab, **PIN**, sits behind the same biometric lock. Every tool runs **fully offline on the phone**: nothing typed there is saved, synced, logged or sent anywhere (a test guards that no PIN code imports anything that can reach the network).
+A second tab, **PIN**, sits behind the same biometric lock. Every tool runs **fully offline on the phone**: nothing typed there is saved, synced, logged or sent anywhere (a test guards that no PIN code imports anything that can reach the network).
 
 | Tool | What it does |
 |:--|:--|

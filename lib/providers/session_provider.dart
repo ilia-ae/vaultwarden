@@ -456,6 +456,12 @@ class SessionNotifier extends AsyncNotifier<UserSession?> {
 
   /// Biometric unlock: authenticate → decrypt UserKey from storage.
   /// [reason] is the localized Face ID / fingerprint prompt text.
+  ///
+  /// Throws `StateError('Setup not completed')` only when the keychain
+  /// really holds no key; a keychain that cannot be read right now (iOS:
+  /// locked, or not available yet after returning to the foreground) throws
+  /// [SecureStorageReadException] — a retryable failure, never "key
+  /// missing".
   Future<Uint8List> unlockWithBiometrics({String? reason}) async {
     final biometric = ref.read(biometricServiceProvider);
     final storage = ref.read(secureStorageProvider);
@@ -496,9 +502,10 @@ class SessionNotifier extends AsyncNotifier<UserSession?> {
     return userKey;
   }
 
-  /// False when the keychain has a session but not the encrypted user key
-  /// (the lock screen then offers "Log out"). Errors count as "present" —
-  /// an unreadable keychain is not a missing key.
+  /// False only when the keychain definitely holds no encrypted user key or
+  /// biometric storage key (the lock screen then offers "Log out"). Errors
+  /// — including a keychain that is locked or not available yet — count as
+  /// "present": an unreadable keychain is not a missing key.
   Future<bool> hasStoredUserKey() async {
     if (demoActive) return true;
     try {

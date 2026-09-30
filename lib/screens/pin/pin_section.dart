@@ -273,8 +273,9 @@ class _PinSectionState extends ConsumerState<PinSection>
     HapticFeedback.selectionClick();
     unawaited(prefs.setShowLegacyTools(show));
     setState(() => _showLegacy = show);
+    // Hiding the legacy tools while one is open goes back to the first tool.
     if (!show && ref.read(pinToolProvider) == PinTool.legacyMask) {
-      ref.read(pinToolProvider.notifier).state = PinTool.pin24;
+      ref.read(pinToolProvider.notifier).state = PinTool.pinShift;
     }
   }
 
@@ -302,17 +303,52 @@ class _PinSectionState extends ConsumerState<PinSection>
     final showLegacy = _showLegacy ??= prefs.showLegacyTools;
     final selected = ref.watch(pinToolProvider);
     final tool = selected == PinTool.legacyMask && !showLegacy
-        ? PinTool.pin24
+        ? PinTool.pinShift
         : selected;
     final veil = _veil;
     final padding = MediaQuery.paddingOf(context);
 
     final tools = [
-      (value: PinTool.pin24, label: l.pinToolPin24),
       (value: PinTool.pinShift, label: l.pinToolShift),
+      (value: PinTool.pin24, label: l.pinToolPin24),
       (value: PinTool.yubikey, label: l.pinToolYubikey),
       if (showLegacy) (value: PinTool.legacyMask, label: l.pinToolLegacy),
     ];
+
+    // PIN Shift starts with its PIN field right under the picker; the
+    // section's notes follow the tool there (its clipboard reminder sits
+    // next to its fields, as in PIN 24 and YubiKey).
+    final notesBelow = tool == PinTool.pinShift;
+    final notes = Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const SizedBox(height: 8),
+          PinCaption(l.pinOfflineNote),
+          if (_screenshotsAllowedBuild) ...[
+            const SizedBox(height: 8),
+            Align(
+              alignment: AlignmentDirectional.centerStart,
+              child: Semantics(
+                identifier: 'pin_screenshots_allowed',
+                child: PinWarningChip(l.pinScreenshotsAllowedBuild),
+              ),
+            ),
+          ],
+          // PIN 24 shows its own hint next to the seed field.
+          if (tool != PinTool.pin24) _SeedInMemoryRow(_session),
+          // PIN Shift, PIN 24 and YubiKey show the reminder next to their
+          // fields.
+          if (tool == PinTool.legacyMask)
+            PinClipboardReminder(
+              session: _session,
+              identifier: 'pin_clear_clipboard',
+            ),
+          const SizedBox(height: 6),
+        ],
+      ),
+    );
 
     // iOS number pads have no return key: a tap outside the fields, a drag
     // of the list or the Done pill closes the keyboard (unfocus only — the
@@ -340,41 +376,14 @@ class _PinSectionState extends ConsumerState<PinSection>
                 selected: tool,
                 onSelected: _selectTool,
               ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    const SizedBox(height: 8),
-                    PinCaption(l.pinOfflineNote),
-                    if (_screenshotsAllowedBuild) ...[
-                      const SizedBox(height: 8),
-                      Align(
-                        alignment: AlignmentDirectional.centerStart,
-                        child: Semantics(
-                          identifier: 'pin_screenshots_allowed',
-                          child: PinWarningChip(l.pinScreenshotsAllowedBuild),
-                        ),
-                      ),
-                    ],
-                    // PIN 24 shows its own hint next to the seed field.
-                    if (tool != PinTool.pin24) _SeedInMemoryRow(_session),
-                    // PIN 24 and YubiKey show the reminder next to their field.
-                    if (tool == PinTool.pinShift || tool == PinTool.legacyMask)
-                      PinClipboardReminder(
-                        session: _session,
-                        identifier: 'pin_clear_clipboard',
-                      ),
-                    const SizedBox(height: 6),
-                  ],
-                ),
-              ),
+              if (notesBelow) const SizedBox(height: 7) else notes,
               switch (tool) {
-                PinTool.pin24 => const Pin24View(),
                 PinTool.pinShift => const PinShiftView(),
+                PinTool.pin24 => const Pin24View(),
                 PinTool.yubikey => const YubikeyView(),
                 PinTool.legacyMask => const LegacyMaskView(),
               },
+              if (notesBelow) notes,
               Padding(
                 padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
                 child: PinSwitchRow(

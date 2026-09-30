@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -6,6 +8,7 @@ import 'package:intl/intl.dart' show NumberFormat;
 import '../../l10n/app_localizations.dart';
 import '../../pin_tools/pin_shift.dart';
 import '../../widgets/option_pills.dart';
+import 'pin_prefs.dart';
 import 'pin_session.dart';
 import 'pin_widgets.dart';
 
@@ -21,6 +24,9 @@ const Color _outputColor = PinColors.valid; // #2EA043
 /// (port of `crypto_tools/pin_shift_ui.py`, core in
 /// `lib/pin_tools/pin_shift.dart`).
 ///
+/// Top to bottom: the PIN, the vector, the result, the settings (direction,
+/// length, reveal, Clear), then what it is and how to do it on paper.
+///
 /// Mnemonic obfuscation, not a cipher. The PIN and the vector live only in
 /// this widget's text controllers; they are cleared by every section wipe
 /// (background, 2 min idle, 🚨, screenshot, leaving the tab), by Clear and
@@ -28,7 +34,8 @@ const Color _outputColor = PinColors.valid; // #2EA043
 /// derived PIN is meant to be recomputed, never written down. Errors report
 /// positions only, never the characters typed. While "Reveal" is off
 /// nothing hints at the hidden inputs: no weak-vector notices, and screen
-/// readers are not given the digits.
+/// readers are not given the digits. Only the length is remembered
+/// ([PinPrefs.pinShiftLength], this device only).
 class PinShiftView extends ConsumerStatefulWidget {
   const PinShiftView({super.key});
 
@@ -67,8 +74,12 @@ class _PinShiftViewState extends ConsumerState<PinShiftView> {
   final _pinCtrl = TextEditingController();
   final _vecCtrl = TextEditingController();
 
+  /// Where the chosen length is kept (loaded by `PinSection` before any tool
+  /// is built).
+  PinPrefs? _prefs;
+
   bool _decode = false;
-  int _length = kShiftDefaultLength;
+  int _length = kPinShiftDefaultLength;
 
   // Reveal toggles: off on every visit, after every wipe and on Clear.
   bool _showPin = false;
@@ -86,6 +97,8 @@ class _PinShiftViewState extends ConsumerState<PinShiftView> {
     _session = _sessionSub.read();
     _session.wipes.addListener(_onWipe);
     _unregisterProbe = _session.registerContentProbe(_hasContent);
+    _prefs = ref.read(pinPrefsProvider).valueOrNull;
+    _length = _prefs?.pinShiftLength ?? kPinShiftDefaultLength;
     _session.touch();
   }
 
@@ -145,7 +158,9 @@ class _PinShiftViewState extends ConsumerState<PinShiftView> {
 
   void _setLength(int length) {
     _session.touch();
-    setState(() => _length = length.clamp(kShiftMinLength, kShiftMaxLength));
+    setState(() => _length = clampPinShiftLength(length));
+    final prefs = _prefs;
+    if (prefs != null) unawaited(prefs.setPinShiftLength(_length));
   }
 
   // ── Build ──
@@ -162,120 +177,15 @@ class _PinShiftViewState extends ConsumerState<PinShiftView> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _introCard(l),
-          _directionCard(l),
-          _lengthCard(l),
           _pinCard(l, pin),
           _vectorCard(l, vec),
           _resultCard(l, pin, vec),
+          _settingsCard(l),
+          _aboutCard(l),
           _paperCard(l),
           _threatCard(l),
         ],
       ),
-    );
-  }
-
-  Widget _introCard(AppLocalizations l) {
-    final theme = Theme.of(context);
-    return PinCard(
-      children: [
-        Row(
-          children: [
-            Icon(Icons.swap_vert_rounded, color: theme.colorScheme.primary),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(l.pinToolShift, style: theme.textTheme.titleLarge),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        Text(l.pinShiftSummary, style: theme.textTheme.bodyMedium),
-        const SizedBox(height: 8),
-        Semantics(
-          identifier: 'pin_shift_not_cipher',
-          child: PinCaption(l.pinShiftCaption),
-        ),
-      ],
-    );
-  }
-
-  Widget _directionCard(AppLocalizations l) {
-    return PinCard(
-      title: l.pinShiftSectionDirection,
-      children: [
-        OptionPills<bool>(
-          padding: EdgeInsets.zero,
-          options: [
-            (value: false, label: l.pinShiftEncode),
-            (value: true, label: l.pinShiftDecode),
-          ],
-          identifiers: const ['pin_shift_encode', 'pin_shift_decode'],
-          selected: _decode,
-          onSelected: _setDecode,
-        ),
-        const SizedBox(height: 8),
-        PinCaption(_decode ? l.pinShiftDecodeHelp : l.pinShiftEncodeHelp),
-      ],
-    );
-  }
-
-  Widget _lengthCard(AppLocalizations l) {
-    return PinCard(
-      title: l.pinShiftSectionLength,
-      children: [
-        PinCaption(l.pinShiftLengthMustMatch),
-        const SizedBox(height: 8),
-        OptionPills<int>(
-          padding: EdgeInsets.zero,
-          options: [
-            for (final n in _quickLengths)
-              (value: n, label: l.pin24LengthButton(n)),
-          ],
-          identifiers: [for (final n in _quickLengths) 'pin_shift_len_$n'],
-          selected: _length,
-          onSelected: _setLength,
-        ),
-        const SizedBox(height: 8),
-        Wrap(
-          crossAxisAlignment: WrapCrossAlignment.center,
-          spacing: 4,
-          runSpacing: 4,
-          children: [
-            PinCaption(l.pinShiftLengthCustom),
-            Semantics(
-              identifier: 'pin_shift_len_dec',
-              child: IconButton.outlined(
-                tooltip: l.pin24LengthShorter,
-                onPressed: _length > kShiftMinLength
-                    ? () => _setLength(_length - 1)
-                    : null,
-                icon: const Icon(Icons.remove),
-              ),
-            ),
-            ConstrainedBox(
-              constraints: const BoxConstraints(minWidth: 44),
-              child: Semantics(
-                identifier: 'pin_shift_len_value',
-                child: Text(
-                  '$_length',
-                  textAlign: TextAlign.center,
-                  style: pinMono(context, size: 18),
-                ),
-              ),
-            ),
-            Semantics(
-              identifier: 'pin_shift_len_inc',
-              child: IconButton.outlined(
-                tooltip: l.pin24LengthLonger,
-                onPressed: _length < kShiftMaxLength
-                    ? () => _setLength(_length + 1)
-                    : null,
-                icon: const Icon(Icons.add),
-              ),
-            ),
-          ],
-        ),
-      ],
     );
   }
 
@@ -369,7 +279,6 @@ class _PinShiftViewState extends ConsumerState<PinShiftView> {
   }
 
   Widget _vectorCard(AppLocalizations l, _FieldCheck vec) {
-    final theme = Theme.of(context);
     return PinCard(
       title: l.pinShiftSectionVector,
       children: [
@@ -398,52 +307,19 @@ class _PinShiftViewState extends ConsumerState<PinShiftView> {
           wrongLength: l.pinShiftVectorLengthWarning,
           idPrefix: 'pin_shift_vector',
         ),
-        const SizedBox(height: 12),
-        Text(l.pinShiftWhyShape, style: theme.textTheme.titleSmall),
-        const SizedBox(height: 4),
-        Semantics(
-          identifier: 'pin_shift_keyspace',
-          child: PinCaption(
-            l.pinShiftWhyShapeBody(_length, _keyspaceText(l.localeName)),
-          ),
+        // A PIN or vector pasted earlier (it survives wipes).
+        PinClipboardReminder(
+          session: _session,
+          identifier: 'pin_clear_clipboard',
         ),
       ],
     );
   }
 
-  /// `10^L = N` with locale thousands separators (ASCII digits, so it reads
-  /// the same way in every locale; en matches the source page byte for
-  /// byte), in a left-to-right isolate so Arabic does not turn `10^4` into
-  /// `4^10`.
-  String _keyspaceText(String localeName) {
-    final count = shiftKeyspace(_length).toInt();
-    NumberFormat format;
-    try {
-      format = NumberFormat.decimalPattern(
-          localeName.startsWith('ar') ? 'en' : localeName);
-    } catch (_) {
-      format = NumberFormat.decimalPattern('en');
-    }
-    return ltrIsolate('10^$_length = ${format.format(count)}');
-  }
-
   // ── Result ──
 
   Widget _resultCard(AppLocalizations l, _FieldCheck pin, _FieldCheck vec) {
-    final body = <Widget>[
-      PinSwitchRow(
-        identifier: 'pin_shift_reveal',
-        icon: Icons.visibility_outlined,
-        label: l.pinShiftReveal,
-        caption: l.pinShiftRevealHelp,
-        value: _reveal,
-        onChanged: (v) {
-          _session.touch();
-          setState(() => _reveal = v);
-        },
-      ),
-      const SizedBox(height: 8),
-    ];
+    final body = <Widget>[];
 
     if (pin.hasError || vec.hasError) {
       body.add(Semantics(
@@ -471,19 +347,6 @@ class _PinShiftViewState extends ConsumerState<PinShiftView> {
     body.addAll([
       const SizedBox(height: 12),
       PinCaption(l.pinShiftNoCopyNote),
-      const SizedBox(height: 10),
-      Align(
-        alignment: AlignmentDirectional.centerStart,
-        child: Semantics(
-          identifier: 'pin_shift_clear',
-          child: OutlinedButton.icon(
-            style: OutlinedButton.styleFrom(minimumSize: const Size(0, 48)),
-            onPressed: _onClearPressed,
-            icon: const Icon(Icons.backspace_outlined, size: 18),
-            label: Text(l.clear),
-          ),
-        ),
-      ),
     ]);
     return PinCard(title: l.pinShiftSectionResult, children: body);
   }
@@ -664,7 +527,160 @@ class _PinShiftViewState extends ConsumerState<PinShiftView> {
     );
   }
 
+  // ── Settings ──
+
+  Widget _settingsCard(AppLocalizations l) {
+    return PinCard(
+      title: l.pinShiftSectionSettings,
+      children: [
+        SectionHeader(l.pinShiftSectionDirection, padding: EdgeInsets.zero),
+        const SizedBox(height: 6),
+        OptionPills<bool>(
+          padding: EdgeInsets.zero,
+          options: [
+            (value: false, label: l.pinShiftEncode),
+            (value: true, label: l.pinShiftDecode),
+          ],
+          identifiers: const ['pin_shift_encode', 'pin_shift_decode'],
+          selected: _decode,
+          onSelected: _setDecode,
+        ),
+        const SizedBox(height: 8),
+        PinCaption(_decode ? l.pinShiftDecodeHelp : l.pinShiftEncodeHelp),
+        const SizedBox(height: 14),
+        SectionHeader(l.pinShiftSectionLength, padding: EdgeInsets.zero),
+        const SizedBox(height: 6),
+        PinCaption(l.pinShiftLengthMustMatch),
+        const SizedBox(height: 8),
+        OptionPills<int>(
+          padding: EdgeInsets.zero,
+          options: [
+            for (final n in _quickLengths)
+              (value: n, label: l.pin24LengthButton(n)),
+          ],
+          identifiers: [for (final n in _quickLengths) 'pin_shift_len_$n'],
+          selected: _length,
+          onSelected: _setLength,
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          crossAxisAlignment: WrapCrossAlignment.center,
+          spacing: 4,
+          runSpacing: 4,
+          children: [
+            PinCaption(l.pinShiftLengthCustom),
+            Semantics(
+              identifier: 'pin_shift_len_dec',
+              child: IconButton.outlined(
+                tooltip: l.pin24LengthShorter,
+                onPressed: _length > kShiftMinLength
+                    ? () => _setLength(_length - 1)
+                    : null,
+                icon: const Icon(Icons.remove),
+              ),
+            ),
+            ConstrainedBox(
+              constraints: const BoxConstraints(minWidth: 44),
+              child: Semantics(
+                identifier: 'pin_shift_len_value',
+                child: Text(
+                  '$_length',
+                  textAlign: TextAlign.center,
+                  style: pinMono(context, size: 18),
+                ),
+              ),
+            ),
+            Semantics(
+              identifier: 'pin_shift_len_inc',
+              child: IconButton.outlined(
+                tooltip: l.pin24LengthLonger,
+                onPressed: _length < kShiftMaxLength
+                    ? () => _setLength(_length + 1)
+                    : null,
+                icon: const Icon(Icons.add),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        PinSwitchRow(
+          identifier: 'pin_shift_reveal',
+          icon: Icons.visibility_outlined,
+          label: l.pinShiftReveal,
+          caption: l.pinShiftRevealHelp,
+          value: _reveal,
+          onChanged: (v) {
+            _session.touch();
+            setState(() => _reveal = v);
+          },
+        ),
+        const SizedBox(height: 10),
+        Align(
+          alignment: AlignmentDirectional.centerStart,
+          child: Semantics(
+            identifier: 'pin_shift_clear',
+            child: OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(minimumSize: const Size(0, 48)),
+              onPressed: _onClearPressed,
+              icon: const Icon(Icons.backspace_outlined, size: 18),
+              label: Text(l.clear),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   // ── Reference material (always available) ──
+
+  Widget _aboutCard(AppLocalizations l) {
+    final theme = Theme.of(context);
+    return PinCard(
+      children: [
+        Row(
+          children: [
+            Icon(Icons.swap_vert_rounded, color: theme.colorScheme.primary),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(l.pinToolShift, style: theme.textTheme.titleLarge),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Text(l.pinShiftSummary, style: theme.textTheme.bodyMedium),
+        const SizedBox(height: 8),
+        Semantics(
+          identifier: 'pin_shift_not_cipher',
+          child: PinCaption(l.pinShiftCaption),
+        ),
+        const SizedBox(height: 12),
+        Text(l.pinShiftWhyShape, style: theme.textTheme.titleSmall),
+        const SizedBox(height: 4),
+        Semantics(
+          identifier: 'pin_shift_keyspace',
+          child: PinCaption(
+            l.pinShiftWhyShapeBody(_length, _keyspaceText(l.localeName)),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// `10^L = N` with locale thousands separators (ASCII digits, so it reads
+  /// the same way in every locale; en matches the source page byte for
+  /// byte), in a left-to-right isolate so Arabic does not turn `10^4` into
+  /// `4^10`.
+  String _keyspaceText(String localeName) {
+    final count = shiftKeyspace(_length).toInt();
+    NumberFormat format;
+    try {
+      format = NumberFormat.decimalPattern(
+          localeName.startsWith('ar') ? 'en' : localeName);
+    } catch (_) {
+      format = NumberFormat.decimalPattern('en');
+    }
+    return ltrIsolate('10^$_length = ${format.format(count)}');
+  }
 
   Widget _codeBlock(String text, {String? identifier}) {
     final theme = Theme.of(context);

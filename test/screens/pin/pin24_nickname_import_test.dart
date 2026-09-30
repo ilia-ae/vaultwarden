@@ -66,7 +66,7 @@ final _backup = _json({
 Future<ProviderContainer> _pump(WidgetTester tester, _FakePicker picker) {
   useTallSurface(tester);
   mockPrivacyChannel(tester);
-  return pumpPin(tester, overrides: [
+  return pumpPin(tester, tool: PinTool.pin24, overrides: [
     nicknameBackupPickerProvider.overrideWithValue(picker.call),
   ]);
 }

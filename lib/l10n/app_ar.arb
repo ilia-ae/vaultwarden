@@ -51,6 +51,7 @@
   "locked": "مقفل",
   "unlock": "فتح القفل",
   "authRequestsTitle": "طلبات المصادقة",
+  "vaultTab": "Vault",
   "pendingTab": "معلّقة",
   "historyTab": "السجل",
   "retry": "إعادة المحاولة",
@@ -539,15 +540,15 @@
   "pinFixErrorsAbove": "صحّح الأخطاء المميّزة أعلاه لرؤية النتيجة.",
   "pinShiftSummary": "احفظ متجهًا سريًا واحدًا بدل رموز PIN كثيرة: رمز PIN الجديد = رمز PIN الأساسي + المتجه، رقمًا برقم ودون حمل.",
   "pinShiftCaption": "إزاحة لكل خانة بباقي القسمة على 10. تمويه يساعد على التذكّر وليس تشفيرًا — راجع «كيف تحسبها على الورق» و«نموذج التهديد» أدناه.",
-  "pinShiftSectionDirection": "1 · الاتجاه",
+  "pinShiftSectionDirection": "الاتجاه",
   "pinShiftEncode": "ترميز",
   "pinShiftDecode": "فك الترميز",
   "pinShiftEncodeHelp": "الجديد = الأساسي + المتجه (mod 10)",
   "pinShiftDecodeHelp": "الأساسي = الجديد − المتجه (mod 10)",
-  "pinShiftSectionLength": "2 · الطول",
+  "pinShiftSectionLength": "الطول",
   "pinShiftLengthMustMatch": "يجب أن يتساوى طول رمز PIN وطول المتجه.",
   "pinShiftLengthCustom": "طول مخصص (‎1–16‎).",
-  "pinShiftSectionPin": "3 · رمز PIN",
+  "pinShiftSectionPin": "1 · رمز PIN",
   "pinShiftFieldBase": "رمز PIN الأساسي",
   "pinShiftFieldDerived": "رمز PIN المشتق (الجديد)",
   "pinShiftFieldBaseHelp": "رمز PIN الأساسي — أرقام فقط، وعددها {length}.",
@@ -575,7 +576,7 @@
       "expected": { "type": "int" }
     }
   },
-  "pinShiftSectionVector": "4 · متجه الإزاحة",
+  "pinShiftSectionVector": "2 · متجه الإزاحة",
   "pinShiftFieldVector": "متجه الإزاحة",
   "pinShiftFieldVectorHelp": "سرّ لكل خانة — أرقام فقط، وعددها {length}.",
   "@pinShiftFieldVectorHelp": {
@@ -604,7 +605,8 @@
       "keyspace": { "type": "String" }
     }
   },
-  "pinShiftSectionResult": "5 · النتيجة",
+  "pinShiftSectionResult": "3 · النتيجة",
+  "pinShiftSectionSettings": "4 · الإعدادات",
   "pinShiftReveal": "إظهار رمز PIN الأساسي والمتجه",
   "pinShiftRevealHelp": "متوقف (افتراضيًا): الناتج فقط. مُفعّل: المُدخل + المتجه + الناتج وجدول الأرقام. يتوقف في كل مرة تُمسح فيها علامة التبويب.",
   "pinShiftRowInputBase": "المُدخل (رمز PIN الأساسي)",
@@ -624,7 +626,7 @@
       "length": { "type": "int" }
     }
   },
-  "pinShiftHiddenNote": "رمز PIN الأساسي والمتجه مخفيان. فعّل «إظهار رمز PIN الأساسي والمتجه» أعلاه لرؤيتهما.",
+  "pinShiftHiddenNote": "رمز PIN الأساسي والمتجه مخفيان. فعّل «إظهار رمز PIN الأساسي والمتجه» أدناه لرؤيتهما.",
   "pinShiftRoundTripOk": "التحقق العكسي سليم — العملية العكسية تعيد الأساسي.",
   "pinShiftRoundTripOkDecode": "التحقق العكسي سليم — ترميز الناتج يعيد رمز PIN المشتق.",
   "pinShiftRoundTripMismatch": "فشل التحقق العكسي: العملية العكسية تعطي قيمة مختلفة عمّا كُتب.",

@@ -61,6 +61,7 @@
   "unlock": "Разблокировать",
 
   "authRequestsTitle": "Запросы авторизации",
+  "vaultTab": "Vault",
   "pendingTab": "Ожидающие",
   "historyTab": "История",
 
@@ -482,15 +483,15 @@
   "pinFixErrorsAbove": "Исправьте отмеченные выше ошибки, чтобы увидеть результат.",
   "pinShiftSummary": "Помните один секретный вектор вместо множества PIN: новый PIN = базовый PIN + вектор, поразрядно, без переноса.",
   "pinShiftCaption": "Позиционный сдвиг по модулю 10. Мнемоническая обфускация, а не шифр — см. «Как посчитать на бумаге» и «Модель угроз» ниже.",
-  "pinShiftSectionDirection": "1 · Направление",
+  "pinShiftSectionDirection": "Направление",
   "pinShiftEncode": "Кодировать",
   "pinShiftDecode": "Декодировать",
   "pinShiftEncodeHelp": "новый = база + вектор (mod 10)",
   "pinShiftDecodeHelp": "база = новый − вектор (mod 10)",
-  "pinShiftSectionLength": "2 · Длина",
+  "pinShiftSectionLength": "Длина",
   "pinShiftLengthMustMatch": "Длина PIN и вектора должна совпадать.",
   "pinShiftLengthCustom": "Своя длина (1–16).",
-  "pinShiftSectionPin": "3 · PIN-код",
+  "pinShiftSectionPin": "1 · PIN-код",
   "pinShiftFieldBase": "Базовый PIN",
   "pinShiftFieldDerived": "Производный PIN (новый)",
   "pinShiftFieldBaseHelp": "Базовый PIN — только цифры, ровно {length}.",
@@ -518,7 +519,7 @@
       "expected": { "type": "int" }
     }
   },
-  "pinShiftSectionVector": "4 · Вектор сдвига",
+  "pinShiftSectionVector": "2 · Вектор сдвига",
   "pinShiftFieldVector": "Вектор сдвига",
   "pinShiftFieldVectorHelp": "Секрет по позициям — только цифры, ровно {length}.",
   "@pinShiftFieldVectorHelp": {
@@ -547,7 +548,8 @@
       "keyspace": { "type": "String" }
     }
   },
-  "pinShiftSectionResult": "5 · Результат",
+  "pinShiftSectionResult": "3 · Результат",
+  "pinShiftSectionSettings": "4 · Настройки",
   "pinShiftReveal": "Показать базовый PIN и вектор",
   "pinShiftRevealHelp": "Выкл. (по умолчанию): только результат. Вкл.: ввод + вектор + результат и таблица по цифрам. Выключается при каждом стирании вкладки.",
   "pinShiftRowInputBase": "Ввод (базовый PIN)",
@@ -567,7 +569,7 @@
       "length": { "type": "int" }
     }
   },
-  "pinShiftHiddenNote": "Базовый PIN и вектор скрыты. Включите «Показать базовый PIN и вектор» выше, чтобы их увидеть.",
+  "pinShiftHiddenNote": "Базовый PIN и вектор скрыты. Включите «Показать базовый PIN и вектор» ниже, чтобы их увидеть.",
   "pinShiftRoundTripOk": "Обратная проверка пройдена — обратная операция возвращает базу.",
   "pinShiftRoundTripOkDecode": "Обратная проверка пройдена — кодирование результата возвращает производный PIN.",
   "pinShiftRoundTripMismatch": "Обратная проверка не сошлась: обратная операция даёт не то значение, что введено.",

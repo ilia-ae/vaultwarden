@@ -1,8 +1,10 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart' show HapticFeedback;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
@@ -25,6 +27,11 @@ import '../widgets/glass_top_bar.dart';
 import '../widgets/option_pills.dart';
 import 'pin/pin_section.dart';
 
+/// What the Vault tab shows, switched by the pills at its top.
+enum VaultView { pending, history }
+
+/// The main screen: a Vault tab (login-with-device requests, with its
+/// Pending/History pills) and the PIN tools tab.
 class RequestsScreen extends ConsumerStatefulWidget {
   const RequestsScreen({super.key});
 
@@ -36,11 +43,19 @@ class _RequestsScreenState extends ConsumerState<RequestsScreen>
     with WidgetsBindingObserver, TickerProviderStateMixin {
   String? _loadingRequestId;
   late final TabController _tabController =
-      TabController(length: 3, vsync: this);
+      TabController(length: 2, vsync: this);
 
-  /// Index of the PIN tools tab (3rd tab, inside the unlock shell).
-  static const _pinTab = 2;
-  int _tabIndex = 0;
+  /// Index of the Vault tab (the requests, first and default).
+  static const _vaultTab = 0;
+
+  /// Index of the PIN tools tab (2nd tab, inside the unlock shell).
+  static const _pinTab = 1;
+  int _tabIndex = _vaultTab;
+
+  /// The Vault tab's pill. Kept here, not in the tab's page, so it survives
+  /// a visit to the PIN tab (the page itself is not kept alive); a new
+  /// screen (unlock, next launch) starts on Pending.
+  VaultView _vaultView = VaultView.pending;
 
   /// Whether this screen holds a FLAG_SECURE request for the PIN tab.
   bool _pinSecureHeld = false;
@@ -206,8 +221,8 @@ class _RequestsScreenState extends ConsumerState<RequestsScreen>
       appBar: GlassTopBar(
         title: _tabIndex == _pinTab ? l.pinTitle : l.authRequestsTitle,
         controller: _tabController,
-        tabs: [l.pendingTab, l.historyTab, l.pinTab],
-        tabIdentifiers: const ['tab_pending', 'tab_history', 'tab_pin'],
+        tabs: [l.vaultTab, l.pinTab],
+        tabIdentifiers: const ['tab_vault', 'tab_pin'],
         actions: [
           if (_tabIndex != _pinTab)
             IconButton(
@@ -224,8 +239,11 @@ class _RequestsScreenState extends ConsumerState<RequestsScreen>
           ),
         ],
       ),
-      // Demo-only: a '+' to inject fresh incoming requests into the list.
-      floatingActionButton: demoActive && _tabIndex == 0
+      // Demo-only: a '+' to inject fresh incoming requests into the list —
+      // only where that list is, Vault › Pending.
+      floatingActionButton: demoActive &&
+              _tabIndex == _vaultTab &&
+              _vaultView == VaultView.pending
           ? Semantics(
               identifier: 'btn_add_demo',
               child: FloatingActionButton(
@@ -240,16 +258,63 @@ class _RequestsScreenState extends ConsumerState<RequestsScreen>
       body: TabBarView(
         controller: _tabController,
         children: [
-          _PendingTab(
+          _VaultTab(
+            view: _vaultView,
+            onViewChanged: (view) {
+              if (view != _vaultView) setState(() => _vaultView = view);
+            },
             loadingRequestId: _loadingRequestId,
             onApprove: _approve,
             onDeny: _deny,
           ),
-          const _HistoryTab(),
           const PinSection(),
         ],
       ),
     );
+  }
+}
+
+/// The Vault tab: Pending/History pills at the top (where the PIN tab has
+/// its tool picker) over the selected list. The pills scroll with the list,
+/// like the PIN picker, so the list still slides under the glass bar.
+class _VaultTab extends StatelessWidget {
+  const _VaultTab({
+    required this.view,
+    required this.onViewChanged,
+    required this.loadingRequestId,
+    required this.onApprove,
+    required this.onDeny,
+  });
+
+  final VaultView view;
+  final ValueChanged<VaultView> onViewChanged;
+  final String? loadingRequestId;
+  final Future<void> Function(String) onApprove;
+  final Future<void> Function(String) onDeny;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context)!;
+    final pills = OptionPills<VaultView>(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      options: [
+        (value: VaultView.pending, label: l.pendingTab),
+        (value: VaultView.history, label: l.historyTab),
+      ],
+      // The store screenshot flows tap these (they were the tabs' ids).
+      identifiers: const ['tab_pending', 'tab_history'],
+      selected: view,
+      onSelected: onViewChanged,
+    );
+    return switch (view) {
+      VaultView.pending => _PendingView(
+          header: pills,
+          loadingRequestId: loadingRequestId,
+          onApprove: onApprove,
+          onDeny: onDeny,
+        ),
+      VaultView.history => _HistoryView(header: pills),
+    };
   }
 }
 
@@ -272,35 +337,56 @@ EdgeInsets _listPadding(BuildContext context, {required double bottom}) {
 /// inset that [_listPadding] adds anyway) and a 16 pt gap above it.
 const double _fabClearance = 56 + 16 + 16;
 
-/// Empty/error placeholder anchored to the exact SCREEN center on every tab.
-/// The body fills the whole scaffold (extendBodyBehindAppBar), so centering
-/// in the full viewport height puts the child at the screen's vertical
-/// middle — identical on Pending and History, no bar-height offset.
-/// Stays scrollable so pull-to-refresh keeps working.
-class _CenteredPlaceholder extends StatelessWidget {
-  const _CenteredPlaceholder({required this.child});
+/// The Vault pills as a list's first item. The gap under them plus the
+/// first card's own vertical [cardMargin] is 14 pt, as under the PIN tab's
+/// tool picker.
+class _ListHeader extends StatelessWidget {
+  const _ListHeader(this.header, {required this.cardMargin});
 
+  final Widget header;
+  final double cardMargin;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: EdgeInsets.only(bottom: 14 - cardMargin),
+        child: header,
+      );
+}
+
+/// Empty/error/loading placeholder anchored to the exact SCREEN center on
+/// both Vault views, under the Vault pills ([header]) at the spot where the
+/// lists show them. The body fills the whole scaffold
+/// (extendBodyBehindAppBar), so centering in the full viewport height puts
+/// the child at the screen's vertical middle — identical on Pending and
+/// History, no bar-height offset. Where the middle would run into the pills
+/// (landscape, large text) the child sits right below them instead and the
+/// placeholder grows. Stays scrollable so pull-to-refresh keeps working.
+class _CenteredPlaceholder extends StatelessWidget {
+  const _CenteredPlaceholder({required this.header, required this.child});
+
+  final Widget header;
   final Widget child;
 
   @override
   Widget build(BuildContext context) {
+    final padding = MediaQuery.paddingOf(context);
     return LayoutBuilder(
       builder: (context, constraints) => ListView(
         physics: const AlwaysScrollableScrollPhysics(),
         // A null padding makes ListView auto-inset MediaQuery.padding.top —
         // which, under extendBodyBehindAppBar, is the app bar + status bar
         // (~150pt). That shoved the centred child well below the screen
-        // middle. Zero padding keeps the box exactly the viewport height so
-        // Center lands on the true screen centre. Side insets only: they
+        // middle. Zero padding keeps the box at least the viewport height so
+        // the child lands on the true screen centre. Side insets only: they
         // keep the text clear of the Dynamic Island / cutout in landscape.
-        padding: EdgeInsets.only(
-          left: MediaQuery.paddingOf(context).left,
-          right: MediaQuery.paddingOf(context).right,
-        ),
+        padding: EdgeInsets.only(left: padding.left, right: padding.right),
         children: [
-          SizedBox(
+          _HeaderedCenter(
+            // Same spot as the lists' first item (see [_listPadding]).
+            top: padding.top + 8,
             height: constraints.maxHeight,
-            child: Center(child: child),
+            header: header,
+            child: child,
           ),
         ],
       ),
@@ -308,12 +394,101 @@ class _CenteredPlaceholder extends StatelessWidget {
   }
 }
 
-class _PendingTab extends ConsumerWidget {
+/// [header] at [top], full width; [child] centred in [height] (the
+/// viewport), but never higher than 16 pt under the header. Grows past
+/// [height] when the child does not fit there.
+class _HeaderedCenter extends MultiChildRenderObjectWidget {
+  _HeaderedCenter({
+    required this.top,
+    required this.height,
+    required Widget header,
+    required Widget child,
+  }) : super(children: [header, child]);
+
+  final double top;
+  final double height;
+
+  @override
+  _RenderHeaderedCenter createRenderObject(BuildContext context) =>
+      _RenderHeaderedCenter(top: top, height: height);
+
+  @override
+  void updateRenderObject(
+      BuildContext context, _RenderHeaderedCenter renderObject) {
+    renderObject
+      ..top = top
+      ..height = height;
+  }
+}
+
+class _HeaderedCenterParentData extends ContainerBoxParentData<RenderBox> {}
+
+class _RenderHeaderedCenter extends RenderBox
+    with
+        ContainerRenderObjectMixin<RenderBox, _HeaderedCenterParentData>,
+        RenderBoxContainerDefaultsMixin<RenderBox, _HeaderedCenterParentData> {
+  _RenderHeaderedCenter({required double top, required double height})
+      : _top = top,
+        _height = height;
+
+  static const double _gap = 16;
+
+  double _top;
+  set top(double value) {
+    if (value == _top) return;
+    _top = value;
+    markNeedsLayout();
+  }
+
+  double _height;
+  set height(double value) {
+    if (value == _height) return;
+    _height = value;
+    markNeedsLayout();
+  }
+
+  @override
+  void setupParentData(RenderBox child) {
+    if (child.parentData is! _HeaderedCenterParentData) {
+      child.parentData = _HeaderedCenterParentData();
+    }
+  }
+
+  @override
+  void performLayout() {
+    final width = constraints.maxWidth;
+    final header = firstChild!;
+    final child = childAfter(header)!;
+    header.layout(BoxConstraints.tightFor(width: width), parentUsesSize: true);
+    child.layout(BoxConstraints(maxWidth: width), parentUsesSize: true);
+    final lowest = _top + header.size.height + _gap;
+    final y = math.max((_height - child.size.height) / 2, lowest);
+    (header.parentData! as _HeaderedCenterParentData).offset = Offset(0, _top);
+    (child.parentData! as _HeaderedCenterParentData).offset =
+        Offset((width - child.size.width) / 2, y);
+    size = constraints.constrain(
+        Size(width, math.max(_height, y + child.size.height + _gap)));
+  }
+
+  @override
+  void paint(PaintingContext context, Offset offset) =>
+      defaultPaint(context, offset);
+
+  @override
+  bool hitTestChildren(BoxHitTestResult result, {required Offset position}) =>
+      defaultHitTestChildren(result, position: position);
+}
+
+/// Vault › Pending: the requests waiting for an answer, under [header].
+class _PendingView extends ConsumerWidget {
+  /// The Vault pills: the list's first item, above every state.
+  final Widget header;
   final String? loadingRequestId;
   final Future<void> Function(String) onApprove;
   final Future<void> Function(String) onDeny;
 
-  const _PendingTab({
+  const _PendingView({
+    required this.header,
     required this.loadingRequestId,
     required this.onApprove,
     required this.onDeny,
@@ -330,7 +505,10 @@ class _PendingTab extends ConsumerWidget {
     final history = ref.watch(historyProvider);
 
     return requestsAsync.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
+      loading: () => _CenteredPlaceholder(
+        header: header,
+        child: const CircularProgressIndicator(),
+      ),
       error: (error, _) {
         final l = AppLocalizations.of(context)!;
         final isNetwork = isNetworkError(error);
@@ -340,6 +518,7 @@ class _PendingTab extends ConsumerWidget {
           edgeOffset: MediaQuery.of(context).padding.top,
           onRefresh: () => ref.read(authRequestsProvider.notifier).refresh(),
           child: _CenteredPlaceholder(
+            header: header,
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 32),
               child: Column(
@@ -395,6 +574,7 @@ class _PendingTab extends ConsumerWidget {
             edgeOffset: MediaQuery.of(context).padding.top,
             onRefresh: () => ref.read(authRequestsProvider.notifier).refresh(),
             child: _CenteredPlaceholder(
+              header: header,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -430,9 +610,11 @@ class _PendingTab extends ConsumerWidget {
               // scroll clear of it (portrait and landscape).
               bottom: demoActive ? _fabClearance : 16,
             ),
-            itemCount: requests.length,
+            // The pills first, then the cards.
+            itemCount: requests.length + 1,
             itemBuilder: (context, index) {
-              final request = requests[index];
+              if (index == 0) return _ListHeader(header, cardMargin: 8);
+              final request = requests[index - 1];
               return AuthRequestCard(
                 request: request,
                 clock: ref.read(requestClockProvider),
@@ -449,8 +631,12 @@ class _PendingTab extends ConsumerWidget {
   }
 }
 
-class _HistoryTab extends ConsumerWidget {
-  const _HistoryTab();
+/// Vault › History: the answered requests, under [header].
+class _HistoryView extends ConsumerWidget {
+  const _HistoryView({required this.header});
+
+  /// The Vault pills: the list's first item, above the empty state too.
+  final Widget header;
 
   Future<void> _clearHistory(BuildContext context, WidgetRef ref) async {
     final confirmed = await showDialog<bool>(
@@ -491,6 +677,7 @@ class _HistoryTab extends ConsumerWidget {
 
     if (history.isEmpty) {
       return _CenteredPlaceholder(
+        header: header,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -514,11 +701,13 @@ class _HistoryTab extends ConsumerWidget {
       );
     }
 
-    // history.length items + 1 "Clear All" footer
+    // The pills, history.length entries, a "Clear All" footer.
     return ListView.builder(
       padding: _listPadding(context, bottom: 32),
-      itemCount: history.length + 1,
-      itemBuilder: (context, index) {
+      itemCount: history.length + 2,
+      itemBuilder: (context, item) {
+        if (item == 0) return _ListHeader(header, cardMargin: 6);
+        final index = item - 1;
         // Last item = "Clear All" button
         if (index == history.length) {
           return Padding(
@@ -595,17 +784,45 @@ class _HistoryTab extends ConsumerWidget {
                   ],
                 ),
                 const SizedBox(height: 8),
-                Row(
+                // Wraps instead of overflowing: a long IPv6 address moves to
+                // its own line (and is ellipsized only if even that is short).
+                Wrap(
+                  spacing: 16,
+                  runSpacing: 4,
                   children: [
-                    Icon(deviceIconFor(entry.deviceType),
-                        size: 16, color: theme.colorScheme.onSurfaceVariant),
-                    const SizedBox(width: 6),
-                    Text(entry.deviceType, style: theme.textTheme.bodyMedium),
-                    const SizedBox(width: 16),
-                    Icon(Icons.language,
-                        size: 16, color: theme.colorScheme.onSurfaceVariant),
-                    const SizedBox(width: 6),
-                    Text(entry.ipAddress, style: theme.textTheme.bodyMedium),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(deviceIconFor(entry.deviceType),
+                            size: 16,
+                            color: theme.colorScheme.onSurfaceVariant),
+                        const SizedBox(width: 6),
+                        Flexible(
+                          child: Text(
+                            entry.deviceType,
+                            style: theme.textTheme.bodyMedium,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.language,
+                            size: 16,
+                            color: theme.colorScheme.onSurfaceVariant),
+                        const SizedBox(width: 6),
+                        Flexible(
+                          child: Text(
+                            entry.ipAddress,
+                            style: theme.textTheme.bodyMedium,
+                            textDirection: TextDirection.ltr,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
                   ],
                 ),
                 const SizedBox(height: 4),

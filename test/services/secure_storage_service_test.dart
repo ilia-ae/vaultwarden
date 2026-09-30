@@ -1,9 +1,14 @@
+import 'dart:convert';
+
 import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vault_approver/models/user_session.dart';
+import 'package:vault_approver/services/crypto_service.dart';
 import 'package:vault_approver/services/secure_storage_service.dart';
+
+import '../providers/provider_fakes.dart';
 
 UserSession _session() => UserSession(
       email: 'a@b.com',
@@ -164,6 +169,258 @@ void main() {
       final prefs = await SharedPreferences.getInstance();
       expect(await storage.wipeIfReinstalled(prefs), isFalse);
       expect(await storage.loadSession(), isNotNull);
+    });
+  });
+
+  // lockKeyMissing on 1.1.0: flutter_secure_storage 9.2.4 on iOS reads an
+  // item it cannot access (keychain locked / protected data not available
+  // yet) as null. A null must never be taken for "not stored".
+  group('iOS keychain not available (read answers null)', () {
+    late FakeAppleKeychain keychain;
+    late SecureStorageService ios;
+
+    setUp(() async {
+      keychain = FakeAppleKeychain();
+      ios = appleStorage(keychain);
+      await seedAsBuild105(keychain, CryptoService(runKdfInIsolate: false));
+    });
+
+    for (final metadataReadable in [false, true]) {
+      test(
+          'stored secrets throw instead of reading as absent '
+          '(containsKey ${metadataReadable ? 'answers' : 'fails'})', () async {
+        keychain
+          ..locked = true
+          ..metadataReadableWhileLocked = metadataReadable;
+        final unreadable = throwsA(isA<SecureStorageReadException>());
+        await expectLater(ios.loadEncryptedUserKey(), unreadable);
+        await expectLater(ios.loadBiometricStorageKey(), unreadable);
+        await expectLater(ios.loadSession(), unreadable);
+        await expectLater(ios.getOrCreateDeviceId(), unreadable);
+        // Absent items cannot be told apart while locked either.
+        keychain.items.remove(SecureStorageService.keyEncryptedUserKey);
+        await expectLater(ios.loadEncryptedUserKey(), unreadable);
+
+        keychain.locked = false;
+        expect(await ios.loadEncryptedUserKey(), isNull); // really gone now
+        expect(await ios.loadBiometricStorageKey(), isNotNull);
+        expect((await ios.loadSession())!.email, kEmail);
+        expect(await ios.getOrCreateDeviceId(),
+            '5f0c1f7e-7d2a-4d5b-9a53-2d9b1c0e8f11');
+      });
+    }
+
+    test('update from 1.0.5 (no marker anywhere) adopts a marker, no wipe',
+        () async {
+      SharedPreferences.setMockInitialValues({'settings.theme_mode': 'dark'});
+      final prefs = await SharedPreferences.getInstance();
+      final before = Map.of(keychain.items);
+      expect(await ios.wipeIfReinstalled(prefs), isFalse);
+      final marker = prefs.getString(SecureStorageService.prefsInstallMarker);
+      expect(marker, isNotNull);
+      expect(keychain.items[SecureStorageService.keyInstallMarker], marker);
+      expect(await ios.wipeIfReinstalled(prefs), isFalse);
+      expect(
+        Map.of(keychain.items)..remove(SecureStorageService.keyInstallMarker),
+        before,
+      );
+    });
+
+    test('a start while the keychain is locked never causes a later wipe',
+        () async {
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+      expect(await ios.wipeIfReinstalled(prefs), isFalse); // first start
+      final marker = prefs.getString(SecureStorageService.prefsInstallMarker);
+
+      // A start while the keychain cannot be read (main() swallows errors).
+      keychain.locked = true;
+      try {
+        await ios.wipeIfReinstalled(prefs);
+      } catch (_) {}
+      expect(prefs.getString(SecureStorageService.prefsInstallMarker), marker,
+          reason: 'the preferences marker is never replaced');
+
+      keychain.locked = false;
+      expect(await ios.wipeIfReinstalled(prefs), isFalse);
+      expect(
+          keychain.items[SecureStorageService.keyEncryptedUserKey], isNotNull);
+      expect((await ios.loadSession())!.email, kEmail);
+    });
+
+    test('a lost or different keychain marker is re-adopted, never wiped',
+        () async {
+      SharedPreferences.setMockInitialValues(
+          {SecureStorageService.prefsInstallMarker: 'prefs-marker'});
+      final prefs = await SharedPreferences.getInstance();
+      // No keychain marker (e.g. a failed write deleted it).
+      expect(await ios.wipeIfReinstalled(prefs), isFalse);
+      expect(keychain.items[SecureStorageService.keyInstallMarker],
+          'prefs-marker');
+      // A different one (the preferences were rewritten, the keychain not).
+      keychain.items[SecureStorageService.keyInstallMarker] = 'stale';
+      expect(await ios.wipeIfReinstalled(prefs), isFalse);
+      expect(keychain.items[SecureStorageService.keyInstallMarker],
+          'prefs-marker');
+      expect(prefs.getString(SecureStorageService.prefsInstallMarker),
+          'prefs-marker');
+      expect(
+          keychain.items[SecureStorageService.keyEncryptedUserKey], isNotNull);
+    });
+
+    test('delete + install again (no preferences marker) still wipes',
+        () async {
+      keychain.items[SecureStorageService.keyInstallMarker] = 'old-install';
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+      expect(await ios.wipeIfReinstalled(prefs), isTrue);
+      expect(keychain.items.keys, [SecureStorageService.keyInstallMarker]);
+      expect(keychain.items[SecureStorageService.keyInstallMarker],
+          prefs.getString(SecureStorageService.prefsInstallMarker));
+    });
+  });
+
+  // Write guard: flutter_secure_storage 9.2.4 writes an existing item as
+  // update → delete → add; while the phone is locked only the delete works,
+  // so a write used to delete the item (e.g. the session on a refresh).
+  group('iOS keychain writes while protected data is unavailable', () {
+    late FakeAppleKeychain keychain;
+    late SecureStorageService ios;
+    late UserSession refreshed;
+
+    setUp(() async {
+      SharedPreferences.setMockInitialValues({});
+      keychain = FakeAppleKeychain()..metadataReadableWhileLocked = true;
+      ios = appleStorage(keychain);
+      await seedAsBuild105(keychain, CryptoService(runKdfInIsolate: false));
+      refreshed = testSession(accessToken: 'at-2', refreshToken: 'rt-2');
+    });
+
+    String? storedRefreshToken() {
+      final raw = keychain.items[SecureStorageService.keySession];
+      return raw == null
+          ? null
+          : UserSession.fromJson(jsonDecode(raw) as Map<String, dynamic>)
+              .refreshToken;
+    }
+
+    test('nothing touches the keychain; reads see the owed values', () async {
+      keychain.locked = true;
+      await ios.saveSession(refreshed);
+      await ios.saveHistory(serverUrl: kServer, email: kEmail, json: '[1]');
+      await ios.saveTwoFactorRememberToken(
+          serverUrl: kServer, email: kEmail, token: 'remember');
+      await ios.deleteTwoFactorRememberToken(serverUrl: kServer, email: kEmail);
+      expect(keychain.mutationsWhileLocked, 0);
+      expect(storedRefreshToken(), 'rt-1');
+      expect(ios.hasPendingChanges, isTrue);
+      expect((await ios.loadSession())!.refreshToken, 'rt-2');
+      expect(await ios.loadHistory(serverUrl: kServer, email: kEmail), '[1]');
+      expect(
+          await ios.loadTwoFactorRememberToken(
+              serverUrl: kServer, email: kEmail),
+          isNull);
+
+      keychain.locked = false; // availability event → flush
+      await pumpEventQueue();
+      expect(ios.hasPendingChanges, isFalse);
+      expect(storedRefreshToken(), 'rt-2');
+      expect(keychain.items[SecureStorageService.historyKey(kServer, kEmail)],
+          '[1]');
+      expect(
+          keychain.items.keys.where((k) =>
+              k.startsWith(SecureStorageService.twoFactorRememberPrefix)),
+          isEmpty);
+    });
+
+    test('without the availability event, the next access flushes', () async {
+      keychain
+        ..availabilityEvents = false
+        ..locked = true;
+      await ios.saveSession(refreshed);
+      keychain.locked = false;
+      await pumpEventQueue();
+      expect(storedRefreshToken(), 'rt-1', reason: 'no event arrived');
+      expect((await ios.loadSession())!.refreshToken, 'rt-2');
+      expect(storedRefreshToken(), 'rt-2');
+      expect(ios.hasPendingChanges, isFalse);
+    });
+
+    test('the device locking mid-write: the lost item is restored', () async {
+      // Available at the check, locked by the time the plugin writes.
+      keychain.beforeMutation = () => keychain.locked = true;
+      await expectLater(ios.saveSession(refreshed), throwsA(anything));
+      keychain.beforeMutation = null;
+      expect(
+          keychain.items.containsKey(SecureStorageService.keySession), isFalse,
+          reason: 'the plugin deleted it');
+      expect((await ios.loadSession())!.refreshToken, 'rt-2');
+
+      keychain.locked = false;
+      await pumpEventQueue();
+      expect(storedRefreshToken(), 'rt-2');
+    });
+
+    test('a sign-out while locked is owed, then complete', () async {
+      final prefs = await SharedPreferences.getInstance();
+      keychain.items['${SecureStorageService.clientCertPrefix}$kServer'] = '{}';
+      keychain.items[SecureStorageService.keyInstallMarker] = 'marker';
+      keychain.items[SecureStorageService.historyKey(kServer, kEmail)] = '[]';
+      keychain.locked = true;
+      await ios.clearSessionData(session: testSession());
+      expect(keychain.mutationsWhileLocked, 0);
+      expect(keychain.items[SecureStorageService.keySession], isNotNull);
+      expect(prefs.getString(SecureStorageService.prefsPendingSignOut), 'all');
+      expect(await ios.loadSession(), isNull);
+      expect(await ios.loadHistory(serverUrl: kServer, email: kEmail), isNull);
+      // Writes after the sign-out come after it.
+      await ios.saveHistory(serverUrl: kServer, email: kEmail, json: '[2]');
+
+      keychain.locked = false;
+      await pumpEventQueue();
+      expect(keychain.items.keys.toSet(), {
+        SecureStorageService.keyDeviceId,
+        '${SecureStorageService.clientCertPrefix}$kServer',
+        SecureStorageService.keyInstallMarker,
+        SecureStorageService.historyKey(kServer, kEmail),
+      });
+      expect(keychain.items[SecureStorageService.historyKey(kServer, kEmail)],
+          '[2]');
+      expect(prefs.getString(SecureStorageService.prefsPendingSignOut), isNull);
+      expect(ios.hasPendingChanges, isFalse);
+    });
+
+    test('an owed sign-out outlives the process', () async {
+      final prefs = await SharedPreferences.getInstance();
+      keychain.locked = true;
+      await ios.clearSessionData(keepTwoFactorRemember: true);
+      // A new process, still locked: signed out, nothing touched.
+      final next = appleStorage(keychain);
+      expect(await next.loadSession(), isNull);
+      expect(keychain.items[SecureStorageService.keySession], isNotNull);
+      // Unlocked: the next start finishes it before anything else.
+      keychain
+        ..availabilityEvents = false
+        ..locked = false;
+      final later = appleStorage(keychain);
+      expect(await later.wipeIfReinstalled(prefs), isFalse);
+      expect(
+          keychain.items.containsKey(SecureStorageService.keySession), isFalse);
+      expect(
+          keychain.items.containsKey(SecureStorageService.keyEncryptedUserKey),
+          isFalse);
+      expect(keychain.items[SecureStorageService.keyDeviceId], isNotNull);
+      expect(prefs.getString(SecureStorageService.prefsPendingSignOut), isNull);
+      expect(keychain.mutationsWhileLocked, 0);
+    });
+
+    test('clearAll while locked touches nothing and throws', () async {
+      final before = Map.of(keychain.items);
+      keychain.locked = true;
+      await expectLater(
+          ios.clearAll(), throwsA(isA<SecureStorageReadException>()));
+      expect(keychain.items, before);
+      expect(keychain.mutationsWhileLocked, 0);
     });
   });
 

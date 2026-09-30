@@ -11,6 +11,7 @@ import 'package:vault_approver/services/secure_storage_service.dart';
 import 'package:vault_approver/services/vault_api.dart';
 import 'package:vault_approver/utils/constants.dart';
 
+import '../providers/provider_fakes.dart' show FakeAppleKeychain, appleStorage;
 import 'rsa_fixture.dart';
 
 const _sdkPublicKey =
@@ -583,6 +584,33 @@ void main() {
       await Future<void>.delayed(Duration.zero);
       expect(refreshed.single.accessToken, 'at2');
       expect((await storage.loadSession())!.accessToken, 'at2');
+    });
+
+    test('a refresh while the keychain is locked loses nothing (write guard)',
+        () async {
+      // 9.2.4 on iOS: a write while locked deletes the item, then fails.
+      final keychain = FakeAppleKeychain()..metadataReadableWhileLocked = true;
+      final ios = appleStorage(keychain);
+      final old = _session(expiresIn: const Duration(seconds: 10));
+      await ios.saveSession(old);
+      final lockedApi =
+          VaultApiService(ios, httpClientAdapter: adapter, deviceType: '1');
+      addTearDown(lockedApi.dispose);
+      adapter.handler = (o) => o.path.endsWith('/connect/token')
+          ? refreshOk(o)
+          : _json(200, {'data': []});
+      lockedApi.configure(_base, old);
+
+      keychain.locked = true; // the app went to the background, phone locked
+      await lockedApi.getPendingRequests(); // pre-emptive refresh
+      expect(lockedApi.session!.accessToken, 'at2');
+      expect(keychain.mutationsWhileLocked, 0);
+      expect(keychain.items['session'], contains('"accessToken":"at"'));
+
+      keychain.locked = false;
+      await pumpEventQueue();
+      expect((await ios.loadSession())!.accessToken, 'at2');
+      expect(keychain.items['session'], contains('"accessToken":"at2"'));
     });
 
     test('401 → one refresh → one retry', () async {

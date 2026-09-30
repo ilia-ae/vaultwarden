@@ -91,6 +91,10 @@
   "unlock": "Unlock",
 
   "authRequestsTitle": "Auth Requests",
+  "vaultTab": "Vault",
+  "@vaultTab": {
+    "description": "Main-screen tab with the login-with-device requests (Pending and History inside). Feature name: kept as \"Vault\" in every language."
+  },
   "pendingTab": "Pending",
   "historyTab": "History",
 
@@ -669,15 +673,15 @@
   "pinFixErrorsAbove": "Fix the highlighted errors above to see the result.",
   "pinShiftSummary": "Remember one secret vector instead of many PINs: new PIN = base PIN + vector, digit by digit, without carry.",
   "pinShiftCaption": "Per-position modulo-10 shift. Mnemonic obfuscation, not a cipher — see “How to compute this on paper” and “Threat model” below.",
-  "pinShiftSectionDirection": "1 · Direction",
+  "pinShiftSectionDirection": "Direction",
   "pinShiftEncode": "Encode",
   "pinShiftDecode": "Decode",
   "pinShiftEncodeHelp": "new = base + vector (mod 10)",
   "pinShiftDecodeHelp": "base = new − vector (mod 10)",
-  "pinShiftSectionLength": "2 · Length",
+  "pinShiftSectionLength": "Length",
   "pinShiftLengthMustMatch": "The PIN and the vector must have the same length.",
   "pinShiftLengthCustom": "Custom length (1–16).",
-  "pinShiftSectionPin": "3 · PIN",
+  "pinShiftSectionPin": "1 · PIN",
   "pinShiftFieldBase": "Base PIN",
   "pinShiftFieldDerived": "Derived PIN (new)",
   "pinShiftFieldBaseHelp": "Base PIN — digits only, {length} of them.",
@@ -705,7 +709,7 @@
       "expected": { "type": "int" }
     }
   },
-  "pinShiftSectionVector": "4 · Shift vector",
+  "pinShiftSectionVector": "2 · Shift vector",
   "pinShiftFieldVector": "Shift vector",
   "pinShiftFieldVectorHelp": "Per-position secret — digits only, {length} of them.",
   "@pinShiftFieldVectorHelp": {
@@ -734,7 +738,8 @@
       "keyspace": { "type": "String" }
     }
   },
-  "pinShiftSectionResult": "5 · Result",
+  "pinShiftSectionResult": "3 · Result",
+  "pinShiftSectionSettings": "4 · Settings",
   "pinShiftReveal": "Reveal base PIN & vector",
   "pinShiftRevealHelp": "Off (default): only the output. On: input + vector + output and the per-digit breakdown. Turns off whenever the tab is wiped.",
   "pinShiftRowInputBase": "Input (base PIN)",
@@ -754,7 +759,7 @@
       "length": { "type": "int" }
     }
   },
-  "pinShiftHiddenNote": "Base PIN and vector hidden. Turn on “Reveal base PIN & vector” above to see them.",
+  "pinShiftHiddenNote": "Base PIN and vector hidden. Turn on “Reveal base PIN & vector” below to see them.",
   "pinShiftRoundTripOk": "Round-trip OK — the reverse operation reproduces the base.",
   "pinShiftRoundTripOkDecode": "Round-trip OK — encoding the result reproduces the derived PIN.",
   "pinShiftRoundTripMismatch": "Round-trip mismatch: reversing yields a different value than the one typed.",

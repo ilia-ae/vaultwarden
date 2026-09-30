@@ -174,8 +174,12 @@ class LockSkeleton extends StatelessWidget {
 ///
 /// When the keychain holds a session but no encrypted user key (or unlock
 /// fails with 'Setup not completed'), unlocking can never succeed, so the
-/// overlay offers "Log out" (F7). A relock during the reveal animation
-/// re-arms the automatic biometric prompt (R8).
+/// overlay offers "Log out" (F7) — and "Retry", which checks again. The key
+/// is only checked while the app is resumed (the first frame back from the
+/// background runs before iOS makes the keychain available again), is
+/// checked again on every resume, and a keychain that cannot be read never
+/// counts as a missing key. A relock during the reveal animation re-arms
+/// the automatic biometric prompt (R8).
 class _LockOverlay extends ConsumerStatefulWidget {
   const _LockOverlay({required this.active});
 
@@ -192,10 +196,7 @@ class _LockOverlayState extends ConsumerState<_LockOverlay>
   bool _biometricUnavailable = false;
   bool _pendingUnlock = false;
   bool _keyMissing = false;
-
-  /// Completes once the stored-key check ran (no Face ID prompt for an
-  /// account whose key is gone).
-  Future<void> _keyCheck = Future<void>.value();
+  bool _checkingKey = false;
 
   late final AnimationController _shake = AnimationController(
       vsync: this, duration: const Duration(milliseconds: 500));
@@ -205,7 +206,6 @@ class _LockOverlayState extends ConsumerState<_LockOverlay>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     if (demoActive) return; // screenshots / demo capture the lock UI itself
-    _keyCheck = _checkStoredKey();
     _scheduleAutoUnlock();
   }
 
@@ -219,24 +219,35 @@ class _LockOverlayState extends ConsumerState<_LockOverlay>
     }
   }
 
-  /// Prompt biometrics after this frame — only when iOS confirms the app is
-  /// fully active (earlier triggers "User interaction required"); otherwise
-  /// on the next resume.
+  /// Check the key and prompt biometrics after this frame — only when iOS
+  /// confirms the app is fully active (earlier triggers "User interaction
+  /// required", and the keychain may not be available yet); otherwise on
+  /// the next resume.
   void _scheduleAutoUnlock() {
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      await _keyCheck;
-      if (!mounted || !widget.active || _keyMissing) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !widget.active) return;
       if (WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed) {
-        _tryUnlock();
+        _checkKeyThenUnlock();
       } else {
         _pendingUnlock = true;
       }
     });
   }
 
-  Future<void> _checkStoredKey() async {
-    final present = await ref.read(sessionProvider.notifier).hasStoredUserKey();
-    if (mounted && !present) setState(() => _keyMissing = true);
+  /// No Face ID prompt for an account whose key is gone. [_keyMissing]
+  /// follows every check both ways, so a stale "missing" never sticks.
+  Future<void> _checkKeyThenUnlock() async {
+    if (_checkingKey || _authenticating || !widget.active) return;
+    _checkingKey = true;
+    final bool present;
+    try {
+      present = await ref.read(sessionProvider.notifier).hasStoredUserKey();
+    } finally {
+      _checkingKey = false;
+    }
+    if (!mounted) return;
+    if (present == _keyMissing) setState(() => _keyMissing = !present);
+    if (present) await _tryUnlock();
   }
 
   static bool _isSetupIncomplete(Object e) =>
@@ -275,11 +286,14 @@ class _LockOverlayState extends ConsumerState<_LockOverlay>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed && _pendingUnlock) {
+    if (state != AppLifecycleState.resumed) return;
+    // A "missing" key is checked again too: it may have been a keychain
+    // that was not available at the time.
+    if (_pendingUnlock || _keyMissing) {
       _pendingUnlock = false;
       // Small safety margin for iOS to fully settle its UI stack.
       Future.delayed(const Duration(milliseconds: 200), () {
-        if (mounted && widget.active) _tryUnlock();
+        if (mounted && widget.active) _checkKeyThenUnlock();
       });
     }
   }
@@ -329,7 +343,8 @@ class _LockOverlayState extends ConsumerState<_LockOverlay>
       }
     } catch (e) {
       if (_isSetupIncomplete(e)) {
-        // No stored key: unlocking can never work — offer "Log out".
+        // The keychain definitely holds no key (an unreadable keychain
+        // throws SecureStorageReadException instead): offer "Log out".
         if (mounted) setState(() => _keyMissing = true);
         return;
       }
@@ -388,7 +403,7 @@ class _LockOverlayState extends ConsumerState<_LockOverlay>
                 style: theme.textTheme.titleMedium,
               ),
               const SizedBox(height: 20),
-              if (_keyMissing)
+              if (_keyMissing) ...[
                 Semantics(
                   identifier: 'btn_lock_logout',
                   child: FilledButton.icon(
@@ -396,8 +411,16 @@ class _LockOverlayState extends ConsumerState<_LockOverlay>
                     icon: const Icon(Icons.logout),
                     label: Text(l.logout),
                   ),
-                )
-              else
+                ),
+                const SizedBox(height: 8),
+                Semantics(
+                  identifier: 'btn_lock_retry',
+                  child: TextButton(
+                    onPressed: widget.active ? _checkKeyThenUnlock : null,
+                    child: Text(l.retry),
+                  ),
+                ),
+              ] else
                 Semantics(
                   identifier: 'btn_unlock',
                   child: FilledButton.icon(

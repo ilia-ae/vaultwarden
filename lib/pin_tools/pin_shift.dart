@@ -30,7 +30,10 @@ const int kShiftMinLength = 1;
 /// [shiftPin] itself has no maximum.
 const int kShiftMaxLength = 16;
 
-/// Length pre-selected when the screen opens (`DEFAULT_LENGTH`).
+/// Length the source page pre-selects when it opens (`DEFAULT_LENGTH`), kept
+/// for parity with the Python reference. The app opens on the length the
+/// user last chose, 8 on first run (`kPinShiftDefaultLength` in
+/// `lib/screens/pin/pin_prefs.dart`).
 const int kShiftDefaultLength = 4;
 
 /// Lengths offered as one-tap quick picks (`QUICK_LENGTHS`).

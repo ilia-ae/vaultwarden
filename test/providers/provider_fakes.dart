@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:flutter/services.dart' show PlatformException;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -266,6 +267,207 @@ class FakeHub extends Fake implements NotificationService {
 
   void emit(int type, {Map<String, Object?> payload = const {}}) =>
       _events.add(HubEvent(type: type, payload: payload));
+}
+
+/// The iOS keychain as flutter_secure_storage 9.2.4 presents it to Dart.
+///
+/// While [locked] (device locked, or protected data not available yet right
+/// after an unlock) the plugin's `read` answers **null** instead of an
+/// error: its first SecItemCopyMatching fails with
+/// errSecInteractionNotAllowed (-25308), `read` then retries with
+/// kSecAttrSynchronizable=true, that query finds nothing and the plugin
+/// reports "not found" (ios/Classes/FlutterSecureStorage.swift, `read`).
+/// Every other call reports -25308 as a PlatformException — unless
+/// [metadataReadableWhileLocked]: then everything that needs only the
+/// item's attributes works while locked, which makes the plugin's `write`
+/// destructive: containsKey finds the item, SecItemUpdate fails, the item
+/// is deleted (SecItemDelete succeeds), SecItemAdd fails → the item is gone
+/// and the write reports -25308. `delete`/`deleteAll` succeed then too.
+///
+/// [items] is the keychain itself, shared by every options set: the
+/// accessibility is not part of an item's identity, so the default-options
+/// store of older builds sees the same items. [mutationsWhileLocked] counts
+/// write/delete/deleteAll calls made while locked.
+class FakeAppleKeychain extends FlutterSecureStorage {
+  FakeAppleKeychain([Map<String, String>? items])
+      : items = items ?? <String, String>{},
+        super(
+          aOptions: SecureStorageService.androidOptions,
+          iOptions: SecureStorageService.iosOptions,
+        );
+
+  final Map<String, String> items;
+  bool metadataReadableWhileLocked = false;
+  int mutationsWhileLocked = 0;
+
+  /// False: the availability event never arrives (under UIScene the app
+  /// delegate callback behind it is not guaranteed to reach the plugin).
+  bool availabilityEvents = true;
+
+  /// Runs at the start of every write/delete (e.g. the device locks
+  /// between the availability check and the write).
+  void Function()? beforeMutation;
+
+  bool _locked = false;
+  final _availability = StreamController<bool>.broadcast();
+
+  bool get locked => _locked;
+
+  /// Locking / unlocking also sends the plugin's availability event
+  /// (applicationProtectedDataWillBecomeUnavailable / DidBecomeAvailable).
+  set locked(bool value) {
+    if (value == _locked) return;
+    _locked = value;
+    if (availabilityEvents) _availability.add(!value);
+  }
+
+  @override
+  Stream<bool>? get onCupertinoProtectedDataAvailabilityChanged =>
+      _availability.stream;
+
+  static PlatformException get interactionNotAllowed => PlatformException(
+        code: 'Unexpected security result code',
+        message: 'Code: -25308, Message: User interaction is not allowed.',
+        details: -25308,
+      );
+
+  void _failIfLocked() {
+    if (locked) throw interactionNotAllowed;
+  }
+
+  /// A write/delete while locked: counted; fails unless the attributes are
+  /// readable (see the class doc).
+  void _mutatingWhileLocked() {
+    beforeMutation?.call();
+    if (!locked) return;
+    mutationsWhileLocked++;
+    if (!metadataReadableWhileLocked) throw interactionNotAllowed;
+  }
+
+  @override
+  Future<String?> read({
+    required String key,
+    IOSOptions? iOptions,
+    AndroidOptions? aOptions,
+    LinuxOptions? lOptions,
+    WebOptions? webOptions,
+    MacOsOptions? mOptions,
+    WindowsOptions? wOptions,
+  }) async =>
+      locked ? null : items[key];
+
+  @override
+  Future<bool> containsKey({
+    required String key,
+    IOSOptions? iOptions,
+    AndroidOptions? aOptions,
+    LinuxOptions? lOptions,
+    WebOptions? webOptions,
+    MacOsOptions? mOptions,
+    WindowsOptions? wOptions,
+  }) async {
+    if (!metadataReadableWhileLocked) _failIfLocked();
+    return items.containsKey(key);
+  }
+
+  @override
+  Future<void> write({
+    required String key,
+    required String? value,
+    IOSOptions? iOptions,
+    AndroidOptions? aOptions,
+    LinuxOptions? lOptions,
+    WebOptions? webOptions,
+    MacOsOptions? mOptions,
+    WindowsOptions? wOptions,
+  }) async {
+    _mutatingWhileLocked();
+    if (locked) {
+      // update fails → delete succeeds → add fails.
+      items.remove(key);
+      throw interactionNotAllowed;
+    }
+    if (value == null) {
+      items.remove(key);
+    } else {
+      items[key] = value;
+    }
+  }
+
+  @override
+  Future<void> delete({
+    required String key,
+    IOSOptions? iOptions,
+    AndroidOptions? aOptions,
+    LinuxOptions? lOptions,
+    WebOptions? webOptions,
+    MacOsOptions? mOptions,
+    WindowsOptions? wOptions,
+  }) async {
+    _mutatingWhileLocked();
+    items.remove(key);
+  }
+
+  @override
+  Future<Map<String, String>> readAll({
+    IOSOptions? iOptions,
+    AndroidOptions? aOptions,
+    LinuxOptions? lOptions,
+    WebOptions? webOptions,
+    MacOsOptions? mOptions,
+    WindowsOptions? wOptions,
+  }) async {
+    _failIfLocked();
+    return Map.of(items);
+  }
+
+  @override
+  Future<void> deleteAll({
+    IOSOptions? iOptions,
+    AndroidOptions? aOptions,
+    LinuxOptions? lOptions,
+    WebOptions? webOptions,
+    MacOsOptions? mOptions,
+    WindowsOptions? wOptions,
+  }) async {
+    _mutatingWhileLocked();
+    items.clear();
+  }
+
+  /// `UIApplication.isProtectedDataAvailable`.
+  @override
+  Future<bool?> isCupertinoProtectedDataAvailable() async => !locked;
+}
+
+/// The app's storage over [keychain] with the iOS rules on (the write guard
+/// and the protected-data checks run as on a phone).
+SecureStorageService appleStorage(FakeAppleKeychain keychain) =>
+    SecureStorageService(
+      storage: keychain,
+      legacyDefaultStorage: keychain,
+      iosDataProtection: true,
+    );
+
+/// Writes the keychain the way build 1.0.5 left it for a signed-in account:
+/// session, encrypted user key, biometric storage key and device_id (all
+/// with [SecureStorageService.iosOptions]), the unscoped history (default
+/// options) — and no install marker (1.0.5 had none).
+Future<void> seedAsBuild105(
+  FakeAppleKeychain keychain,
+  CryptoService crypto, {
+  UserSession? session,
+}) async {
+  final storageKey =
+      Uint8List.fromList(List.generate(64, (i) => (i * 13 + 1) & 0xff));
+  keychain.items
+    ..[SecureStorageService.keySession] =
+        jsonEncode((session ?? testSession()).toJson())
+    ..[SecureStorageService.keyEncryptedUserKey] =
+        crypto.encryptSymmetric(Harness.userKey, storageKey).encode()
+    ..[SecureStorageService.keyBiometricStorageKey] = base64Encode(storageKey)
+    ..[SecureStorageService.keyDeviceId] =
+        '5f0c1f7e-7d2a-4d5b-9a53-2d9b1c0e8f11'
+    ..[SecureStorageService.historyKeyPrefix] = '[]';
 }
 
 /// Keychain that fails to read the session (device locked, keystore reset).

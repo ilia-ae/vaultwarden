@@ -12,27 +12,34 @@ import 'pin_harness.dart';
 void main() {
   setUp(setPinPrefs);
 
-  testWidgets('tool picker: PIN 24 → PIN Shift → YubiKey; legacy on demand',
-      (tester) async {
+  testWidgets(
+      'tool picker: PIN Shift → PIN 24 → YubiKey, opens on PIN Shift; '
+      'legacy on demand', (tester) async {
     useTallSurface(tester);
     mockPrivacyChannel(tester);
-    await pumpPin(tester);
+    final container = await pumpPin(tester);
     final l = l10n(tester);
 
-    final ids = ['pin_tool_pin24', 'pin_tool_shift', 'pin_tool_yubikey'];
+    final ids = ['pin_tool_shift', 'pin_tool_pin24', 'pin_tool_yubikey'];
     final xs = [for (final id in ids) tester.getCenter(byId(id)).dx];
     expect(xs, orderedEquals([...xs]..sort()));
+    expect(PinTool.values.first, PinTool.pinShift, reason: 'picker order');
     expect(byId('pin_tool_legacy'), findsNothing);
-    expect(byId('pin24_seed'), findsOneWidget);
-
-    await tester.tap(byId('pin_tool_shift'));
-    await tester.pump();
+    // The first tool is the one shown, and it is selected in the picker.
+    expect(container.read(pinToolProvider), PinTool.pinShift);
+    expect(tester.widget<Semantics>(byId('pin_tool_shift')).properties.selected,
+        isTrue);
     expect(byId('pin_shift_view'), findsOneWidget);
     expect(byId('pin24_seed'), findsNothing);
+
+    await tester.tap(byId('pin_tool_pin24'));
+    await tester.pump();
+    expect(byId('pin24_seed'), findsOneWidget);
+    expect(byId('pin_shift_view'), findsNothing);
     await tester.tap(byId('pin_tool_yubikey'));
     await tester.pump();
     expect(byId('yk_view'), findsOneWidget);
-    expect(byId('pin_shift_view'), findsNothing);
+    expect(byId('pin24_seed'), findsNothing);
 
     await tester.tap(byId('pin_show_legacy'));
     await tester.pump();
@@ -46,18 +53,62 @@ void main() {
     final prefs = await SharedPreferences.getInstance();
     expect(prefs.getBool(PinPrefs.kShowLegacy), isTrue);
 
-    // Hiding legacy tools while one is open falls back to PIN 24.
+    // Hiding legacy tools while one is open falls back to the first tool.
     await tester.tap(byId('pin_show_legacy'));
     await tester.pump();
     expect(byId('pin_tool_legacy'), findsNothing);
-    expect(byId('pin24_seed'), findsOneWidget);
+    expect(byId('pin_shift_view'), findsOneWidget);
+    expect(container.read(pinToolProvider), PinTool.pinShift);
+  });
+
+  testWidgets('a stored "show legacy" with PIN Shift first; legacy stays last',
+      (tester) async {
+    setPinPrefs({PinPrefs.kShowLegacy: true});
+    useTallSurface(tester);
+    mockPrivacyChannel(tester);
+    await pumpPin(tester);
+
+    final ids = [
+      'pin_tool_shift',
+      'pin_tool_pin24',
+      'pin_tool_yubikey',
+      'pin_tool_legacy',
+    ];
+    final xs = [for (final id in ids) tester.getCenter(byId(id)).dx];
+    expect(xs, orderedEquals([...xs]..sort()));
+    expect(byId('pin_shift_view'), findsOneWidget);
+  });
+
+  testWidgets('PIN Shift: the PIN field sits right under the picker',
+      (tester) async {
+    useTallSurface(tester);
+    mockPrivacyChannel(tester);
+    await pumpPin(tester);
+    final l = l10n(tester);
+
+    final picker = tester.getRect(byId('pin_tool_shift'));
+    final pinField = tester.getRect(byId('pin_shift_pin'));
+    expect(pinField.top, greaterThan(picker.bottom));
+    // Only the card header is in between; the section notes come after the
+    // tool.
+    expect(pinField.top - picker.bottom, lessThan(80));
+    expect(tester.getRect(find.text(l.pinOfflineNote)).top,
+        greaterThan(tester.getRect(byId('pin_shift_threat')).bottom));
+    expect(tester.getRect(byId('pin_show_legacy')).top,
+        greaterThan(tester.getRect(find.text(l.pinOfflineNote)).bottom));
+
+    // The other tools keep the notes above them.
+    await tester.tap(byId('pin_tool_yubikey'));
+    await tester.pump();
+    expect(tester.getRect(find.text(l.pinOfflineNote)).bottom,
+        lessThan(tester.getRect(byId('yk_view')).top));
   });
 
   testWidgets('the seed cached by PIN 24 is shown and wipeable elsewhere',
       (tester) async {
     useTallSurface(tester);
     mockPrivacyChannel(tester);
-    final container = await pumpPin(tester);
+    final container = await pumpPin(tester, tool: PinTool.pin24);
     final l = l10n(tester);
 
     await enterPin24(tester, seed: abandon12, nickname: 'visa');
@@ -78,7 +129,7 @@ void main() {
       (tester) async {
     useTallSurface(tester);
     mockPrivacyChannel(tester);
-    final container = await pumpPin(tester);
+    final container = await pumpPin(tester, tool: PinTool.pin24);
     final l = l10n(tester);
 
     await enterPin24(tester, seed: abandon12, nickname: 'visa');
@@ -101,7 +152,7 @@ void main() {
   testWidgets('"Check engine" replays the official vectors', (tester) async {
     useTallSurface(tester);
     mockPrivacyChannel(tester);
-    await pumpPin(tester);
+    await pumpPin(tester, tool: PinTool.pin24);
     final l = l10n(tester);
 
     await tester.tap(byId('pin24_selftest'));
@@ -117,7 +168,7 @@ void main() {
     useTallSurface(tester);
     resetLifecycleOnTearDown(tester);
     mockPrivacyChannel(tester);
-    final container = await pumpPin(tester);
+    final container = await pumpPin(tester, tool: PinTool.pin24);
     await enterPin24(tester, seed: abandon12, nickname: 'visa');
 
     final picked = Completer<String?>();

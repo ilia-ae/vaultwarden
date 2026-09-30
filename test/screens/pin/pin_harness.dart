@@ -132,10 +132,14 @@ void setPinPrefs([Map<String, Object> values = const {}]) {
 
 /// Pumps the PIN section (or [child]) in a localized app and waits for the
 /// prefs to load.
+///
+/// The tab opens on [tool] as if the user had picked it before; with no
+/// [tool] it opens where the app opens it (PIN Shift).
 Future<ProviderContainer> pumpPin(
   WidgetTester tester, {
   Widget? child,
   Locale locale = const Locale('en'),
+  PinTool? tool,
   List<Override> overrides = const [],
 }) async {
   // ProviderScope (not an uncontrolled container) so the container, and with
@@ -143,6 +147,7 @@ Future<ProviderContainer> pumpPin(
   await tester.pumpWidget(ProviderScope(
     overrides: [
       pinComputeRunnerProvider.overrideWithValue(inlineRunner),
+      if (tool != null) pinToolProvider.overrideWith((_) => tool),
       ...overrides,
     ],
     child: MaterialApp(

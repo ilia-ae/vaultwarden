@@ -12,6 +12,7 @@ import 'package:vault_approver/screens/pin/pin_session.dart';
 import 'package:vault_approver/screens/pin/pin_widgets.dart';
 import 'package:vault_approver/screens/requests_screen.dart';
 import 'package:vault_approver/widgets/auth_request_card.dart';
+import 'package:vault_approver/widgets/option_pills.dart';
 
 import 'pin/pin_harness.dart';
 
@@ -61,10 +62,19 @@ Future<void> _tab(WidgetTester tester, String id) async {
 
 /// Scrolls the visible list of the current tab to its very end.
 Future<void> _scrollToEnd(WidgetTester tester) async {
-  await tester.drag(
-      find.byType(ListView).hitTestable().first, const Offset(0, -3000));
-  await tester.pump();
-  await tester.pump(const Duration(seconds: 2));
+  final list = find.byType(ListView).hitTestable().first;
+  final position = tester.state<ScrollableState>(
+      find.descendant(of: list, matching: find.byType(Scrollable)).first);
+  // A lazy list only estimates its extent (the short pills row first skews
+  // the estimate): drag again until the end is really reached.
+  for (var i = 0; i < 5; i++) {
+    await tester.drag(list, const Offset(0, -3000));
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 2));
+    final p = position.position;
+    if (p.pixels >= p.maxScrollExtent) break;
+  }
+  expect(position.position.pixels, position.position.maxScrollExtent);
 }
 
 /// The painted card surface (inside the card's own margin).
@@ -89,17 +99,26 @@ void main() {
     await _pump(tester);
     const width = 874.0;
 
+    // The Vault pills start at the gutter, above the first card.
+    final pills = tester.getRect(find.byType(OptionPills<VaultView>));
+    expect(tester.getRect(byId('tab_pending')).left, 62 + 20);
     final card = _surface(tester, find.byType(AuthRequestCard).first);
     expect(card.left, 62 + 20, reason: 'island inset + card gutter');
     expect(card.right, width - 62 - 20);
+    expect(card.top - pills.bottom, 14, reason: 'as under the PIN picker');
 
     await _tab(tester, 'tab_history');
+    expect(tester.getRect(find.byType(OptionPills<VaultView>)), pills);
     final entry = _surface(tester, find.byType(ContentCard).first);
     expect(entry.left, 62 + 20);
     expect(entry.right, width - 62 - 20);
+    expect(entry.top - pills.bottom, 14);
 
     await _tab(tester, 'tab_pin');
-    expect(tester.getRect(byId('pin_tool_pin24')).left, 62 + 20);
+    // The first tool pill (PIN Shift) starts at the gutter, exactly where
+    // the Vault pills start.
+    expect(tester.getRect(byId('pin_tool_shift')).left, 62 + 20);
+    expect(tester.getTopLeft(byId('pin_tool_shift')).dy, pills.top);
     final pinCard = _surface(tester, find.byType(PinCard).first);
     expect(pinCard.left, greaterThanOrEqualTo(62 + 20));
     expect(pinCard.right, lessThanOrEqualTo(width - 62 - 20));

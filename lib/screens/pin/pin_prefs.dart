@@ -1,7 +1,17 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../pin_tools/pin_shift.dart' show kShiftMaxLength, kShiftMinLength;
 import 'pin24_engine.dart';
+
+/// PIN Shift's length (shared by the PIN and the vector) until the user picks
+/// another one. The source page opened on 4 (`kShiftDefaultLength`); the app
+/// opens on 8.
+const int kPinShiftDefaultLength = 8;
+
+/// [length] clamped into PIN Shift's 1…16.
+int clampPinShiftLength(int length) =>
+    length.clamp(kShiftMinLength, kShiftMaxLength);
 
 /// Non-secret preferences of the PIN tab, stored on this device only.
 ///
@@ -18,6 +28,7 @@ class PinPrefs {
   static const kPin24Charsets = 'pin.pin24.charsets';
   static const kPin24BannerAck = 'pin.pin24.banner_ack';
   static const kShowLegacy = 'pin.show_legacy';
+  static const kShiftLength = 'pin.shift.length';
 
   /// Every key this class writes (for tests and a future "reset" action).
   static const allKeys = [
@@ -26,6 +37,7 @@ class PinPrefs {
     kPin24Charsets,
     kPin24BannerAck,
     kShowLegacy,
+    kShiftLength,
   ];
 
   Pin24Mode get pin24Mode => _prefs.getString(kPin24Mode) == 'password'
@@ -68,6 +80,17 @@ class PinPrefs {
 
   Future<void> setShowLegacyTools(bool show) =>
       _prefs.setBool(kShowLegacy, show);
+
+  /// PIN Shift's last chosen length, clamped into 1…16;
+  /// [kPinShiftDefaultLength] on first run or when the stored value is not
+  /// an int. Only the length: never the PIN, the vector or the reveal state.
+  int get pinShiftLength {
+    final stored = _prefs.get(kShiftLength);
+    return clampPinShiftLength(stored is int ? stored : kPinShiftDefaultLength);
+  }
+
+  Future<void> setPinShiftLength(int length) =>
+      _prefs.setInt(kShiftLength, clampPinShiftLength(length));
 }
 
 /// Loaded once; `SharedPreferences.getInstance()` is already warm because
