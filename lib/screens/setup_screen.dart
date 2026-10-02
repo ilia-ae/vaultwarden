@@ -115,6 +115,8 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
   }
 
   Future<void> _loadVersion() async {
+    // Store screenshots stay valid across releases: no version footer.
+    if (storeScreenshotBuild) return;
     try {
       final info = await PackageInfo.fromPlatform();
       if (mounted) {

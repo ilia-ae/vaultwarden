@@ -247,8 +247,9 @@ class _RequestsScreenState extends ConsumerState<RequestsScreen>
         ],
       ),
       // Demo-only: a '+' to inject fresh incoming requests into the list —
-      // only where that list is, Vault › Pending.
+      // only where that list is, Vault › Pending; not in store screenshots.
       floatingActionButton: demoActive &&
+              !storeScreenshotBuild &&
               _tabIndex == _vaultTab &&
               _vaultView == VaultView.pending
           ? Semantics(

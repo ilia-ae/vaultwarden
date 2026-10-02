@@ -54,6 +54,10 @@ final themeModeProvider = StateProvider<ThemeMode>(
 const String _demoBannerFlag =
     String.fromEnvironment('DEMO_BANNER', defaultValue: 'on');
 
+/// A store-screenshot build (DEMO_BANNER=off): demo-only controls such as
+/// the "add request" button stay hidden too.
+const bool storeScreenshotBuild = _demoBannerFlag == 'off';
+
 /// Compile-time DEMO_LOCALE override for screenshot capture builds.
 ///
 /// On iOS the simulator's `-AppleLanguages` launch argument changes the
