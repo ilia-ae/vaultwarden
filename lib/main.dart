@@ -9,9 +9,12 @@ import 'app.dart';
 import 'demo_fixtures.dart';
 import 'firebase_options.dart';
 import 'providers/service_providers.dart';
-import 'services/pin_shift_vector_store.dart';
+import 'providers/session_provider.dart';
+import 'services/encrypted_shift_vector_store.dart';
 import 'services/secure_storage_service.dart';
 import 'services/settings_service.dart';
+import 'services/shift_vectors.dart';
+import 'services/vault_shift_vector_source.dart';
 
 Future<void> main() async {
   final binding = WidgetsFlutterBinding.ensureInitialized();
@@ -53,10 +56,24 @@ Future<void> main() async {
       child: ProviderScope(
         overrides: [
           settingsServiceProvider.overrideWithValue(settings),
-          // PIN Shift's saved vector lives in the app's keychain store (the
-          // same guarded write path as the session).
-          pinShiftVectorStoreProvider
-              .overrideWith((ref) => ref.watch(secureStorageProvider)),
+          // PIN Shift's saved vectors: the app's keychain store (the same
+          // guarded write path as the session), encrypted with the account
+          // key; the experimental vault reader uses the API client. Demo
+          // builds keep vectors in memory instead (demoModeOverrides).
+          if (!isDemoMode) ...[
+            shiftVectorStoreProvider
+                .overrideWith((ref) => EncryptedShiftVectorStore(
+                      storage: ref.watch(secureStorageProvider),
+                      crypto: ref.watch(cryptoServiceProvider),
+                      userKey: () => ref.read(userKeyProvider),
+                    )),
+            shiftVectorSourceProvider
+                .overrideWith((ref) => VaultShiftVectorSource(
+                      api: ref.watch(apiServiceProvider),
+                      crypto: ref.watch(cryptoServiceProvider),
+                      userKey: () => ref.read(userKeyProvider),
+                    )),
+          ],
           ...demoModeOverrides(),
         ],
         child: const App(),

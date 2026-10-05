@@ -131,12 +131,20 @@ class OptionPill extends StatelessWidget {
     required this.selected,
     required this.onTap,
     this.identifier,
+    this.icon,
+    this.semanticsLabel,
   });
 
   final String label;
   final bool selected;
   final VoidCallback onTap;
   final String? identifier;
+
+  /// Optional leading icon (e.g. where an option comes from).
+  final IconData? icon;
+
+  /// What a screen reader says instead of [label] (e.g. with the source).
+  final String? semanticsLabel;
 
   /// Fill of a selected pill (also the setup screen's server pills): the
   /// [SegmentedTabs] greys, never the accent. Its lighter thumb in the dark
@@ -171,6 +179,8 @@ class OptionPill extends StatelessWidget {
           identifier: identifier,
           button: true,
           selected: selected,
+          label: semanticsLabel,
+          excludeSemantics: semanticsLabel != null,
           child: Container(
             // No `alignment` here: a Container with alignment expands to the
             // parent's max width, which in a Wrap stretches every pill
@@ -184,16 +194,35 @@ class OptionPill extends StatelessWidget {
                 side: selected ? BorderSide.none : unselectedSide(cs),
               ),
             ),
-            child: Text(
-              label,
-              style: theme.textTheme.labelLarge?.copyWith(
-                color: labelColor(cs, selected: selected),
-                fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
-              ),
-            ),
+            child: _content(theme, cs),
           ),
         ),
       ),
+    );
+  }
+
+  Widget _content(ThemeData theme, ColorScheme cs) {
+    final color = labelColor(cs, selected: selected);
+    final style = theme.textTheme.labelLarge?.copyWith(
+      color: color,
+      fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+    );
+    final leading = icon;
+    if (leading == null) return Text(label, style: style);
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(leading, size: 16, color: color),
+        const SizedBox(width: 6),
+        Flexible(
+          child: Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: style,
+          ),
+        ),
+      ],
     );
   }
 }

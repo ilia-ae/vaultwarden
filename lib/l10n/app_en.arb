@@ -1208,33 +1208,91 @@
   },
   "pinShiftVectorSave": "Save on this device",
   "pinShiftVectorSaveReplace": "Save",
-  "pinShiftVectorSaveHelp": "Saved in this device's keychain, protected by the device passcode; not synced, and kept when you log out of the vault. Once saved, it is used automatically and can't be shown again.",
-  "pinShiftVectorSavedTitle": "Saved vector · {length, plural, one{1 digit} other{{length} digits}}",
-  "@pinShiftVectorSavedTitle": {
-    "placeholders": {
-      "length": { "type": "int" }
-    }
-  },
-  "pinShiftVectorSavedHelp": "Used automatically: enter only the PIN. The app never shows the vector. It stays in this device's keychain (protected by the device passcode), is not synced and is kept when you log out of the vault. Anyone who can open the unlocked app can compute with it, and one result for a PIN they know gives the vector away.",
+  "pinShiftVectorSaveHelp": "Saved on this device, encrypted with your Bitwarden account key; not synced, and kept when you log out (it opens again when you sign in to the same account). Once saved, it is used automatically and can't be shown again.",
+  "pinShiftVectorSavedHelp": "Used automatically: enter only the PIN. The app never shows the vector. It is stored on this device, encrypted with your Bitwarden account key; not synced, and kept when you log out. Anyone who can open the unlocked app can compute with it, and one result for a PIN they know gives the vector away.",
   "pinShiftVectorSavedSemantics": "Saved shift vector, {length, plural, one{1 digit} other{{length} digits}}. Never shown or read aloud.",
   "@pinShiftVectorSavedSemantics": {
     "placeholders": {
       "length": { "type": "int" }
     }
   },
-  "pinShiftVectorReplace": "Replace",
   "pinShiftVectorDelete": "Delete",
   "pinShiftVectorNewLabel": "New shift vector",
-  "pinShiftVectorReplaceNote": "The saved vector is kept until you save the new one.",
   "pinShiftVectorSavedSnack": "Vector saved on this device. From now on it can't be viewed.",
-  "pinShiftVectorReplacedSnack": "Saved vector replaced.",
   "pinShiftVectorDeletedSnack": "Saved vector deleted.",
-  "pinShiftVectorDeleteTitle": "Delete the saved vector?",
-  "pinShiftVectorDeleteBody": "It is removed from this device's keychain; the app can't show or restore it. To use PIN Shift afterwards, enter the vector again.",
-  "pinShiftVectorReadError": "Couldn't read the saved vector from this device's keychain.",
+  "pinShiftVectorDeleteBody": "It is removed from this device; the app can't show or restore it. Copies kept elsewhere (Bitwarden, your separate store) are not affected.",
+  "pinShiftVectorReadError": "Couldn't read the saved vectors on this device.",
   "pinShiftVectorSaveError": "Couldn't save the vector on this device. Try again.",
   "pinShiftVectorDeleteError": "Couldn't delete the saved vector. Try again.",
-  "pinShiftLengthSetBySaved": "Set by the saved vector. To change the length, replace or delete the vector.",
+  "pinShiftSavedVectors": "Saved vectors",
+  "pinShiftManual": "By hand",
+  "pinShiftAddVector": "Add",
+  "pinShiftVaultChipSemantics": "{name}, from the Bitwarden vault",
+  "@pinShiftVaultChipSemantics": {
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+  "pinShiftSectionResultFor": "Result · {name}",
+  "@pinShiftSectionResultFor": {
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+  "pinShiftVectorNamedTitle": "{name} · {length, plural, one{1 digit} other{{length} digits}}",
+  "@pinShiftVectorNamedTitle": {
+    "placeholders": {
+      "name": { "type": "String" },
+      "length": { "type": "int" }
+    }
+  },
+  "pinShiftVectorNamedSemantics": "Saved shift vector “{name}”, {length, plural, one{1 digit} other{{length} digits}}. Never shown or read aloud.",
+  "@pinShiftVectorNamedSemantics": {
+    "placeholders": {
+      "name": { "type": "String" },
+      "length": { "type": "int" }
+    }
+  },
+  "pinShiftVectorEdit": "Edit",
+  "pinShiftVectorDeleteNamedTitle": "Delete “{name}”?",
+  "@pinShiftVectorDeleteNamedTitle": {
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+  "pinShiftFormNew": "New saved vector",
+  "pinShiftFormEdit": "Edit “{name}”",
+  "@pinShiftFormEdit": {
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+  "pinShiftNameLabel": "Name",
+  "pinShiftNameHint": "For example, Ledger 1",
+  "pinShiftNameHelp": "Name it after what the vector belongs to: a vector of another key gives a wrong PIN.",
+  "pinShiftNameTaken": "A saved vector already has this name.",
+  "pinShiftVectorKeepHelp": "Leave empty to keep the saved vector.",
+  "pinShiftGenerate": "Generate random",
+  "pinShiftGeneratedNote": "Random vector, shown only now. Copy it to Bitwarden and your separate store before saving: once saved, the app never shows it.",
+  "pinShiftVectorsFull": "Up to {max} saved vectors.",
+  "@pinShiftVectorsFull": {
+    "placeholders": {
+      "max": { "type": "int" }
+    }
+  },
+  "pinShiftVectorUpdatedSnack": "Saved vector updated.",
+  "pinShiftVectorsOtherAccount": "The saved vectors were encrypted with another account's key (another account signed in, or the account key changed). They can't be opened here; delete them to save new ones.",
+  "pinShiftVectorsCorrupt": "The saved vectors are damaged and can't be opened. Delete them to save new ones.",
+  "pinShiftVectorsDiscard": "Delete saved vectors",
+  "pinShiftVectorsDiscardTitle": "Delete all saved vectors?",
+  "pinShiftVectorsDiscardBody": "They can't be opened with this account, so they are removed from this device. Copies kept elsewhere are not affected.",
+  "pinShiftVaultReadLabel": "Vectors from the Bitwarden vault (experimental)",
+  "pinShiftVaultReadHelp": "Also offers vault items that have a custom field named “PIN Shift” (a hidden field is best); the item's name becomes the vector's name. The vault is downloaded from your server and decrypted on this device; the vectors are kept in memory only and are not saved here.",
+  "pinShiftVaultLoading": "Reading the vault…",
+  "pinShiftVaultError": "Couldn't read the Bitwarden vault.",
+  "pinShiftVaultEmpty": "No vault items with a “PIN Shift” field.",
+  "pinShiftVaultEntryHelp": "From your Bitwarden vault: read just now and not stored on this device. To change it, edit the item in Bitwarden.",
+  "pinShiftLengthSetBySaved": "Set by the chosen saved vector. To use another length, choose “By hand” or edit the vector.",
   "pinShiftRevealSaved": "Reveal base PIN",
   "pinShiftRevealHelpSaved": "Off (default): only the output. On: input + output and the per-digit breakdown; the saved vector stays hidden. Turns off whenever the tab is wiped.",
   "pinShiftHiddenNoteSaved": "Base PIN hidden; the saved vector is never shown. Turn on “Reveal base PIN” below to see the PIN.",

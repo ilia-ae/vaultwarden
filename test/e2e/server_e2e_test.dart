@@ -47,6 +47,7 @@ import 'package:vault_approver/services/notification_service.dart';
 import 'package:vault_approver/services/secure_storage_service.dart';
 import 'package:vault_approver/services/settings_service.dart';
 import 'package:vault_approver/services/vault_api.dart';
+import 'package:vault_approver/services/vault_shift_vector_source.dart';
 import 'package:vault_approver/utils/constants.dart';
 import 'package:vault_approver/utils/error_formatter.dart';
 import 'package:web_socket_channel/io.dart';
@@ -1106,6 +1107,68 @@ void _coreSuite(String label, String Function() baseOf, bool Function() up) {
         'its "created" line), payload keys ${event.payload.keys.toList()}, '
         'ContextId ${event.contextId}; after approve Type ${response.type} '
         'ContextId ${response.contextId == app.deviceId ? '= this device' : response.contextId}');
+  });
+
+  // P5 (experimental): PIN Shift vectors read from the vault — the item JSON
+  // of a real server, decrypted on the device.
+  test(
+      '[$label] P5 vault vectors: items with a "PIN Shift" field are read '
+      'and decrypted (item key, trash and other items skipped)', () async {
+    if (skipIfDown()) return;
+    final base = baseOf();
+    final acc = await _freshAccount(base, 'vectors');
+    final app = await _App.create(base,
+        deviceId: _stableDeviceId('$base|${acc.email}|approver'));
+    final login = await app.login(acc);
+    final userKey = login.userKey;
+    String enc(String text, Uint8List key) => app.crypto
+        .encryptSymmetric(Uint8List.fromList(utf8.encode(text)), key)
+        .encode();
+    final apiUrl = ServerEnvironment.fromUrl(base).apiUrl;
+
+    Future<String> create(String name, Map<String, String> fields,
+        {Uint8List? itemKey}) async {
+      final k = itemKey ?? userKey;
+      final (status, body) = await _rawCall(
+          'POST', '$apiUrl/ciphers', login.session.accessToken,
+          json: {
+            'type': 2,
+            'name': enc(name, k),
+            'notes': null,
+            'secureNote': {'type': 0},
+            'favorite': false,
+            'reprompt': 0,
+            if (itemKey != null)
+              'key': app.crypto.encryptSymmetric(itemKey, userKey).encode(),
+            'fields': [
+              for (final MapEntry(key: n, value: v) in fields.entries)
+                {'type': 1, 'name': enc(n, k), 'value': enc(v, k)},
+            ],
+          });
+      expect(status, 200, reason: '$body');
+      return (body as Map)['id'] as String;
+    }
+
+    await create('Ledger Nano X', {'PIN Shift': '9081 7263', 'note': 'n'});
+    final itemKey =
+        Uint8List.fromList(List.generate(64, (i) => (i * 31 + 7) % 256));
+    await create('Ledger Stax', {'pin_shift': '1357'}, itemKey: itemKey);
+    await create('Mail', {'note': '1234'});
+    final trashed = await create('Old Ledger', {'PIN Shift': '0000'});
+    final (delStatus, delBody) = await _rawCall(
+        'PUT', '$apiUrl/ciphers/$trashed/delete', login.session.accessToken);
+    expect(delStatus, inInclusiveRange(200, 204), reason: '$delBody');
+
+    final source = VaultShiftVectorSource(
+        api: app.api, crypto: app.crypto, userKey: () => userKey);
+    final vectors = await source.fetch();
+    expect([
+      for (final v in vectors) (v.name, v.vector, v.fromVault)
+    ], [
+      ('Ledger Nano X', '90817263', true),
+      ('Ledger Stax', '1357', true),
+    ]);
+    _log('$label P5: ${vectors.length} vault vectors read and decrypted');
   });
 }
 

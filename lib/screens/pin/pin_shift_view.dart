@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -7,7 +8,8 @@ import 'package:intl/intl.dart' show NumberFormat;
 
 import '../../l10n/app_localizations.dart';
 import '../../pin_tools/pin_shift.dart';
-import '../../services/pin_shift_vector_store.dart';
+import '../../services/shift_vectors.dart';
+import '../../widgets/control_id.dart';
 import '../../widgets/option_pills.dart';
 import 'pin_prefs.dart';
 import 'pin_session.dart';
@@ -28,10 +30,11 @@ const String _mask = '•';
 /// (port of `crypto_tools/pin_shift_ui.py`, core in
 /// `lib/pin_tools/pin_shift.dart`).
 ///
-/// Top to bottom: the PIN, the vector, the result, the settings (direction,
-/// length, reveal, Clear), then what it is and how to do it on paper. With a
-/// saved vector only the PIN is typed, so the result follows it directly and
-/// the saved-vector card (replace / delete) comes after the result.
+/// Top to bottom: the saved vectors to choose from (when there are any), the
+/// PIN, the vector, the result, the settings (direction, length, reveal,
+/// Clear), then what it is and how to do it on paper. With a saved vector
+/// chosen only the PIN is typed, so the result follows it directly and the
+/// vector card (edit / delete) comes after the result.
 ///
 /// Mnemonic obfuscation, not a cipher. The PIN and a typed vector live only
 /// in this widget's text controllers; they are cleared by every section wipe
@@ -43,14 +46,17 @@ const String _mask = '•';
 /// readers are not given the digits. The length is remembered
 /// ([PinPrefs.pinShiftLength], this device only).
 ///
-/// The vector can be saved on this device ([PinShiftVectorStore]: the
-/// keychain, never the preferences or the cloud). A saved vector is used
-/// automatically and is never shown again — no eye, masked cells, a masked
-/// breakdown column, no weak-vector notices, no digits in any semantics
-/// label; to see it, the user enters it again (Replace). It fixes the length
-/// until it is replaced or deleted. The in-memory copy is dropped by every
-/// wipe and by Clear and read from the keychain again on the next use; the
-/// saved vector itself survives wipes.
+/// Vectors can be saved on this device under a name ([ShiftVectorStore]:
+/// the keychain, encrypted with the Bitwarden account key; never the
+/// preferences or the cloud) and chosen with one tap; the last choice is
+/// remembered by its random id. A saved vector is used automatically and is
+/// never shown again — no eye, masked cells, a masked breakdown column, no
+/// weak-vector notices, no digits in any semantics label; to change it, the
+/// user enters a new one (Edit). It fixes the length while chosen. The
+/// in-memory digits are dropped by every wipe and by Clear and read again on
+/// the next use; the saved vectors themselves survive wipes. Experimental and
+/// off by default, vectors can also be read from the Bitwarden vault
+/// ([ShiftVectorSource], memory only).
 class PinShiftView extends ConsumerStatefulWidget {
   const PinShiftView({super.key});
 
@@ -81,19 +87,52 @@ class _FieldCheck {
   bool get ok => !isEmpty && !hasError && runeLength == length;
 }
 
-/// What the keychain holds for PIN Shift, as far as this view knows.
-enum _Saved {
+/// How far the saved vectors are known.
+enum _Load {
   /// Being read (the tool just opened, or Retry).
   loading,
 
-  /// No vector saved (or no keychain wired: then there is no Save either).
-  none,
+  /// Read (possibly none saved), or no store wired.
+  ready,
 
-  /// A vector is saved; its digits may or may not be in memory right now.
-  saved,
-
-  /// The keychain could not be read.
+  /// The keychain could not be read right now (Retry).
   error,
+
+  /// Saved with another account's key, or damaged: can only be deleted.
+  foreign,
+}
+
+/// The experimental vault reader.
+enum _VaultLoad { off, loading, ready, error }
+
+/// A vector the chooser offers: saved in the app or read from the vault.
+class _Choice {
+  _Choice(
+    this.id,
+    this.name,
+    this.length, {
+    required this.fromVault,
+    this.digits,
+  });
+
+  final String id;
+  final String name;
+  final int length;
+  final bool fromVault;
+
+  /// The digits while in memory: dropped by every wipe, Clear and dispose,
+  /// read again on the next use. Never rendered.
+  String? digits;
+}
+
+/// The add / edit form of a saved vector.
+class _Form {
+  const _Form({this.editId});
+
+  /// The saved vector being edited; null for a new one.
+  final String? editId;
+
+  bool get isNew => editId == null;
 }
 
 class _PinShiftViewState extends ConsumerState<PinShiftView> {
@@ -109,8 +148,11 @@ class _PinShiftViewState extends ConsumerState<PinShiftView> {
   /// is built).
   PinPrefs? _prefs;
 
-  /// Where a saved vector lives; `null` = saving is not offered.
-  PinShiftVectorStore? _store;
+  /// Where saved vectors live; `null` = saving is not offered.
+  ShiftVectorStore? _store;
+
+  /// The experimental vault reader; `null` = not offered.
+  ShiftVectorSource? _source;
 
   bool _decode = false;
   int _length = kPinShiftDefaultLength;
@@ -124,29 +166,43 @@ class _PinShiftViewState extends ConsumerState<PinShiftView> {
   /// undo history.
   int _fieldGen = 0;
 
-  // ── Saved vector ──
+  // ── Saved vectors ──
 
-  _Saved _saved = _Saved.none;
+  _Load _load = _Load.ready;
 
-  /// The saved vector's digits while in memory: read when the tool opens and
-  /// on the first use after a wipe, dropped by every wipe, Clear and
-  /// dispose. Never rendered.
-  String? _savedVector;
+  /// Why the saved set cannot be opened ([_Load.foreign]).
+  ShiftVectorFailure? _foreign;
 
-  /// Its length (known while [_saved] is [_Saved.saved], also when the
-  /// digits were dropped).
-  int? _savedLength;
+  /// Saved in the app, in saved order.
+  List<_Choice> _local = const [];
 
-  /// "Replace": a new vector is typed while the saved one stays stored.
-  bool _replacing = false;
+  /// Read from the vault (experimental), sorted by name.
+  List<_Choice> _vault = const [];
+  bool _vaultOn = false;
+  _VaultLoad _vaultLoad = _VaultLoad.off;
+
+  /// The chosen vector's id; null = typed by hand.
+  String? _selectedId;
+
+  /// The user chose something on this visit: a late load does not change it.
+  bool _picked = false;
+
+  /// The add / edit form, while open.
+  _Form? _form;
+  final _nameCtrl = TextEditingController();
+  final _nameFocus = FocusNode();
+
+  /// The form's vector was generated here (shown once, until saved).
+  bool _generated = false;
 
   /// A save or delete is running.
   bool _busy = false;
   bool _reloading = false;
 
-  /// Bumped by every keychain call: a late answer of an older one is
-  /// ignored.
+  /// Bumped by every keychain / vault call: a late answer of an older one
+  /// is ignored.
   int _loadGen = 0;
+  int _vaultGen = 0;
 
   /// Bumped by every wipe and Clear: digits read before one are not kept.
   int _wipeCount = 0;
@@ -160,10 +216,16 @@ class _PinShiftViewState extends ConsumerState<PinShiftView> {
     _unregisterProbe = _session.registerContentProbe(_hasContent);
     _prefs = ref.read(pinPrefsProvider).valueOrNull;
     _length = _prefs?.pinShiftLength ?? kPinShiftDefaultLength;
-    _store = ref.read(pinShiftVectorStoreProvider);
+    _store = ref.read(shiftVectorStoreProvider);
+    _source = ref.read(shiftVectorSourceProvider);
+    _vaultOn = _source != null && (_prefs?.pinShiftVaultRead ?? false);
     if (_store != null) {
-      _saved = _Saved.loading;
+      _load = _Load.loading;
       unawaited(_loadSaved());
+    }
+    if (_vaultOn) {
+      _vaultLoad = _VaultLoad.loading;
+      unawaited(_fetchVault());
     }
     _session.touch();
   }
@@ -173,30 +235,50 @@ class _PinShiftViewState extends ConsumerState<PinShiftView> {
     _session.wipes.removeListener(_onWipe);
     _unregisterProbe?.call();
     _sessionSub.close();
-    _savedVector = null;
+    for (final c in [..._local, ..._vault]) {
+      c.digits = null;
+    }
     _pinCtrl.clear();
     _vecCtrl.clear();
+    _nameCtrl.clear();
     _pinCtrl.dispose();
     _vecCtrl.dispose();
+    _nameCtrl.dispose();
     _vecFocus.dispose();
+    _nameFocus.dispose();
     // Never let iOS/Android offer to save what was typed as a password.
     TextInput.finishAutofillContext(shouldSave: false);
     super.dispose();
   }
 
-  /// Whether a saved vector (rather than the field) feeds the result.
-  bool get _usingSaved => _saved == _Saved.saved && !_replacing;
+  List<_Choice> get _choices => [..._local, ..._vault];
 
-  /// A saved vector fixes the length until it is replaced or deleted.
+  /// The chosen saved or vault vector; null when typing by hand (or while
+  /// the chosen one is not known yet).
+  _Choice? get _selected {
+    final id = _selectedId;
+    if (id == null) return null;
+    for (final c in _choices) {
+      if (c.id == id) return c;
+    }
+    return null;
+  }
+
+  /// Whether a chosen vector (rather than the field) feeds the result.
+  bool get _usingSaved => _form == null && _selected != null;
+
+  /// A chosen vector fixes the length.
   bool get _lengthLocked => _usingSaved;
 
-  /// Whether the vector field offers "Save" (no saved vector yet, or
-  /// replacing one).
-  bool get _canSave =>
-      _store != null &&
-      (_saved == _Saved.none || (_saved == _Saved.saved && _replacing));
+  /// Whether saving is possible now (the saved set is open).
+  bool get _canSave => _store != null && _load == _Load.ready;
 
-  bool _hasContent() => _pinCtrl.text.isNotEmpty || _vecCtrl.text.isNotEmpty;
+  bool get _full => _local.length >= kMaxShiftVectors;
+
+  bool _hasContent() =>
+      _pinCtrl.text.isNotEmpty ||
+      _vecCtrl.text.isNotEmpty ||
+      _nameCtrl.text.isNotEmpty;
 
   void _onWipe() {
     final event = _session.wipes.value;
@@ -209,21 +291,24 @@ class _PinShiftViewState extends ConsumerState<PinShiftView> {
   void _clearInputs() {
     _pinCtrl.clear();
     _vecCtrl.clear();
+    _nameCtrl.clear();
     TextInput.finishAutofillContext(shouldSave: false);
-    final wasReplacing = _replacing;
     setState(() {
       _fieldGen++;
       _showPin = false;
       _showVector = false;
       _reveal = false;
-      // The saved vector stays in the keychain; its digits leave memory and
-      // are read again on the next use.
+      // The saved vectors stay stored; their digits leave memory and are
+      // read again on the next use. An open form is dropped.
       _wipeCount++;
-      _savedVector = null;
-      _replacing = false;
+      for (final c in _choices) {
+        c.digits = null;
+      }
+      _form = null;
+      _generated = false;
     });
-    final saved = _savedLength;
-    if (wasReplacing && saved != null) _useLength(saved);
+    final chosen = _selected;
+    if (chosen != null) _useLength(chosen.length);
   }
 
   void _onClearPressed() {
@@ -241,7 +326,7 @@ class _PinShiftViewState extends ConsumerState<PinShiftView> {
 
   void _pinEdited(String value) {
     _edited(value);
-    _reloadSavedIfDropped();
+    _reloadIfDropped();
   }
 
   void _setDecode(bool decode) {
@@ -265,79 +350,165 @@ class _PinShiftViewState extends ConsumerState<PinShiftView> {
     }
   }
 
-  // ── Saved vector: keychain ──
+  // ── Saved vectors: keychain and vault ──
 
-  /// A stored value PIN Shift can use: ASCII digits, 1–16 of them; else
-  /// `null` (treated as nothing saved; a new save overwrites it).
-  static String? _usable(String? raw) {
-    if (raw == null) return null;
-    final value = normalizeInputDigits(raw);
-    final n = value.runes.length;
-    if (n < kShiftMinLength ||
-        n > kShiftMaxLength ||
-        nonDigitPositions(value).isNotEmpty) {
-      return null;
-    }
-    return value;
-  }
-
-  /// Reads the saved vector. A keychain that cannot be read (locked device,
+  /// Reads the saved vectors. A keychain that cannot be read (locked device,
   /// keystore failure) is an error with Retry, never "nothing saved".
   Future<void> _loadSaved() async {
     final store = _store;
     if (store == null) return;
     final gen = ++_loadGen;
     final wipes = _wipeCount;
-    String? vector;
-    var failed = false;
+    List<ShiftVector>? vectors;
+    ShiftVectorFailure? failure;
     try {
-      vector = _usable(await store.loadShiftVector());
+      vectors = await store.load();
+    } on ShiftVectorException catch (e) {
+      failure = e.failure;
     } catch (_) {
-      // SecureStorageReadException or a plugin error; never shown as text.
-      failed = true;
+      failure = ShiftVectorFailure.unavailable;
     }
     if (!mounted || gen != _loadGen) return;
     setState(() {
-      if (failed) {
-        _saved = _Saved.error;
-        _savedVector = null;
-        _savedLength = null;
-      } else if (vector == null) {
-        _saved = _Saved.none;
-        _savedVector = null;
-        _savedLength = null;
+      if (vectors != null) {
+        _load = _Load.ready;
+        _foreign = null;
+        _local = [
+          for (final v in vectors)
+            _Choice(v.id, v.name, v.length,
+                fromVault: false,
+                // A wipe while the keychain answered: keep the list, not the
+                // digits.
+                digits: wipes == _wipeCount ? v.vector : null),
+        ];
+      } else if (failure == ShiftVectorFailure.otherAccount ||
+          failure == ShiftVectorFailure.corrupt) {
+        _load = _Load.foreign;
+        _foreign = failure;
+        _local = const [];
       } else {
-        _saved = _Saved.saved;
-        _savedLength = vector.length;
-        // A wipe while the keychain answered: keep knowing that a vector is
-        // saved, not its digits.
-        _savedVector = wipes == _wipeCount ? vector : null;
+        _load = _Load.error;
       }
     });
-    if (vector == null || _replacing) return;
-    _useLength(vector.length);
-    // A vector typed by hand meanwhile (Retry after a read error) is not
-    // used any more: it does not stay behind the saved card.
-    if (_vecCtrl.text.isNotEmpty) {
-      _vecCtrl.clear();
-      setState(() {
-        _fieldGen++;
-        _showVector = false;
-      });
-    }
+    _restoreSelection();
   }
 
-  /// The first use after a wipe reads the saved vector again.
-  void _reloadSavedIfDropped() {
-    if (!_usingSaved || _savedVector != null || _reloading) return;
+  /// Reads the vault's vectors (experimental). The caller sets
+  /// [_vaultLoad] to loading.
+  Future<void> _fetchVault() async {
+    final source = _source;
+    if (source == null || !_vaultOn) return;
+    final gen = ++_vaultGen;
+    final wipes = _wipeCount;
+    List<ShiftVector>? vectors;
+    try {
+      vectors = await source.fetch();
+    } catch (_) {
+      // Network, server or a locked vault: never shown as text.
+    }
+    if (!mounted || gen != _vaultGen || !_vaultOn) return;
+    setState(() {
+      if (vectors == null) {
+        _vaultLoad = _VaultLoad.error;
+      } else {
+        _vaultLoad = _VaultLoad.ready;
+        _vault = [
+          for (final v in vectors)
+            _Choice(v.id, v.name, v.length,
+                fromVault: true, digits: wipes == _wipeCount ? v.vector : null),
+        ];
+      }
+    });
+    _restoreSelection();
+  }
+
+  /// The first use after a wipe reads the chosen vector again.
+  void _reloadIfDropped() {
+    final chosen = _selected;
+    if (!_usingSaved || chosen == null || chosen.digits != null || _reloading) {
+      return;
+    }
     _reloading = true;
-    unawaited(_loadSaved().whenComplete(() => _reloading = false));
+    final Future<void> reload;
+    if (chosen.fromVault) {
+      setState(() => _vaultLoad = _VaultLoad.loading);
+      reload = _fetchVault();
+    } else {
+      reload = _loadSaved();
+    }
+    unawaited(reload.whenComplete(() => _reloading = false));
   }
 
   void _retryLoad() {
     _session.touch();
-    setState(() => _saved = _Saved.loading);
+    setState(() => _load = _Load.loading);
     unawaited(_loadSaved());
+  }
+
+  void _retryVault() {
+    _session.touch();
+    setState(() => _vaultLoad = _VaultLoad.loading);
+    unawaited(_fetchVault());
+  }
+
+  /// Once the vectors are known: the remembered choice (by id), else the
+  /// first saved vector, else typing by hand — unless the user already
+  /// chose on this visit.
+  void _restoreSelection() {
+    if (_picked || !mounted) return;
+    final remembered = _prefs?.pinShiftSelected;
+    String? id;
+    if (remembered == PinPrefs.shiftManual) {
+      id = null;
+    } else if (remembered != null && _choices.any((c) => c.id == remembered)) {
+      id = remembered;
+    } else if (remembered != null &&
+        remembered.startsWith('vault:') &&
+        _vaultLoad == _VaultLoad.loading) {
+      return; // wait for the vault
+    } else {
+      id = _local.isEmpty ? null : _local.first.id;
+    }
+    _applySelection(id);
+  }
+
+  void _applySelection(String? id) {
+    if (_selectedId != id) setState(() => _selectedId = id);
+    final chosen = _selected;
+    if (chosen != null) _useLength(chosen.length);
+  }
+
+  /// The user chose a vector (or "By hand").
+  void _pick(String? id) {
+    _session.touch();
+    _picked = true;
+    if (_form != null) _closeForm();
+    _applySelection(id);
+    final prefs = _prefs;
+    if (prefs != null) {
+      unawaited(prefs.setPinShiftSelected(id ?? PinPrefs.shiftManual));
+    }
+    _reloadIfDropped();
+  }
+
+  void _setVaultRead(bool on) {
+    _session.touch();
+    final prefs = _prefs;
+    if (prefs != null) unawaited(prefs.setPinShiftVaultRead(on));
+    setState(() {
+      _vaultOn = on;
+      _vaultGen++;
+      if (on) {
+        _vaultLoad = _VaultLoad.loading;
+      } else {
+        _vaultLoad = _VaultLoad.off;
+        _vault = const [];
+        if (_selectedId?.startsWith('vault:') ?? false) {
+          _selectedId = _local.isEmpty ? null : _local.first.id;
+        }
+      }
+    });
+    if (on) unawaited(_fetchVault());
   }
 
   void _snack(ScaffoldMessengerState? messenger, String text) {
@@ -346,46 +517,145 @@ class _PinShiftViewState extends ConsumerState<PinShiftView> {
       ..showSnackBar(SnackBar(content: Text(text)));
   }
 
-  Future<void> _saveVector() async {
-    final store = _store;
-    final check = _FieldCheck(_vecCtrl.text, _length);
-    if (store == null || _busy || !_canSave || !check.ok) return;
+  // ── Form: add / edit ──
+
+  /// Opens the form: a new vector ([vector] carries one typed by hand) or
+  /// [editId]'s name and a new vector (empty keeps the saved one).
+  void _openForm({String? editId, String vector = ''}) {
+    if (!_canSave) return;
     _session.touch();
+    _Choice? editing;
+    for (final c in _local) {
+      if (c.id == editId) editing = c;
+    }
+    _nameCtrl.text = editing?.name ?? '';
+    _vecCtrl.text = vector;
+    setState(() {
+      _form = _Form(editId: editing?.id);
+      _showVector = false;
+      _generated = false;
+    });
+    if (editing != null) _useLength(editing.length);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && _form != null) _nameFocus.requestFocus();
+    });
+  }
+
+  void _closeForm() {
+    final wasEdit = !(_form?.isNew ?? true);
+    _nameCtrl.clear();
+    // A vector typed by hand stays in the field after "Cancel" on a new
+    // one; an edit's new vector does not.
+    if (wasEdit || _generated) _vecCtrl.clear();
+    TextInput.finishAutofillContext(shouldSave: false);
+    setState(() {
+      _form = null;
+      _showVector = false;
+      _generated = false;
+    });
+    final chosen = _selected;
+    if (chosen != null) _useLength(chosen.length);
+  }
+
+  void _cancelForm() {
+    _session.touch();
+    _nameFocus.unfocus();
     _vecFocus.unfocus();
+    _closeForm();
+  }
+
+  /// Why the form's name cannot be saved; null when it can (an empty name
+  /// only disables Save).
+  String? _nameProblem(AppLocalizations l) {
+    final name = normalizeShiftVectorName(_nameCtrl.text);
+    if (name.isEmpty) return null;
+    final editId = _form?.editId;
+    final taken =
+        _local.any((c) => c.id != editId && sameShiftVectorName(c.name, name));
+    return taken ? l.pinShiftNameTaken : null;
+  }
+
+  bool _formReady(AppLocalizations l) {
+    final form = _form;
+    if (form == null || _busy) return false;
+    final name = normalizeShiftVectorName(_nameCtrl.text);
+    if (name.isEmpty || _nameProblem(l) != null) return false;
+    if (!form.isNew && _vecCtrl.text.isEmpty) return true;
+    return _FieldCheck(_vecCtrl.text, _length).ok;
+  }
+
+  void _generate() {
+    _session.touch();
+    final r = Random.secure();
+    _vecCtrl.text = List.generate(_length, (_) => r.nextInt(10)).join();
+    setState(() {
+      _showVector = true;
+      _generated = true;
+    });
+  }
+
+  Future<void> _saveForm() async {
+    final store = _store;
+    final form = _form;
     final l = AppLocalizations.of(context)!;
+    if (store == null || form == null || !_formReady(l)) return;
+    _session.touch();
+    _nameFocus.unfocus();
+    _vecFocus.unfocus();
     final messenger = ScaffoldMessenger.maybeOf(context);
-    final replaced = _saved == _Saved.saved;
-    final vector = check.value;
-    final wipes = _wipeCount;
+    final name = normalizeShiftVectorName(_nameCtrl.text);
+    final keep = !form.isNew && _vecCtrl.text.isEmpty;
+    final vector = keep ? null : _FieldCheck(_vecCtrl.text, _length).value;
     _loadGen++; // an older read must not undo this
     setState(() => _busy = true);
+    final String id;
     try {
-      await store.saveShiftVector(vector);
+      // Always from the stored set: the digits in memory may be dropped.
+      final current = await store.load();
+      if (form.isNew) {
+        if (current.length >= kMaxShiftVectors) throw StateError('full');
+        id = newShiftVectorId();
+        await store.save(
+            [...current, ShiftVector(id: id, name: name, vector: vector!)]);
+      } else {
+        id = form.editId!;
+        await store.save([
+          for (final v in current)
+            v.id == id ? v.copyWith(name: name, vector: vector) : v,
+        ]);
+      }
     } catch (_) {
       if (mounted) setState(() => _busy = false);
       _snack(messenger, l.pinShiftVectorSaveError);
       return;
     }
     if (!mounted) return;
+    _nameCtrl.clear();
     _vecCtrl.clear();
     TextInput.finishAutofillContext(shouldSave: false);
     setState(() {
       _busy = false;
-      _saved = _Saved.saved;
-      _savedLength = vector.length;
-      _savedVector = wipes == _wipeCount ? vector : null;
-      _replacing = false;
+      _form = null;
       _showVector = false;
+      _generated = false;
+      _picked = true;
+      _selectedId = id;
     });
-    _useLength(vector.length);
+    final prefs = _prefs;
+    if (prefs != null) unawaited(prefs.setPinShiftSelected(id));
+    await _loadSaved();
+    if (!mounted) return;
     HapticFeedback.mediumImpact();
     _snack(messenger,
-        replaced ? l.pinShiftVectorReplacedSnack : l.pinShiftVectorSavedSnack);
+        form.isNew ? l.pinShiftVectorSavedSnack : l.pinShiftVectorUpdatedSnack);
   }
 
-  Future<void> _deleteVector() async {
+  // ── Delete, discard, keep a vault vector ──
+
+  Future<void> _deleteChosen() async {
     final store = _store;
-    if (store == null || _busy || !_usingSaved) return;
+    final chosen = _selected;
+    if (store == null || chosen == null || chosen.fromVault || _busy) return;
     _session.touch();
     final l = AppLocalizations.of(context)!;
     final messenger = ScaffoldMessenger.maybeOf(context);
@@ -393,7 +663,7 @@ class _PinShiftViewState extends ConsumerState<PinShiftView> {
       context: context,
       session: _session,
       tone: PinDialogTone.destructive,
-      title: l.pinShiftVectorDeleteTitle,
+      title: l.pinShiftVectorDeleteNamedTitle(chosen.name),
       body: l.pinShiftVectorDeleteBody,
       confirmLabel: l.pinShiftVectorDelete,
       confirmId: 'pin_shift_vector_delete_confirm',
@@ -404,7 +674,11 @@ class _PinShiftViewState extends ConsumerState<PinShiftView> {
     _loadGen++;
     setState(() => _busy = true);
     try {
-      await store.deleteShiftVector();
+      final current = await store.load();
+      await store.save([
+        for (final v in current)
+          if (v.id != chosen.id) v,
+      ]);
     } catch (_) {
       if (mounted) setState(() => _busy = false);
       _snack(messenger, l.pinShiftVectorDeleteError);
@@ -413,38 +687,102 @@ class _PinShiftViewState extends ConsumerState<PinShiftView> {
     if (!mounted) return;
     setState(() {
       _busy = false;
-      _saved = _Saved.none;
-      _savedVector = null;
-      _savedLength = null;
-      _replacing = false;
+      _local = [
+        for (final c in _local)
+          if (c.id != chosen.id) c,
+      ];
+      _picked = true;
+      _selectedId = _local.isEmpty ? null : _local.first.id;
     });
+    final prefs = _prefs;
+    if (prefs != null) {
+      unawaited(prefs.setPinShiftSelected(_selectedId ?? PinPrefs.shiftManual));
+    }
+    final next = _selected;
+    if (next != null) _useLength(next.length);
     HapticFeedback.mediumImpact();
     _snack(messenger, l.pinShiftVectorDeletedSnack);
   }
 
-  void _startReplace() {
+  /// Deletes a set that cannot be opened (another account, damaged).
+  Future<void> _discardForeign() async {
+    final store = _store;
+    if (store == null || _load != _Load.foreign || _busy) return;
     _session.touch();
-    _vecCtrl.clear();
+    final l = AppLocalizations.of(context)!;
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    final confirmed = await confirmPinAction(
+      context: context,
+      session: _session,
+      tone: PinDialogTone.destructive,
+      title: l.pinShiftVectorsDiscardTitle,
+      body: l.pinShiftVectorsDiscardBody,
+      confirmLabel: l.pinShiftVectorDelete,
+      confirmId: 'pin_shift_vectors_discard_confirm',
+      cancelId: 'pin_shift_vectors_discard_cancel',
+    );
+    if (!confirmed || !mounted) return;
+    _loadGen++;
+    setState(() => _busy = true);
+    try {
+      await store.discard();
+    } catch (_) {
+      if (mounted) setState(() => _busy = false);
+      _snack(messenger, l.pinShiftVectorDeleteError);
+      return;
+    }
+    if (!mounted) return;
     setState(() {
-      _replacing = true;
-      _showVector = false;
+      _busy = false;
+      _load = _Load.ready;
+      _foreign = null;
+      _local = const [];
     });
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted && _replacing) _vecFocus.requestFocus();
-    });
+    _snack(messenger, l.pinShiftVectorDeletedSnack);
   }
 
-  void _cancelReplace() {
+  /// Saves the chosen vault vector in the app under its name.
+  Future<void> _keepVaultVector() async {
+    final store = _store;
+    final chosen = _selected;
+    final digits = chosen?.digits;
+    if (store == null || chosen == null || !chosen.fromVault) return;
+    if (digits == null || _busy || !_canSave || _full) return;
     _session.touch();
-    _vecFocus.unfocus();
-    _vecCtrl.clear();
-    TextInput.finishAutofillContext(shouldSave: false);
+    final l = AppLocalizations.of(context)!;
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    _loadGen++;
+    setState(() => _busy = true);
+    final String id;
+    try {
+      final current = await store.load();
+      if (current.length >= kMaxShiftVectors) throw StateError('full');
+      id = newShiftVectorId();
+      await store.save([
+        ...current,
+        ShiftVector(
+          id: id,
+          name: uniqueShiftVectorName(chosen.name, current),
+          vector: digits,
+        ),
+      ]);
+    } catch (_) {
+      if (mounted) setState(() => _busy = false);
+      _snack(messenger, l.pinShiftVectorSaveError);
+      return;
+    }
+    if (!mounted) return;
     setState(() {
-      _replacing = false;
-      _showVector = false;
+      _busy = false;
+      _picked = true;
+      _selectedId = id;
     });
-    final saved = _savedLength;
-    if (saved != null) _useLength(saved);
+    final prefs = _prefs;
+    if (prefs != null) unawaited(prefs.setPinShiftSelected(id));
+    await _loadSaved();
+    if (!mounted) return;
+    HapticFeedback.mediumImpact();
+    _snack(messenger, l.pinShiftVectorSavedSnack);
   }
 
   // ── Build ──
@@ -455,14 +793,15 @@ class _PinShiftViewState extends ConsumerState<PinShiftView> {
     final pin = _FieldCheck(_pinCtrl.text, _length);
     final _FieldCheck? vec;
     if (_usingSaved) {
-      final saved = _savedVector;
-      vec = saved == null ? null : _FieldCheck(saved, _length);
+      final digits = _selected?.digits;
+      vec = digits == null ? null : _FieldCheck(digits, _length);
     } else {
-      vec =
-          _saved == _Saved.loading ? null : _FieldCheck(_vecCtrl.text, _length);
+      vec = _load == _Load.loading && _form == null
+          ? null
+          : _FieldCheck(_vecCtrl.text, _length);
     }
-    // With a saved vector only the PIN is typed, so its result comes right
-    // after it; the saved-vector card (replace / delete) moves below.
+    // With a chosen vector only the PIN is typed, so its result comes right
+    // after it; the vector card (edit / delete) moves below.
     final resultFirst = _usingSaved;
     return Semantics(
       identifier: 'pin_shift_view',
@@ -471,6 +810,7 @@ class _PinShiftViewState extends ConsumerState<PinShiftView> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          if (_showChooser) _chooser(l),
           _pinCard(l, pin, step: 1),
           if (resultFirst) ...[
             _resultCard(l, pin, vec, step: 2),
@@ -485,6 +825,101 @@ class _PinShiftViewState extends ConsumerState<PinShiftView> {
           _threatCard(l),
         ],
       ),
+    );
+  }
+
+  /// The chooser shows once there is something to choose from (or the vault
+  /// option is on).
+  bool get _showChooser =>
+      _store != null && (_local.isNotEmpty || _vault.isNotEmpty || _vaultOn);
+
+  /// Saved vectors (and vault ones) as one row of pills: one tap chooses.
+  Widget _chooser(AppLocalizations l) {
+    final theme = Theme.of(context);
+    final pills = <Widget>[
+      for (var i = 0; i < _local.length; i++)
+        OptionPill(
+          label: _local[i].name,
+          selected: _selectedId == _local[i].id && _form == null,
+          identifier: 'pin_shift_pick_$i',
+          onTap: () => _pick(_local[i].id),
+        ),
+      for (var i = 0; i < _vault.length; i++)
+        OptionPill(
+          label: _vault[i].name,
+          icon: Icons.cloud_download_outlined,
+          semanticsLabel: l.pinShiftVaultChipSemantics(_vault[i].name),
+          selected: _selectedId == _vault[i].id && _form == null,
+          identifier: 'pin_shift_pick_vault_$i',
+          onTap: () => _pick(_vault[i].id),
+        ),
+      OptionPill(
+        label: l.pinShiftManual,
+        icon: Icons.keyboard_outlined,
+        selected: _selectedId == null && _form == null,
+        identifier: 'pin_shift_pick_manual',
+        onTap: () => _pick(null),
+      ),
+      if (_canSave && !_full)
+        OptionPill(
+          label: l.pinShiftAddVector,
+          icon: Icons.add,
+          selected: _form?.isNew ?? false,
+          identifier: 'pin_shift_add',
+          onTap: _busy ? () {} : () => _openForm(),
+        ),
+    ];
+    return PinCard(
+      title: l.pinShiftSavedVectors,
+      children: [
+        Wrap(spacing: 8, runSpacing: 8, children: pills),
+        if (_vaultOn) ...[
+          const SizedBox(height: 10),
+          switch (_vaultLoad) {
+            _VaultLoad.loading => Semantics(
+                identifier: 'pin_shift_vault_loading',
+                child: Row(
+                  children: [
+                    const SizedBox.square(
+                      dimension: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(child: PinCaption(l.pinShiftVaultLoading)),
+                  ],
+                ),
+              ),
+            _VaultLoad.error => Semantics(
+                identifier: 'pin_shift_vault_error',
+                child: PinNotice(
+                  l.pinShiftVaultError,
+                  kind: PinNoticeKind.error,
+                  action: Semantics(
+                    identifier: 'pin_shift_vault_retry',
+                    child: TextButton.icon(
+                      onPressed: _retryVault,
+                      icon: const Icon(Icons.refresh, size: 18),
+                      label: Text(l.retry),
+                    ),
+                  ),
+                ),
+              ),
+            _ when _vault.isEmpty => Semantics(
+                identifier: 'pin_shift_vault_empty',
+                child: PinCaption(l.pinShiftVaultEmpty),
+              ),
+            _ => const SizedBox.shrink(),
+          },
+        ],
+        if (_full) ...[
+          const SizedBox(height: 8),
+          Text(
+            l.pinShiftVectorsFull(kMaxShiftVectors),
+            style: theme.textTheme.bodySmall
+                ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+          ),
+        ],
+      ],
     );
   }
 
@@ -583,19 +1018,39 @@ class _PinShiftViewState extends ConsumerState<PinShiftView> {
   // ── Vector ──
 
   Widget _vectorCard(AppLocalizations l, {required int step}) {
+    final form = _form;
+    final chosen = _selected;
+    final String title;
+    if (form == null) {
+      title = l.pinShiftSectionVector;
+    } else if (form.isNew) {
+      title = l.pinShiftFormNew;
+    } else {
+      title = l.pinShiftFormEdit(normalizeShiftVectorName(
+          _local.firstWhere((c) => c.id == form.editId).name));
+    }
     return PinCard(
-      title: _stepTitle(step, l.pinShiftSectionVector),
+      title: _stepTitle(step, title),
       children: [
-        ...switch (_saved) {
-          _Saved.loading => [_loadingSaved()],
-          _Saved.saved when !_replacing => _savedVectorBody(l),
-          _Saved.error => [
-              _readError(l),
-              const SizedBox(height: 10),
-              ..._vectorEntry(l),
-            ],
-          _ => _vectorEntry(l),
-        },
+        if (_load == _Load.loading && form == null)
+          _loadingSaved()
+        else if (form != null)
+          ..._formBody(l, form)
+        else if (chosen != null && chosen.fromVault)
+          ..._vaultVectorBody(l, chosen)
+        else if (chosen != null)
+          ..._savedVectorBody(l, chosen)
+        else ...[
+          if (_load == _Load.error) ...[
+            _readError(l),
+            const SizedBox(height: 10),
+          ],
+          if (_load == _Load.foreign) ...[
+            _foreignNotice(l),
+            const SizedBox(height: 10),
+          ],
+          ..._manualEntry(l),
+        ],
         // A PIN or vector pasted earlier (it survives wipes).
         PinClipboardReminder(
           session: _session,
@@ -620,77 +1075,62 @@ class _PinShiftViewState extends ConsumerState<PinShiftView> {
     );
   }
 
-  /// (a) no saved vector, (c) replacing it, or the keychain was unreadable:
-  /// the vector is typed (and may be revealed while it is not saved).
-  List<Widget> _vectorEntry(AppLocalizations l) {
-    final vec = _FieldCheck(_vecCtrl.text, _length);
-    final label = _replacing ? l.pinShiftVectorNewLabel : l.pinShiftFieldVector;
-    return [
-      if (_replacing) ...[
-        PinCaption(l.pinShiftVectorReplaceNote),
-        const SizedBox(height: 10),
-      ],
-      PinSecretField(
-        controller: _vecCtrl,
-        focusNode: _vecFocus,
-        identifier: 'pin_shift_vector',
-        wipeGeneration: _fieldGen,
-        obscure: !_showVector,
-        pasteOnlyMenu: true,
-        monospace: true,
-        textDirection: TextDirection.ltr,
-        keyboardType: TextInputType.number,
-        labelText: label,
-        helperText: l.pinShiftFieldVectorHelp(_length),
-        onChanged: _edited,
-        suffixIcon: _eye(
-          identifier: 'pin_shift_vector_eye',
-          field: label,
-          shown: _showVector,
-          onPressed: () => setState(() => _showVector = !_showVector),
-        ),
+  /// The vector field: typed by hand (revealable), or the form's new vector.
+  Widget _vectorField(AppLocalizations l,
+      {required String label, required String helper}) {
+    return PinSecretField(
+      controller: _vecCtrl,
+      focusNode: _vecFocus,
+      identifier: 'pin_shift_vector',
+      wipeGeneration: _fieldGen,
+      obscure: !_showVector,
+      pasteOnlyMenu: true,
+      monospace: true,
+      textDirection: TextDirection.ltr,
+      keyboardType: TextInputType.number,
+      labelText: label,
+      helperText: helper,
+      onChanged: (v) {
+        if (_generated) setState(() => _generated = false);
+        _edited(v);
+      },
+      suffixIcon: _eye(
+        identifier: 'pin_shift_vector_eye',
+        field: label,
+        shown: _showVector,
+        onPressed: () => setState(() => _showVector = !_showVector),
       ),
+    );
+  }
+
+  /// Typing by hand: the vector field and "Save on this device".
+  List<Widget> _manualEntry(AppLocalizations l) {
+    final vec = _FieldCheck(_vecCtrl.text, _length);
+    return [
+      _vectorField(l,
+          label: l.pinShiftFieldVector,
+          helper: l.pinShiftFieldVectorHelp(_length)),
       ..._fieldNotes(
         check: vec,
         nonDigit: l.pinShiftVectorNonDigit,
         wrongLength: l.pinShiftVectorLengthWarning,
         idPrefix: 'pin_shift_vector',
       ),
-      if (_canSave) ...[
+      if (_canSave && !_full) ...[
         const SizedBox(height: 10),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          children: [
-            Semantics(
-              identifier: 'pin_shift_vector_save',
-              child: _replacing
-                  ? FilledButton.icon(
-                      style: FilledButton.styleFrom(
-                          minimumSize: const Size(0, 48)),
-                      onPressed: vec.ok && !_busy ? _saveVector : null,
-                      icon: const Icon(Icons.lock_outline, size: 18),
-                      label: Text(l.pinShiftVectorSaveReplace),
-                    )
-                  : OutlinedButton.icon(
-                      style: OutlinedButton.styleFrom(
-                          minimumSize: const Size(0, 48)),
-                      onPressed: vec.ok && !_busy ? _saveVector : null,
-                      icon: const Icon(Icons.lock_outline, size: 18),
-                      label: Text(l.pinShiftVectorSave),
-                    ),
+        Align(
+          alignment: AlignmentDirectional.centerStart,
+          child: Semantics(
+            identifier: 'pin_shift_vector_save',
+            child: OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(minimumSize: const Size(0, 48)),
+              onPressed: vec.ok && !_busy
+                  ? () => _openForm(vector: _vecCtrl.text)
+                  : null,
+              icon: const Icon(Icons.lock_outline, size: 18),
+              label: Text(l.pinShiftVectorSave),
             ),
-            if (_replacing)
-              Semantics(
-                identifier: 'pin_shift_vector_cancel',
-                child: TextButton(
-                  style: TextButton.styleFrom(minimumSize: const Size(0, 48)),
-                  onPressed: _busy ? null : _cancelReplace,
-                  child: Text(l.cancel),
-                ),
-              ),
-          ],
+          ),
         ),
         const SizedBox(height: 6),
         PinCaption(l.pinShiftVectorSaveHelp),
@@ -698,48 +1138,156 @@ class _PinShiftViewState extends ConsumerState<PinShiftView> {
     ];
   }
 
-  /// (b) a saved vector: its length and fixed masks, never the digits and no
-  /// way to reveal them.
-  List<Widget> _savedVectorBody(AppLocalizations l) {
-    final theme = Theme.of(context);
-    final n = _savedLength ?? _length;
+  /// The add / edit form: a name, the vector (shown only while typed or
+  /// generated), Generate, Save and Cancel.
+  List<Widget> _formBody(AppLocalizations l, _Form form) {
+    final vec = _FieldCheck(_vecCtrl.text, _length);
+    final keep = !form.isNew && _vecCtrl.text.isEmpty;
+    final problem = _nameProblem(l);
     return [
-      Semantics(
-        identifier: 'pin_shift_vector_saved',
-        container: true,
-        label: l.pinShiftVectorSavedSemantics(n),
-        child: ExcludeSemantics(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
-                children: [
-                  Icon(
-                    Icons.lock_outline,
-                    size: 18,
-                    color: PinColors.textFor(_vectorColor, theme.brightness),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      l.pinShiftVectorSavedTitle(n),
-                      style: theme.textTheme.titleSmall,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
-              PinDigitCells(
-                value: _mask * n,
-                color: _vectorColor,
-                cellWidth: 36,
-                cellHeight: 44,
-                fontSize: 20,
-              ),
-            ],
+      ControlId(
+        'pin_shift_name',
+        child: TextField(
+          controller: _nameCtrl,
+          focusNode: _nameFocus,
+          enableSuggestions: false,
+          autocorrect: false,
+          textCapitalization: TextCapitalization.none,
+          inputFormatters: [
+            LengthLimitingTextInputFormatter(kMaxShiftVectorNameLength),
+          ],
+          decoration: InputDecoration(
+            labelText: l.pinShiftNameLabel,
+            hintText: l.pinShiftNameHint,
+            helperText: l.pinShiftNameHelp,
+            helperMaxLines: 3,
+            errorText: problem,
+            border: const OutlineInputBorder(),
+          ),
+          onChanged: _edited,
+        ),
+      ),
+      const SizedBox(height: 12),
+      _vectorField(l,
+          label: form.isNew ? l.pinShiftFieldVector : l.pinShiftVectorNewLabel,
+          helper: form.isNew
+              ? l.pinShiftFieldVectorHelp(_length)
+              : l.pinShiftVectorKeepHelp),
+      if (!keep)
+        ..._fieldNotes(
+          check: vec,
+          nonDigit: l.pinShiftVectorNonDigit,
+          wrongLength: l.pinShiftVectorLengthWarning,
+          idPrefix: 'pin_shift_vector',
+        ),
+      const SizedBox(height: 10),
+      Align(
+        alignment: AlignmentDirectional.centerStart,
+        child: Semantics(
+          identifier: 'pin_shift_generate',
+          child: OutlinedButton.icon(
+            style: OutlinedButton.styleFrom(minimumSize: const Size(0, 48)),
+            onPressed: _busy ? null : _generate,
+            icon: const Icon(Icons.casino_outlined, size: 18),
+            label: Text(l.pinShiftGenerate),
           ),
         ),
       ),
+      if (_generated) ...[
+        const SizedBox(height: 8),
+        Semantics(
+          identifier: 'pin_shift_generated_note',
+          child:
+              PinNotice(l.pinShiftGeneratedNote, kind: PinNoticeKind.warning),
+        ),
+      ],
+      const SizedBox(height: 10),
+      Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: [
+          Semantics(
+            identifier: 'pin_shift_vector_save',
+            child: FilledButton.icon(
+              style: FilledButton.styleFrom(minimumSize: const Size(0, 48)),
+              onPressed: _formReady(l) ? _saveForm : null,
+              icon: const Icon(Icons.lock_outline, size: 18),
+              label: Text(l.pinShiftVectorSaveReplace),
+            ),
+          ),
+          Semantics(
+            identifier: 'pin_shift_vector_cancel',
+            child: TextButton(
+              style: TextButton.styleFrom(minimumSize: const Size(0, 48)),
+              onPressed: _busy ? null : _cancelForm,
+              child: Text(l.cancel),
+            ),
+          ),
+        ],
+      ),
+      const SizedBox(height: 6),
+      PinCaption(l.pinShiftVectorSaveHelp),
+    ];
+  }
+
+  /// The masked cells of a chosen vector: its length, never its digits.
+  Widget _maskedVector(
+    AppLocalizations l,
+    _Choice chosen, {
+    required IconData icon,
+    required String identifier,
+  }) {
+    final theme = Theme.of(context);
+    return Semantics(
+      identifier: identifier,
+      container: true,
+      label: l.pinShiftVectorNamedSemantics(chosen.name, chosen.length),
+      child: ExcludeSemantics(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  icon,
+                  size: 18,
+                  color: PinColors.textFor(_vectorColor, theme.brightness),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    l.pinShiftVectorNamedTitle(chosen.name, chosen.length),
+                    style: theme.textTheme.titleSmall,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            PinDigitCells(
+              value: _mask * chosen.length,
+              color: _vectorColor,
+              cellWidth: 36,
+              cellHeight: 44,
+              fontSize: 20,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// A chosen saved vector: its name, length and fixed masks, never the
+  /// digits and no way to reveal them.
+  List<Widget> _savedVectorBody(AppLocalizations l, _Choice chosen) {
+    final theme = Theme.of(context);
+    return [
+      _maskedVector(l, chosen,
+          icon: Icons.lock_outline, identifier: 'pin_shift_vector_saved'),
+      if (_load == _Load.error) ...[
+        const SizedBox(height: 10),
+        _readError(l),
+      ],
       const SizedBox(height: 10),
       PinCaption(l.pinShiftVectorSavedHelp),
       const SizedBox(height: 10),
@@ -748,12 +1296,14 @@ class _PinShiftViewState extends ConsumerState<PinShiftView> {
         runSpacing: 8,
         children: [
           Semantics(
-            identifier: 'pin_shift_vector_replace',
+            identifier: 'pin_shift_vector_edit',
             child: OutlinedButton.icon(
               style: OutlinedButton.styleFrom(minimumSize: const Size(0, 48)),
-              onPressed: _busy ? null : _startReplace,
+              onPressed: _busy || !_canSave
+                  ? null
+                  : () => _openForm(editId: chosen.id),
               icon: const Icon(Icons.edit_outlined, size: 18),
-              label: Text(l.pinShiftVectorReplace),
+              label: Text(l.pinShiftVectorEdit),
             ),
           ),
           Semantics(
@@ -763,13 +1313,40 @@ class _PinShiftViewState extends ConsumerState<PinShiftView> {
                 foregroundColor: theme.colorScheme.error,
                 minimumSize: const Size(0, 48),
               ),
-              onPressed: _busy ? null : _deleteVector,
+              onPressed: _busy || !_canSave ? null : _deleteChosen,
               icon: const Icon(Icons.delete_outline, size: 18),
               label: Text(l.pinShiftVectorDelete),
             ),
           ),
         ],
       ),
+    ];
+  }
+
+  /// A chosen vault vector: masked like a saved one; "Save on this device".
+  List<Widget> _vaultVectorBody(AppLocalizations l, _Choice chosen) {
+    return [
+      _maskedVector(l, chosen,
+          icon: Icons.cloud_download_outlined,
+          identifier: 'pin_shift_vector_vault'),
+      const SizedBox(height: 10),
+      PinCaption(l.pinShiftVaultEntryHelp),
+      if (_canSave && !_full) ...[
+        const SizedBox(height: 10),
+        Align(
+          alignment: AlignmentDirectional.centerStart,
+          child: Semantics(
+            identifier: 'pin_shift_vector_keep',
+            child: OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(minimumSize: const Size(0, 48)),
+              onPressed:
+                  _busy || chosen.digits == null ? null : _keepVaultVector,
+              icon: const Icon(Icons.lock_outline, size: 18),
+              label: Text(l.pinShiftVectorSave),
+            ),
+          ),
+        ),
+      ],
     ];
   }
 
@@ -785,6 +1362,27 @@ class _PinShiftViewState extends ConsumerState<PinShiftView> {
             onPressed: _retryLoad,
             icon: const Icon(Icons.refresh, size: 18),
             label: Text(l.retry),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// The saved set belongs to another account (or is damaged).
+  Widget _foreignNotice(AppLocalizations l) {
+    return Semantics(
+      identifier: 'pin_shift_vectors_foreign',
+      child: PinNotice(
+        _foreign == ShiftVectorFailure.corrupt
+            ? l.pinShiftVectorsCorrupt
+            : l.pinShiftVectorsOtherAccount,
+        kind: PinNoticeKind.error,
+        action: Semantics(
+          identifier: 'pin_shift_vectors_discard',
+          child: TextButton.icon(
+            onPressed: _busy ? null : _discardForeign,
+            icon: const Icon(Icons.delete_outline, size: 18),
+            label: Text(l.pinShiftVectorsDiscard),
           ),
         ),
       ),
@@ -832,8 +1430,13 @@ class _PinShiftViewState extends ConsumerState<PinShiftView> {
       const SizedBox(height: 12),
       PinCaption(l.pinShiftNoCopyNote),
     ]);
+    final chosen = _usingSaved ? _selected : null;
     return PinCard(
-      title: _stepTitle(step, l.pinShiftSectionResult),
+      title: _stepTitle(
+          step,
+          chosen == null
+              ? l.pinShiftSectionResult
+              : l.pinShiftSectionResultFor(chosen.name)),
       children: body,
     );
   }
@@ -1146,6 +1749,17 @@ class _PinShiftViewState extends ConsumerState<PinShiftView> {
             setState(() => _reveal = v);
           },
         ),
+        if (_source != null && _store != null) ...[
+          const SizedBox(height: 10),
+          PinSwitchRow(
+            identifier: 'pin_shift_vault_read',
+            icon: Icons.cloud_download_outlined,
+            label: l.pinShiftVaultReadLabel,
+            caption: l.pinShiftVaultReadHelp,
+            value: _vaultOn,
+            onChanged: _setVaultRead,
+          ),
+        ],
         const SizedBox(height: 10),
         Align(
           alignment: AlignmentDirectional.centerStart,

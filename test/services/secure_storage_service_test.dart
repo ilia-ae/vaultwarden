@@ -7,7 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vault_approver/models/user_session.dart';
 import 'package:vault_approver/services/crypto_service.dart';
-import 'package:vault_approver/services/pin_shift_vector_store.dart';
+import 'package:vault_approver/services/shift_vectors.dart';
 import 'package:vault_approver/services/secure_storage_service.dart';
 
 import '../providers/provider_fakes.dart';
@@ -513,11 +513,49 @@ void main() {
     expect((await storage.loadSession())!.email, 'a@b.com');
   });
 
-  // PIN Shift's remembered vector: device data, not vault account data.
-  group('PIN Shift vector', () {
+  // PIN Shift's saved vectors: device data, not vault account data. The set
+  // (`pin_shift_vectors`, an EncString) and the 1.1.0 single plain vector
+  // (`pin_shift_vector`, migrated) follow the same rules.
+  group('PIN Shift vectors', () {
     const key = SecureStorageService.keyPinShiftVector;
+    const setKey = SecureStorageService.keyPinShiftVectors;
+    const blob = '2.aXY=|Y3Q=|bWFj';
 
-    test('save, load, replace, delete', () async {
+    test('the encrypted set: save, load, replace, delete', () async {
+      expect(setKey, 'pin_shift_vectors');
+      expect(await storage.loadShiftVectors(), isNull);
+      await storage.saveShiftVectors(blob);
+      expect(await storage.loadShiftVectors(), blob);
+      expect((await raw.readAll())[setKey], blob);
+      await storage.saveShiftVectors('2.b3Q=|aGVy|bWFj');
+      expect(await storage.loadShiftVectors(), '2.b3Q=|aGVy|bWFj');
+      await storage.deleteShiftVectors();
+      expect(await storage.loadShiftVectors(), isNull);
+      expect((await raw.readAll()).containsKey(setKey), isFalse);
+      await storage.deleteShiftVectors(); // nothing saved: no error
+    });
+
+    test('the set is kept by sign-out, removed by clearAll and reinstall',
+        () async {
+      await seed();
+      await storage.saveShiftVectors(blob);
+      await storage.clearSessionData();
+      expect(await storage.loadShiftVectors(), blob);
+      await storage.clearAll();
+      expect(await storage.loadShiftVectors(), isNull);
+
+      await storage.saveShiftVectors(blob);
+      SharedPreferences.setMockInitialValues({});
+      await storage.wipeIfReinstalled(await SharedPreferences.getInstance());
+      SharedPreferences.setMockInitialValues({});
+      expect(
+          await storage
+              .wipeIfReinstalled(await SharedPreferences.getInstance()),
+          isTrue);
+      expect(await storage.loadShiftVectors(), isNull);
+    });
+
+    test('legacy vector: save, load, replace, delete', () async {
       expect(key, 'pin_shift_vector');
       expect(await storage.loadShiftVector(), isNull);
       await storage.saveShiftVector('11111111');
@@ -581,12 +619,11 @@ void main() {
       expect(await storage.loadShiftVector(), isNull);
     });
 
-    test('the keychain store behind PIN Shift is this service', () {
-      expect(storage, isA<PinShiftVectorStore>());
+    test('nothing is wired by default: main() wires the stores', () {
       final container = ProviderContainer();
       addTearDown(container.dispose);
-      expect(container.read(pinShiftVectorStoreProvider), isNull,
-          reason: 'main() wires it to the app\'s SecureStorageService');
+      expect(container.read(shiftVectorStoreProvider), isNull);
+      expect(container.read(shiftVectorSourceProvider), isNull);
     });
 
     group('iOS, protected data unavailable', () {
@@ -610,6 +647,20 @@ void main() {
           keychain.locked = false;
         }
         expect(await ios.loadShiftVector(), '90817263');
+      });
+
+      test('the set: an unreadable keychain throws; writes are owed',
+          () async {
+        await ios.saveShiftVectors(blob);
+        keychain.locked = true;
+        await expectLater(
+            ios.loadShiftVectors(), throwsA(isA<SecureStorageReadException>()));
+        await ios.saveShiftVectors('2.bmV3|c2V0|bWFj');
+        expect(keychain.items[setKey], blob);
+        expect(await ios.loadShiftVectors(), '2.bmV3|c2V0|bWFj');
+        keychain.locked = false;
+        await pumpEventQueue();
+        expect(keychain.items[setKey], '2.bmV3|c2V0|bWFj');
       });
 
       test('save and delete are owed, then applied in order', () async {

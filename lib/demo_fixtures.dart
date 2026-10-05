@@ -30,6 +30,7 @@ import 'models/auth_request.dart';
 import 'models/user_session.dart';
 import 'providers/auth_requests_provider.dart';
 import 'providers/session_provider.dart';
+import 'services/shift_vectors.dart';
 
 // Re-export the demo flags so the many `import 'demo_fixtures.dart'` sites keep
 // seeing demoMode/isDemoMode/demoActive/demoRuntime unchanged.
@@ -49,6 +50,15 @@ List<Override> runtimeDemoOverrides() => [
       isLockedProvider.overrideWith((ref) => false),
       userKeyProvider.overrideWith((ref) => null),
       sessionEndNoticeProvider.overrideWith((ref) => null),
+      ..._demoShiftVectorOverrides(),
+    ];
+
+/// PIN Shift in a demo: saved vectors live in memory for this demo only,
+/// never in the device keychain, and the vault reader is not offered.
+List<Override> _demoShiftVectorOverrides() => [
+      shiftVectorStoreProvider
+          .overrideWith((ref) => InMemoryShiftVectorStore()),
+      shiftVectorSourceProvider.overrideWith((ref) => null),
     ];
 
 /// Provider overrides for the current demo mode.
@@ -56,12 +66,12 @@ List<Override> runtimeDemoOverrides() => [
 List<Override> demoModeOverrides() {
   switch (demoMode) {
     case 'main':
-      return _mainOverrides();
+      return [..._mainOverrides(), ..._demoShiftVectorOverrides()];
     case 'lock':
-      return _lockOverrides();
+      return [..._lockOverrides(), ..._demoShiftVectorOverrides()];
     case 'setup':
     case 'totp':
-      return _setupOverrides();
+      return [..._setupOverrides(), ..._demoShiftVectorOverrides()];
     default:
       return const [];
   }

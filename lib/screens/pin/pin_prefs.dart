@@ -29,6 +29,8 @@ class PinPrefs {
   static const kPin24BannerAck = 'pin.pin24.banner_ack';
   static const kShowLegacy = 'pin.show_legacy';
   static const kShiftLength = 'pin.shift.length';
+  static const kShiftSelected = 'pin.shift.selected';
+  static const kShiftVaultRead = 'pin.shift.vault_read';
 
   /// Every key this class writes (for tests and a future "reset" action).
   static const allKeys = [
@@ -38,7 +40,12 @@ class PinPrefs {
     kPin24BannerAck,
     kShowLegacy,
     kShiftLength,
+    kShiftSelected,
+    kShiftVaultRead,
   ];
+
+  /// Stands for "type the vector by hand" in [pinShiftSelected].
+  static const shiftManual = '-';
 
   Pin24Mode get pin24Mode => _prefs.getString(kPin24Mode) == 'password'
       ? Pin24Mode.password
@@ -91,6 +98,20 @@ class PinPrefs {
 
   Future<void> setPinShiftLength(int length) =>
       _prefs.setInt(kShiftLength, clampPinShiftLength(length));
+
+  /// The id of the saved vector PIN Shift last used ([shiftManual] for "by
+  /// hand"); null on first run. Ids are random, never the vector or its name.
+  String? get pinShiftSelected => _prefs.getString(kShiftSelected);
+
+  Future<void> setPinShiftSelected(String id) =>
+      _prefs.setString(kShiftSelected, id);
+
+  /// Experimental, off by default: also offer vectors read from the
+  /// Bitwarden vault.
+  bool get pinShiftVaultRead => _prefs.getBool(kShiftVaultRead) ?? false;
+
+  Future<void> setPinShiftVaultRead(bool on) =>
+      _prefs.setBool(kShiftVaultRead, on);
 }
 
 /// Loaded once; `SharedPreferences.getInstance()` is already warm because

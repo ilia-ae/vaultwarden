@@ -425,6 +425,17 @@ class VaultApiService {
     });
   }
 
+  /// GET {api}/ciphers → the account's vault items, still encrypted. Only the
+  /// experimental "vectors from the Bitwarden vault" option of PIN Shift
+  /// calls it (off by default); the items are decrypted on the device and
+  /// only those with a "PIN Shift" field are kept, in memory.
+  Future<List<Object?>> getCiphers() async {
+    final env = _requireEnv();
+    final response = await _authGet('${env.apiUrl}/ciphers');
+    final body = response.data;
+    return body is List ? body : (jsonGet(body, 'data') as List?) ?? const [];
+  }
+
   /// GET {api}/now → the server's current UTC time.
   Future<DateTime> getServerTime() {
     final env = _requireEnv();

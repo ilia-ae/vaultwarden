@@ -2,14 +2,13 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io' show Platform;
 
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kIsWeb, visibleForTesting;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
 import '../models/server_environment.dart';
 import '../models/user_session.dart';
-import 'pin_shift_vector_store.dart';
 
 /// Reading the keychain / keystore failed (device locked, keystore reset…).
 /// Distinct from "no session stored" (R4).
@@ -32,12 +31,14 @@ class SecureStorageReadException implements Exception {
 /// | 2FA remember tokens            | deleted (opt.)   | deleted  |
 /// | device_id                      | kept             | kept (opt.) |
 /// | client certificates (`client_cert|*`, `client_ca|*`) | kept | deleted |
-/// | PIN Shift vector (`pin_shift_vector`) | kept      | deleted  |
+/// | PIN Shift vectors (`pin_shift_vectors`, legacy `pin_shift_vector`) | kept | deleted |
 /// | install marker                 | kept             | deleted  |
 ///
-/// The PIN Shift vector is device data the user chose to remember on this
-/// device, not vault account data: a sign-out keeps it; a full reset and a
-/// reinstall ([wipeIfReinstalled]) remove it. Never in SharedPreferences.
+/// The saved PIN Shift vectors are device data the user chose to remember on
+/// this device, not vault account data: a sign-out keeps them (encrypted with
+/// the account key, they open again after signing in to the same account); a
+/// full reset and a reinstall ([wipeIfReinstalled]) remove them. Never in
+/// SharedPreferences.
 ///
 /// Preferences live in SharedPreferences; the only one used here is the
 /// install marker of [wipeIfReinstalled].
@@ -59,7 +60,7 @@ class SecureStorageReadException implements Exception {
 /// plugin's availability event. A write that fails anyway is owed too. A
 /// sign-out that could not run is also recorded in the preferences
 /// ([prefsPendingSignOut]) so it still happens after the process ends.
-class SecureStorageService implements PinShiftVectorStore {
+class SecureStorageService {
   SecureStorageService({
     FlutterSecureStorage? storage,
     FlutterSecureStorage? legacyDefaultStorage,
@@ -96,7 +97,12 @@ class SecureStorageService implements PinShiftVectorStore {
   static const keyBiometricStorageKey = 'biometric_storage_key';
   static const keyDeviceId = 'device_id';
 
-  /// PIN Shift's remembered vector (see [PinShiftVectorStore]).
+  /// PIN Shift's saved vectors: one EncString (see
+  /// `EncryptedShiftVectorStore`).
+  static const keyPinShiftVectors = 'pin_shift_vectors';
+
+  /// The single plain vector of 1.1.0 (build ≤ 39); migrated into
+  /// [keyPinShiftVectors] and then deleted.
   static const keyPinShiftVector = 'pin_shift_vector';
 
   /// History keys: `auth_request_history|<scope>|<email>`; the legacy
@@ -198,19 +204,27 @@ class SecureStorageService implements PinShiftVectorStore {
     return id;
   }
 
-  // ── PIN Shift vector (device data, kept by sign-out) ──
+  // ── PIN Shift vectors (device data, kept by sign-out) ──
 
-  /// Held in memory while the keychain cannot take it, like every write.
-  @override
+  /// The encrypted set of saved vectors. Held in memory while the keychain
+  /// cannot take it, like every write.
+  Future<void> saveShiftVectors(String encrypted) =>
+      _change(keyPinShiftVectors, encrypted);
+
+  /// Null only when nothing is saved; throws [SecureStorageReadException]
+  /// when the keychain cannot be read (see [_readRequired]).
+  Future<String?> loadShiftVectors() => _readRequired(keyPinShiftVectors);
+
+  Future<void> deleteShiftVectors() => _change(keyPinShiftVectors, null);
+
+  /// The legacy plain vector (migration only).
+  @visibleForTesting
   Future<void> saveShiftVector(String vector) =>
       _change(keyPinShiftVector, vector);
 
-  /// Null only when no vector is saved; throws [SecureStorageReadException]
-  /// when the keychain cannot be read (see [_readRequired]).
-  @override
+  /// The legacy plain vector, null when none (migration only).
   Future<String?> loadShiftVector() => _readRequired(keyPinShiftVector);
 
-  @override
   Future<void> deleteShiftVector() => _change(keyPinShiftVector, null);
 
   // ── 2FA "remember this device" tokens (per server + email) ──

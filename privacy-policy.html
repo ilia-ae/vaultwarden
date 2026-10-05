@@ -39,7 +39,7 @@
     <li>Unique device identifier (randomly generated UUID)</li>
     <li>Client certificate for mutual TLS (a .p12/.pfx file and its password), only if you import one for a self-hosted server that requires it — kept in the secure keychain for that server only</li>
     <li>Two-step login "remember this device" token, only if you keep that option on — kept in the secure keychain for that server and account</li>
-    <li>PIN Shift vector, only if you choose to save it in the PIN tools — kept in the secure keychain of this device only; it is never shown again, synced or sent</li>
+    <li>PIN Shift vectors and their names, only if you choose to save them in the PIN tools — kept in the secure keychain of this device only, encrypted with your Bitwarden account key; they are never shown again, synced or sent</li>
     <li>User preferences (theme, language, lock timeout, refresh interval)</li>
     <li>Request approval/denial history</li>
 </ul>
@@ -69,10 +69,11 @@
     <li><code>/api/auth-requests/pending</code> (on older servers <code>/api/auth-requests</code>) — to fetch pending login requests, and <code>/api/auth-requests/{id}</code> — to approve or deny one</li>
     <li><code>/api/two-factor/send-email-login</code> and <code>/api/accounts/resend-new-device-otp</code> — only when you ask for an e-mailed sign-in or device verification code</li>
     <li><code>/api/now</code> — the server time, so request expiry follows the server's clock</li>
+    <li><code>/api/ciphers</code> — only if you turn on the experimental <strong>Vectors from the Bitwarden vault</strong> option in PIN Shift (off by default); see below</li>
     <li><code>/notifications/hub</code> — WebSocket for real-time notifications</li>
 </ul>
 <p>Apart from the optional cloud settings sync below, no data is sent to any third-party service, advertising network, or analytics provider.</p>
-<p>The PIN tools (PIN 24, PIN Shift, YubiKey and the legacy mask) run fully offline on your device: nothing you enter there — seed phrases, passphrases, PINs, master keys or serial numbers — is synced or transmitted anywhere, and nothing is stored except a PIN Shift vector that you choose to save on the device (see section 1). PIN 24 can read a nickname list from a Ledger Passwords backup file that you pick yourself: only the nicknames and charset names are read, on the device, and kept in memory until the PIN tools are wiped; the file is never changed or uploaded.</p>
+<p>The PIN tools (PIN 24, PIN Shift, YubiKey and the legacy mask) run fully offline on your device: nothing you enter there — seed phrases, passphrases, PINs, master keys or serial numbers — is synced or transmitted anywhere, and nothing is stored except PIN Shift vectors that you choose to save on the device (see section 1). If you turn on the experimental option <strong>Vectors from the Bitwarden vault</strong> (off by default), the App downloads your vault items, still encrypted, from the server you signed in to and decrypts on the device only the items that have a custom field named "PIN Shift"; their names and vectors are kept in memory only, and nothing is sent anywhere. PIN 24 can read a nickname list from a Ledger Passwords backup file that you pick yourself: only the nicknames and charset names are read, on the device, and kept in memory until the PIN tools are wiped; the file is never changed or uploaded.</p>
 
 <h2>5. Third-Party Services</h2>
 <p>The App does not integrate any analytics tools, advertising frameworks, or tracking services.</p>
@@ -89,7 +90,7 @@
 <h2>7. Data Retention and Deletion</h2>
 <p>All data is stored locally on your device. You can delete stored data at any time by:</p>
 <ul>
-    <li>Using the <strong>Log out</strong> button in Settings — this erases your account's encryption keys, tokens, session data, request history and "remember this device" tokens. The device identifier, imported client certificates and a saved PIN Shift vector are kept (the device identifier so that the server recognises this device on the next sign-in); remove a certificate under <strong>Settings → Client certificate</strong> and the vector under <strong>PIN → PIN Shift → Delete</strong></li>
+    <li>Using the <strong>Log out</strong> button in Settings — this erases your account's encryption keys, tokens, session data, request history and "remember this device" tokens. The device identifier, imported client certificates and saved PIN Shift vectors are kept (the device identifier so that the server recognises this device on the next sign-in); remove a certificate under <strong>Settings → Client certificate</strong> and a vector under <strong>PIN → PIN Shift → Delete</strong></li>
     <li>Using <strong>Delete account</strong> under <strong>Settings → Cloud sync</strong> — after you confirm with the same Apple or Google account, this permanently deletes your cloud sync account (Firebase Authentication) and the settings stored for it in Cloud Firestore, and revokes the App's Sign in with Apple authorization. Settings on the device, your vault account and everything else on the device are not affected. The App does not create Bitwarden or Vaultwarden accounts; delete such an account in your server's web vault</li>
     <li>Uninstalling the App — this removes the App's data from the device. iOS may keep secure keychain items after an app is deleted; if you install the App again, it deletes those leftovers the first time it starts, before anything is signed in</li>
 </ul>
